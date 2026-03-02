@@ -22,6 +22,7 @@
         },
         "install": {
           "cmds": [
+            "curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer",
             "cd backend && composer install --optimize-autoloader --no-dev"
           ]
         },
