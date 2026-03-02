@@ -1,24 +1,42 @@
 {
+  "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "nixpacksConfig": {
-      "language": "php",
+    "nixpacksPlan": {
       "phases": {
+        "setup": {
+          "nixPkgs": [
+            "php82",
+            "php82Packages.composer",
+            "php82Extensions.pdo",
+            "php82Extensions.pdo_mysql",
+            "php82Extensions.mbstring",
+            "php82Extensions.xml",
+            "php82Extensions.curl",
+            "php82Extensions.zip",
+            "php82Extensions.bcmath",
+            "php82Extensions.tokenizer",
+            "php82Extensions.fileinfo",
+            "php82Extensions.openssl"
+          ]
+        },
         "install": {
-          "commands": [
-            "composer install --optimize-autoloader --no-dev"
+          "cmds": [
+            "cd backend && composer install --optimize-autoloader --no-dev"
           ]
         },
         "build": {
-          "commands": [
-            "php artisan optimize"
+          "cmds": [
+            "cd backend && php artisan config:cache",
+            "cd backend && php artisan route:cache",
+            "cd backend && php artisan view:cache"
           ]
         }
       }
     }
   },
   "deploy": {
-    "startCommand": "php artisan serve --host=0.0.0.0 --port=$PORT",
+    "startCommand": "cd backend && php -S 0.0.0.0:$PORT -t public",
     "healthcheckPath": "/",
     "restartPolicyType": "ON_FAILURE"
   }
