@@ -5,17 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Admin Login - WashBox</title>
-
-    <!-- Bootstrap CSS -->
     <link href="{{ asset('assets/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="{{ asset('assets/bootstrap-icons/font/bootstrap-icons.css') }}">
-    <!-- Shared Login CSS -->
     <link rel="stylesheet" href="{{ asset('assets/css/login.css') }}">
 </head>
 <body class="admin-bg">
 
-<!-- Background Effects -->
 <div class="bubble-container"></div>
 <div class="water-waves">
     <svg class="water-wave" viewBox="0 0 1200 120" preserveAspectRatio="none">
@@ -32,6 +27,7 @@
 <div class="floating-particles"></div>
 
 <div class="login-container">
+
     <!-- LEFT PANEL -->
     <div class="login-left">
         <div class="logo-container">
@@ -81,78 +77,88 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('admin.login') }}" id="loginForm">
-            @csrf
+        <!-- TOGGLE BUTTON -->
+        <button type="button" id="showLoginBtn" class="btn-show-login">
+            <i class="bi bi-box-arrow-in-right"></i>
+            <span class="btn-label">Admin Sign In</span>
+            <i class="bi bi-chevron-down chevron ms-auto"></i>
+        </button>
 
-            <div class="form-group">
-                <label class="form-label">Email Address</label>
-                <input type="email"
-                       name="email"
-                       class="form-control @error('email') is-invalid @enderror"
-                       placeholder="admin@company.com"
-                       value="{{ old('email') }}"
-                       required
-                       autocomplete="email"
-                       autofocus>
-                @error('email')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
+        <!-- DIVIDER -->
+        <div class="form-divider" id="formDivider">
+            <span>Enter your credentials</span>
+        </div>
 
-            <div class="form-group">
-                <label class="form-label">Password</label>
-                <div class="password-wrapper">
-                    <input type="password"
-                           name="password"
-                           id="password"
-                           class="form-control @error('password') is-invalid @enderror"
-                           placeholder="Enter your password"
+        <!-- COLLAPSIBLE FORM -->
+        <div class="login-form-wrapper" id="loginFormWrapper">
+            <form method="POST" action="{{ route('admin.login') }}" id="loginForm">
+                @csrf
+
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email"
+                           name="email"
+                           class="form-control @error('email') is-invalid @enderror"
+                           placeholder="admin@company.com"
+                           value="{{ old('email') }}"
                            required
-                           autocomplete="current-password">
-                    <button type="button" class="password-toggle">
-                        <i class="bi bi-eye"></i>
-                    </button>
+                           autocomplete="email">
+                    @error('email')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
-                @error('password')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
 
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="remember" name="remember">
-                    <label class="form-check-label" for="remember">
-                        Remember me
-                    </label>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="password-wrapper">
+                        <input type="password"
+                               name="password"
+                               id="password"
+                               class="form-control @error('password') is-invalid @enderror"
+                               placeholder="Enter your password"
+                               required
+                               autocomplete="current-password">
+                        <button type="button" class="password-toggle">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    @error('password')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
-                <a href="#" class="forgot-link">
-                    Forgot Password?
-                </a>
-            </div>
 
-            <button type="submit" class="btn-login">
-                <i class="bi bi-box-arrow-in-right"></i>
-                Sign In
-            </button>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">Remember me</label>
+                    </div>
+                    <a href="#" class="forgot-link">Forgot Password?</a>
+                </div>
 
-            <div class="security-note">
-                <i class="bi bi-shield-check text-success"></i>
-                <span>Secure Login · 256-bit SSL Encrypted</span>
-            </div>
+                <button type="submit" class="btn-login">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    Sign In
+                </button>
 
-            <div class="text-center mt-4">
-                <p class="mb-0">
-                    <span class="role-switch-link">Staff member?</span>
-                    <a href="{{ route('staff.login') }}" class="role-switch-link fw-bold ms-1">
-                        Go to Staff Login →
-                    </a>
-                </p>
-            </div>
-        </form>
+                <div class="security-note">
+                    <i class="bi bi-shield-check text-success"></i>
+                    <span>Secure Login · 256-bit SSL Encrypted</span>
+                </div>
+
+                <div class="text-center mt-3">
+                    <p class="mb-0">
+                        <span class="role-switch-link">Staff member?</span>
+                        <a href="{{ route('staff.login') }}" class="role-switch-link fw-bold ms-1">
+                            Go to Staff Login →
+                        </a>
+                    </p>
+                </div>
+            </form>
+        </div>
     </div>
+
 </div>
 
-<!-- Scripts -->
 <script src="{{ asset('assets/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ asset('assets/js/login.js') }}"></script>
 </body>

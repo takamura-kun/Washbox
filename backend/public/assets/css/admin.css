@@ -654,7 +654,6 @@ body {
 
 /* Map Styles */
 #logisticsMap {
-    height: 500px;
     width: 100%;
     border-radius: 12px;
     z-index: 1;
@@ -805,80 +804,250 @@ body {
     min-width: 120px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    #address-search-overlay {
-        max-width: calc(100% - 30px);
-        right: 15px;
-        left: 15px;
-    }
-
-    .glass-header {
-        padding: 1.25rem;
-    }
-
-    .kpi-value {
-        font-size: 1.75rem;
-    }
-
-    .modern-tabs-sticky {
-        margin: 0 -0.5rem;
-        padding: 0 0.5rem;
-    }
-
-    .nav-segmented .nav-link {
-        padding: 0.5rem 1rem;
-        font-size: 0.875rem;
-    }
-
-    .route-details-panel {
-        bottom: 20px;
-        width: 90%;
-        right: 5%;
-        left: 5%;
-    }
-
-    #logisticsMap {
-        height: 400px;
-    }
+/* ── Logistics map — CSS-controlled height ─────────────────── */
+.admin-logistics-map {
+    height: 500px;
+    width: 100%;
+    border-radius: 0 0 12px 12px;
+    z-index: 1;
 }
 
+/* ================================================================
+   RESPONSIVE SYSTEM — Full spectrum from 480px to 1440px
+================================================================ */
+
+/* ── Laptop Compact (87% feel) — 1024px to 1440px ──────────────── */
+@media (min-width: 1024px) and (max-width: 1440px) {
+    .dashboard-modern-wrapper { font-size: 0.875rem; }
+    .dashboard-modern-wrapper.container-fluid { padding: 0.875rem 1rem !important; }
+    .dashboard-modern-wrapper .row.g-4 { --bs-gutter-x: 0.75rem; --bs-gutter-y: 0.75rem; }
+    .dashboard-modern-wrapper .mb-4 { margin-bottom: 0.75rem !important; }
+    /* Glass header */
+    .glass-header { padding: 0.875rem 1.25rem; border-radius: 14px; }
+    /* Status cards */
+    .status-card-modern { padding: 1.1rem; border-radius: 14px; }
+    .status-icon-box { width: 38px; height: 38px; font-size: 1rem; }
+    /* KPI */
+    .kpi-card-modern { padding: 1.1rem; border-radius: 14px; }
+    .kpi-value { font-size: 1.7rem; }
+    .kpi-label { font-size: 0.7rem; }
+    .kpi-icon-glow { width: 44px; height: 44px; font-size: 1.25rem; border-radius: 12px; }
+    /* Cards */
+    .modern-card { border-radius: 14px; }
+    .card-header-modern { padding: 0.875rem 1.25rem; }
+    .card-body-modern { padding: 1.1rem; }
+    /* Chart container */
+    .chart-container { height: 250px; }
+    /* Donut charts */
+    .svc-donut-wrap { height: 240px; }
+    .cbp-donut-wrap { height: 190px; }
+    .svc-donut-num { font-size: 1.3rem; }
+    /* Launch buttons */
+    .launch-action-btn { padding: 1rem 0.75rem; border-radius: 12px; }
+    .launch-icon { width: 40px; height: 40px; font-size: 1.1rem; }
+    .action-label { font-size: 0.82rem; }
+    /* Pipeline tiles */
+    .pipeline-tile { padding: 1rem; border-radius: 12px; }
+    .p-count { font-size: 1.25rem; }
+    .p-label { font-size: 0.8rem; }
+    /* Tab nav */
+    .nav-segmented .nav-link { padding: 0.55rem 1.1rem; font-size: 0.8rem; }
+    /* Metric tiles */
+    .metric-tile { padding: 1rem; border-radius: 12px; }
+    /* Map */
+    .admin-logistics-map { height: 440px; }
+    /* Tables */
+    .dashboard-modern-wrapper table { font-size: 0.8rem; }
+    .dashboard-modern-wrapper table th,
+    .dashboard-modern-wrapper table td { padding: 0.625rem 0.75rem; }
+    /* BPB/CBP/PBP cards */
+    .bpb-card, .cbp-card, .pbp-card { border-radius: 14px; }
+    .bpb-card-header, .cbp-card-header, .pbp-card-header { padding: 0.875rem 1rem 0.75rem; }
+    .bpb-tile-count, .cbp-tile-count, .pbp-tile-count { font-size: 1rem; }
+    .bpb-tile-label, .cbp-tile-label, .pbp-tile-label { font-size: 0.58rem; }
+    /* Unclaimed */
+    .unclaimed-row { padding: 0.625rem; }
+    .u-indicator { width: 30px; height: 30px; font-size: 0.875rem; }
+    /* Customer avatars */
+    .customer-avatar { width: 34px; height: 34px; font-size: 0.875rem; }
+    /* Badges / small text */
+    .dashboard-modern-wrapper .badge { font-size: 0.62rem; }
+}
+
+/* ── Tablet Landscape — max 992px ───────────────────────────────── */
+@media (max-width: 992px) {
+    /* Status cards: 2x2 grid on tablet (Bootstrap md stays col-md-3, so col-6 on xs) */
+    .status-card-modern { padding: 1.1rem; border-radius: 14px; }
+    .status-icon-box { width: 36px; height: 36px; font-size: 0.95rem; }
+    /* KPI */
+    .kpi-card-modern { padding: 1rem; }
+    .kpi-value { font-size: 1.75rem; }
+    .kpi-icon-glow { width: 44px; height: 44px; font-size: 1.2rem; }
+    /* Chart */
+    .chart-container { height: 260px; }
+    .svc-donut-wrap { height: 240px; }
+    .cbp-donut-wrap { height: 185px; }
+    /* Map */
+    .admin-logistics-map { height: 420px; }
+    /* Address search overlay */
+    #address-search-overlay { max-width: calc(100% - 24px); right: 12px; left: auto; }
+    /* Nav tabs — allow horizontal scroll */
+    .modern-tabs-sticky { margin: 0 -0.75rem; padding: 0 0.75rem; }
+    .nav-segmented { flex-wrap: nowrap; }
+    .nav-segmented .nav-link { padding: 0.55rem 1rem; font-size: 0.82rem; white-space: nowrap; }
+    /* BPB cards stay col-md-6 — fine */
+    .bpb-tile-count, .pbp-tile-count { font-size: 1rem; }
+    .bpb-tile-label, .pbp-tile-label { font-size: 0.58rem; }
+}
+
+/* ── Tablet Portrait — max 768px ────────────────────────────────── */
+@media (max-width: 768px) {
+    /* Container */
+    .dashboard-modern-wrapper.container-fluid { padding: 0.875rem 0.75rem !important; }
+    /* Glass header */
+    .glass-header { padding: 0.875rem 1rem; border-radius: 14px; }
+    /* Status cards: stack to 2 columns (col-6 each) */
+    .status-card-modern { padding: 1rem 0.875rem; border-radius: 12px; }
+    .status-icon-box { width: 34px; height: 34px; font-size: 0.9rem; border-radius: 10px; }
+    .status-card-modern h5 { font-size: 0.95rem; }
+    /* KPI */
+    .kpi-card-modern { padding: 0.875rem; border-radius: 14px; }
+    .kpi-value { font-size: 1.6rem; }
+    .kpi-label { font-size: 0.68rem; }
+    .kpi-icon-glow { width: 40px; height: 40px; font-size: 1.1rem; border-radius: 11px; }
+    /* Cards */
+    .card-header-modern { padding: 0.75rem 1rem; }
+    .card-body-modern   { padding: 0.875rem 1rem; }
+    /* Chart */
+    .chart-container { height: 230px; }
+    .svc-donut-wrap { height: 220px; }
+    .cbp-donut-wrap { height: 170px; }
+    .svc-donut-num { font-size: 1.3rem; }
+    /* Pipeline tiles */
+    .pipeline-tile { padding: 0.875rem; border-radius: 12px; }
+    .p-count { font-size: 1.25rem; }
+    .p-icon { width: 34px; height: 34px; font-size: 1rem; }
+    /* Sticky tabs */
+    .modern-tabs-sticky { margin: 0 -0.5rem; padding: 0 0.5rem; overflow-x: auto; }
+    .nav-segmented { flex-wrap: nowrap; gap: 3px; }
+    .nav-segmented .nav-link { padding: 0.5rem 0.875rem; font-size: 0.8rem; white-space: nowrap; }
+    /* Launch buttons — 3 per row */
+    .launch-action-btn { padding: 0.875rem 0.625rem; }
+    .launch-icon { width: 40px; height: 40px; font-size: 1.1rem; }
+    .action-label { font-size: 0.78rem; }
+    /* Map */
+    .admin-logistics-map { height: 380px; }
+    #address-search-overlay { max-width: calc(100% - 30px); right: 15px; left: 15px; }
+    /* Metric tiles */
+    .metric-tile { padding: 0.875rem; }
+    /* Unclaimed */
+    .unclaimed-row { padding: 0.625rem; }
+    .u-indicator { width: 30px; height: 30px; }
+    /* Tables */
+    .dashboard-modern-wrapper table { font-size: 0.8rem; }
+    .dashboard-modern-wrapper table th,
+    .dashboard-modern-wrapper table td { padding: 0.5rem 0.625rem; }
+    /* BPB/CBP/PBP cards */
+    .bpb-tile-count, .cbp-tile-count, .pbp-tile-count { font-size: 0.95rem; }
+    .bpb-tile-label, .cbp-tile-label, .pbp-tile-label { font-size: 0.57rem; }
+    .bpb-legend, .cbp-legend, .pbp-legend { display: none !important; }
+    /* Customer avatars */
+    .customer-avatar { width: 34px; height: 34px; font-size: 0.875rem; }
+    /* Route panel */
+    .route-details-panel { bottom: 20px; width: 90%; right: 5%; left: 5%; }
+}
+
+/* ── Mobile Large — max 576px ───────────────────────────────────── */
 @media (max-width: 576px) {
-    .brand-hex-icon {
-        width: 44px;
-        height: 44px;
-        font-size: 1.25rem;
-    }
+    /* Container */
+    .dashboard-modern-wrapper.container-fluid { padding: 0.625rem 0.5rem !important; }
+    /* Glass header - compact */
+    .glass-header { padding: 0.75rem; border-radius: 12px; }
+    /* Status cards: 1 per row on very small, but keep 2 columns with col-6 Bootstrap */
+    .status-card-modern { padding: 0.875rem 0.75rem; border-radius: 12px; }
+    .status-icon-box { width: 32px; height: 32px; font-size: 0.85rem; border-radius: 9px; }
+    .status-card-modern h5 { font-size: 0.85rem; }
+    .status-card-modern small { font-size: 0.58rem !important; }
+    /* KPI cards: 2 per row is fine (col-6 col-lg-3) */
+    .kpi-card-modern { padding: 0.75rem; border-radius: 12px; }
+    .kpi-value { font-size: 1.4rem; word-break: break-word; }
+    .kpi-label { font-size: 0.62rem; }
+    .kpi-icon-glow { width: 36px; height: 36px; font-size: 1rem; border-radius: 10px; }
+    .kpi-trend { font-size: 0.68rem; }
+    /* Cards */
+    .modern-card { border-radius: 12px; }
+    .card-header-modern { padding: 0.625rem 0.75rem; }
+    .card-body-modern { padding: 0.75rem; }
+    /* Chart */
+    .chart-container { height: 200px; }
+    .svc-donut-wrap { height: 190px; }
+    .cbp-donut-wrap { height: 155px; }
+    .svc-donut-num { font-size: 1.15rem; }
+    .svc-donut-lbl { font-size: 0.58rem; }
+    /* Sticky tabs — icons only to save space */
+    .modern-tabs-sticky { margin: 0 -0.5rem; padding: 0 0.375rem; }
+    .nav-segmented { gap: 2px; }
+    .nav-segmented .nav-link { padding: 0.45rem 0.625rem; font-size: 0; }
+    .nav-segmented .nav-link i { display: inline-block !important; font-size: 0.875rem; }
+    .nav-segmented .nav-link.active i { color: white; }
+    /* Pipeline tiles — already 2 per row from col-6 */
+    .pipeline-tile { padding: 0.75rem; border-radius: 12px; }
+    .p-count { font-size: 1.1rem; }
+    .p-icon { width: 30px; height: 30px; font-size: 0.875rem; border-radius: 8px; }
+    .p-label { font-size: 0.78rem; }
+    /* Launch buttons */
+    .launch-action-btn { padding: 0.75rem 0.375rem; border-radius: 10px; }
+    .launch-icon { width: 36px; height: 36px; font-size: 0.95rem; border-radius: 9px; }
+    .action-label { font-size: 0.7rem; }
+    /* Map */
+    .admin-logistics-map { height: 300px; }
+    #address-search-overlay { max-width: calc(100% - 24px); right: 12px; left: 12px; }
+    /* Metric tiles */
+    .metric-tile { padding: 0.75rem; border-radius: 12px; }
+    .m-icon { width: 34px; height: 34px; font-size: 1rem; }
+    /* Unclaimed rows */
+    .unclaimed-row { padding: 0.5rem; border-radius: 10px; }
+    .u-indicator { width: 28px; height: 28px; font-size: 0.8rem; border-radius: 7px; }
+    /* Tables */
+    .dashboard-modern-wrapper table { font-size: 0.72rem; }
+    .dashboard-modern-wrapper table th,
+    .dashboard-modern-wrapper table td { padding: 0.375rem 0.4rem; }
+    /* BPB status tiles - tighter */
+    .bpb-status-tile, .pbp-status-tile { padding: 0.625rem 0.2rem; }
+    .bpb-tile-count, .pbp-tile-count { font-size: 0.9rem; }
+    .bpb-tile-label, .pbp-tile-label { font-size: 0.54rem; }
+    .bpb-tile-pct, .pbp-tile-pct { font-size: 0.52rem; }
+    /* CBP 2-tile grid */
+    .cbp-tile-count { font-size: 1rem; }
+    .cbp-tile-label { font-size: 0.56rem; }
+    /* Customer items */
+    .top-customer-item { padding: 0.625rem; border-radius: 10px; }
+    .customer-avatar { width: 32px; height: 32px; font-size: 0.8rem; border-radius: 8px; }
+    /* Recent laundry items */
+    .recent-laundry-item { padding: 0.625rem; border-radius: 10px; }
+    /* Route panel */
+    .route-details-panel { bottom: 10px; width: 95%; right: 2.5%; left: 2.5%; }
+    /* Brand icon in header */
+    .brand-hex-icon { width: 40px; height: 40px; font-size: 1.1rem; border-radius: 11px; }
+}
 
-    .kpi-value {
-        font-size: 1.5rem;
-    }
-
-    .launch-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 1.125rem;
-    }
-
-    .nav-segmented {
-        gap: 2px;
-    }
-
-    .nav-segmented .nav-link {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.8125rem;
-    }
-
-    .route-details-panel {
-        bottom: 10px;
-        width: 95%;
-        right: 2.5%;
-        left: 2.5%;
-    }
-
-    #logisticsMap {
-        height: 350px;
-    }
+/* ── Mobile Small — max 480px ───────────────────────────────────── */
+@media (max-width: 480px) {
+    .kpi-value { font-size: 1.2rem; }
+    .kpi-card-modern { padding: 0.625rem; }
+    .kpi-icon-glow { width: 32px; height: 32px; font-size: 0.875rem; }
+    .status-card-modern { padding: 0.75rem; }
+    .status-card-modern h5 { font-size: 0.8rem; }
+    .chart-container { height: 180px; }
+    .svc-donut-wrap { height: 165px; }
+    .cbp-donut-wrap { height: 140px; }
+    .admin-logistics-map { height: 260px; }
+    .card-body-modern { padding: 0.625rem; }
+    .pipeline-tile { padding: 0.625rem; }
+    .p-count { font-size: 1rem; }
+    .metric-tile { padding: 0.625rem; }
+    .nav-segmented .nav-link { padding: 0.4rem 0.5rem; }
+    /* Status cards stack to 2 columns - they have col-md-3 which means full-width on xs */
 }
 
 /* Smooth scroll behavior */
@@ -2463,3 +2632,63 @@ html {
 [data-theme="dark"] .trc-rank        { background: #334155; color: #94a3b8; }
 [data-theme="dark"] .trc-star-bar    { background: #334155; }
 [data-theme="dark"] .trc-stars i     { color: #475569; }
+
+/* ================================================================
+   Date Range Filter — glass-header
+   ================================================================ */
+.admin-date-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 50px;
+    padding: 0.3rem 0.75rem 0.3rem 0.6rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    backdrop-filter: blur(8px);
+}
+
+.admin-date-filter:focus-within {
+    border-color: var(--primary-blue, #3B82F6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.admin-date-filter-icon {
+    font-size: 0.8rem;
+    color: var(--primary-blue, #3B82F6);
+    flex-shrink: 0;
+}
+
+.admin-date-select {
+    border: none;
+    background: transparent;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--slate-700, #334155);
+    cursor: pointer;
+    outline: none;
+    padding: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    min-width: 110px;
+}
+
+.admin-date-select:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Dark mode */
+[data-theme="dark"] .admin-date-filter {
+    background: rgba(30, 41, 59, 0.7);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+[data-theme="dark"] .admin-date-select {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .admin-date-select option {
+    background: #1e293b;
+    color: #cbd5e1;
+}

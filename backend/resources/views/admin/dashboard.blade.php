@@ -30,6 +30,37 @@
             </div>
             <div class="col-lg-4 mt-3 mt-lg-0">
                 <div class="d-flex gap-2 justify-content-lg-end align-items-center flex-wrap">
+
+                    {{-- Date Range Filter --}}
+                    <form method="GET" action="{{ route('admin.dashboard') }}" class="d-flex m-0" id="dateRangeForm">
+                        <div class="admin-date-filter">
+                            <i class="bi bi-calendar3 admin-date-filter-icon"></i>
+                            <select name="date_range"
+                                    class="admin-date-select"
+                                    onchange="this.form.submit()"
+                                    aria-label="Filter by date range">
+                                @php
+                                    $activeRange  = $currentFilters['date_range'] ?? 'last_30_days';
+                                    $rangeOptions = [
+                                        'today'        => 'Today',
+                                        'yesterday'    => 'Yesterday',
+                                        'last_7_days'  => 'Last 7 Days',
+                                        'this_week'    => 'This Week',
+                                        'last_30_days' => 'Last 30 Days',
+                                        'this_month'   => 'This Month',
+                                        'last_month'   => 'Last Month',
+                                        'this_year'    => 'This Year',
+                                    ];
+                                @endphp
+                                @foreach($rangeOptions as $value => $label)
+                                    <option value="{{ $value }}" {{ $activeRange === $value ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </form>
+
                     <button onclick="refreshDashboard()" class="btn btn-sm rounded-pill btn-outline-primary d-flex align-items-center" id="refresh-btn">
                         <i class="bi bi-arrow-clockwise me-2"></i>
                         <span>Refresh</span>
@@ -51,8 +82,9 @@
     </div>
 
     {{-- Enhanced System Status Cards --}}
-    <div class="row g-4 mb-4">
-        <div class="col-md-3">
+    {{-- Enhanced Main KPI Cards --}}
+    <div class="row g-3 g-md-4 mb-3 mb-md-4">
+        <div class="col-6 col-md-3">
             <div class="status-card-modern grad-blue shadow-glow-blue">
                 <div class="d-flex align-items-center">
                     <div class="status-icon-box shadow-sm">
@@ -66,7 +98,7 @@
                 <div class="status-indicator-bar {{ $stats['system_pulse']['db_connected'] ? 'status-active' : 'status-inactive' }}"></div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="status-card-modern grad-indigo shadow-glow-indigo">
                 <div class="d-flex align-items-center">
                     <div class="status-icon-box shadow-sm">
@@ -80,7 +112,7 @@
                 <div class="status-indicator-bar status-warning"></div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="status-card-modern grad-cyan shadow-glow-cyan">
                 <div class="d-flex align-items-center">
                     <div class="status-icon-box shadow-sm">
@@ -94,7 +126,7 @@
                 <div class="status-indicator-bar status-active"></div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <a href="{{ route('admin.laundries.index', ['filter' => 'errors']) }}" class="text-decoration-none d-block"
                title="{{ ($stats['dataQuality']['data_entry_errors'] ?? 0) > 0 ? 'Click to view laundries with data errors' : 'No data errors found' }}">
                 <div class="status-card-modern grad-navy shadow-glow-navy"
@@ -120,7 +152,7 @@
     </div>
 
     {{-- Enhanced Main KPI Cards --}}
-    <div class="row g-4 mb-4">
+    <div class="row g-3 g-md-4 mb-3 mb-md-4">
         {{-- Today's Laundries --}}
         <div class="col-md-6 col-lg-3" data-kpi-card="laundries">
             <div class="kpi-card-modern shadow-sm">
@@ -214,6 +246,10 @@
                             <i class="bi bi-plus-circle me-1"></i>
                             <span>+{{ $stats['newCustomersThisMonth'] ?? 0 }} this month</span>
                         </div>
+                        <small class="text-muted d-block mt-1">
+                            <i class="bi bi-person-plus me-1 text-success"></i>
+                            <span class="fw-600 text-success">+{{ $stats['newCustomersToday'] ?? 0 }} new today</span>
+                        </small>
                         <small class="text-muted d-block mt-1">
                             @if(isset($stats['customerRegistrationSource']['app']))
                                 {{ $stats['customerRegistrationSource']['app'] }} app users
@@ -416,7 +452,22 @@
                         <div class="card-header-modern bg-transparent border-0 d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="mb-0 fw-800 text-slate-800">Revenue Trend</h6>
-                                <small class="text-muted">Last 7 days performance</small>
+                                <small class="text-muted">
+                                    @php
+                                        $rangeLabels = [
+                                            'today'        => 'Today',
+                                            'yesterday'    => 'Yesterday',
+                                            'last_7_days'  => 'Last 7 days',
+                                            'this_week'    => 'This week',
+                                            'last_30_days' => 'Last 30 days',
+                                            'this_month'   => 'This month',
+                                            'last_month'   => 'Last month',
+                                            'this_year'    => 'This year',
+                                        ];
+                                        $activeRangeLabel = $rangeLabels[$currentFilters['date_range'] ?? 'last_30_days'] ?? 'Last 30 days';
+                                    @endphp
+                                    {{ $activeRangeLabel }} performance
+                                </small>
                             </div>
                         </div>
                         <div class="card-body-modern">
@@ -613,7 +664,7 @@
                                 </div>
                                 <div class="ms-auto">
                                     <span class="svc-chart-total-badge" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;">
-                                        {{ number_format($scd['drop_off']['total']) }} orders
+                                        {{ number_format($scd['drop_off']['total']) }} laundries
                                     </span>
                                 </div>
                             </div>
@@ -651,7 +702,7 @@
                                 </div>
                                 <div class="ms-auto">
                                     <span class="svc-chart-total-badge" style="background:#faf5ff;color:#5b21b6;border-color:#ddd6fe;">
-                                        {{ number_format($scd['self_service']['total']) }} orders
+                                        {{ number_format($scd['self_service']['total']) }} laundries
                                     </span>
                                 </div>
                             </div>
@@ -689,7 +740,7 @@
                                 </div>
                                 <div class="ms-auto">
                                     <span class="svc-chart-total-badge" style="background:#fffbeb;color:#92400e;border-color:#fde68a;">
-                                        {{ number_format($scd['addon']['total']) }} orders
+                                        {{ number_format($scd['addon']['total']) }} laundries
                                     </span>
                                 </div>
                             </div>
@@ -734,7 +785,7 @@
                                                 <th style="width:32px;">#</th>
                                                 <th>Service</th>
                                                 <th>Category</th>
-                                                <th class="text-center">Orders</th>
+                                                <th class="text-center">Used</th>
                                                 <th class="text-end">Revenue</th>
                                                 <th style="width:130px;">Volume</th>
                                                 <th style="width:32px;"></th>
@@ -1396,7 +1447,7 @@
                                 </div>
                             </div>
 
-                            <div id="logisticsMap" style="height: 500px; width: 100%; border-radius: 0 0 12px 12px;"></div>
+                            <div id="logisticsMap" class="admin-logistics-map"></div>
                             <div id="map-controls-container" style="position: absolute; top: 10px; left: 10px; z-index: 1000;">
                                 <div id="eta-display-container" style="display: none; margin-bottom: 10px;"></div>
                                 <div class="route-controls" style="display: none;">
@@ -1514,6 +1565,9 @@
 
         // Dashboard stats (for refresh functionality)
         window.DASHBOARD_STATS = @json($stats ?? []);
+
+        // Active date range (for chart labels and any JS-side awareness)
+        window.CURRENT_DATE_RANGE = '{{ $currentFilters["date_range"] ?? "last_30_days" }}';
     </script>
 
     {{-- Initialize dashboard with server data --}}

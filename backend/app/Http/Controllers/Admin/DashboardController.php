@@ -15,6 +15,7 @@ use App\Models\UnclaimedLaundry;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
@@ -22,18 +23,33 @@ class DashboardController extends Controller
     // Cache duration in minutes
     protected $cacheDuration = 5;
 
-    public function index()
+    public function index(Request $request)
     {
-        // Use caching for dashboard data to improve performance
-        $stats = Cache::remember('dashboard_stats_' . Auth::id(), $this->cacheDuration * 60, function () {
-            return $this->getDashboardStats();
+        $dateRange = $request->get('date_range', 'last_30_days');
+        $dates     = $this->getDateRange($dateRange);
+        $startDate = $dates['start'];
+        $endDate   = $dates['end'];
+
+        // Use a per-range cache key so different filters don't collide
+        $cacheKey = 'admin_dashboard_' . Auth::id() . '_' . $dateRange;
+        $stats = Cache::remember($cacheKey, $this->cacheDuration * 60, function () use ($startDate, $endDate) {
+            return $this->getDashboardStats($startDate, $endDate);
         });
 
-        return view('admin.dashboard', compact('stats'));
+        $currentFilters = ['date_range' => $dateRange];
+
+        return view('admin.dashboard', compact('stats', 'currentFilters'));
     }
 
-    private function getDashboardStats()
+    private function getDashboardStats($startDate = null, $endDate = null)
     {
+        // Fallback when called without params (e.g. from getStats API endpoint)
+        if (!$startDate || !$endDate) {
+            $d = $this->getDateRange('last_30_days');
+            $startDate = $d['start'];
+            $endDate   = $d['end'];
+        }
+
         // Get dates for calculations
         $today = today();
         $yesterday = today()->subDay();
@@ -78,13 +94,13 @@ class DashboardController extends Controller
         $paymentCollection = $this->getPaymentCollection();
 
         // 9. Branch Performance
-        $branchPerformance = $this->getBranchPerformance($currentMonth);
+        $branchPerformance = $this->getBranchPerformance($currentMonth, $startDate, $endDate);
 
         // 10. Data Quality Metrics
         $dataQuality = $this->getDataQualityMetrics();
 
-        // 11. 7-Day Revenue Data
-        $last7DaysRevenue = $this->getLast7DaysRevenue();
+        // 11. Revenue Trend (respects the selected date range)
+        $revenueTrend = $this->getRevenueTrend($startDate, $endDate);
 
         // 12. System Health Check
         $systemPulse = $this->getSystemHealth();
@@ -96,8 +112,9 @@ class DashboardController extends Controller
             'todayRevenue'     => $todayRevenue,
             'revenueChange'    => $revenueChange,
             'thisMonthRevenue' => $thisMonthRevenue,
-            'activeCustomers'  => $activeCustomers,
+            'activeCustomers'       => $activeCustomers,
             'newCustomersThisMonth' => $newCustomersThisMonth,
+            'newCustomersToday'     => Customer::whereDate('created_at', today())->count(),
             'unclaimedLaundry' => $unclaimedLaundry,
             'estimatedUnclaimedLoss' => $estimatedUnclaimedLoss,
             'avgProcessingTime' => $this->calculateAverageProcessingTime(),
@@ -124,8 +141,8 @@ class DashboardController extends Controller
 
             // Revenue & Payment
             'paymentCollection'  => $paymentCollection,
-            'revenueByService'   => $this->getRevenueByService(),
-            'serviceChartData'   => $this->getServiceChartData(),
+            'revenueByService'   => $this->getRevenueByService($startDate, $endDate),
+            'serviceChartData'   => $this->getServiceChartData($startDate, $endDate),
 
             // Branch Performance
             'branchPerformance' => $branchPerformance,
@@ -134,8 +151,8 @@ class DashboardController extends Controller
             'dataQuality' => $dataQuality,
 
             // Charts Data
-            'last7DaysRevenue' => $last7DaysRevenue['data'],
-            'revenueLabels'    => $last7DaysRevenue['labels'],
+            'last7DaysRevenue' => $revenueTrend['data'],
+            'revenueLabels'    => $revenueTrend['labels'],
 
             // Utilities
             'activePromotions' => Promotion::where('status', 'active')
@@ -441,15 +458,19 @@ class DashboardController extends Controller
         ];
     }
 
-    private function getBranchPerformance($currentMonth)
+    private function getBranchPerformance($currentMonth, $startDate = null, $endDate = null)
     {
+        // Use the filter range when provided, otherwise fall back to current month
+        $from = $startDate ?? $currentMonth;
+        $to   = $endDate   ?? now();
+
         $branches = Branch::withCount([
-            'laundries as monthly_laundries' => function ($query) use ($currentMonth) {
-                $query->where('created_at', '>=', $currentMonth)
+            'laundries as monthly_laundries' => function ($query) use ($from, $to) {
+                $query->whereBetween('created_at', [$from, $to])
                       ->where('status', '!=', 'cancelled');
             },
-            'laundries as monthly_revenue' => function ($query) use ($currentMonth) {
-                $query->where('created_at', '>=', $currentMonth)
+            'laundries as monthly_revenue' => function ($query) use ($from, $to) {
+                $query->whereBetween('created_at', [$from, $to])
                       ->where('status', '!=', 'cancelled')
                       ->select(DB::raw('SUM(total_amount)'));
             }
@@ -516,6 +537,69 @@ class DashboardController extends Controller
         return ['data' => $data, 'labels' => $labels];
     }
 
+    /**
+     * Revenue trend aggregated by day across any date range.
+     * Replaces getLast7DaysRevenue when a date filter is active.
+     */
+    private function getRevenueTrend($startDate, $endDate)
+    {
+        $trend = Laundry::whereBetween('created_at', [$startDate, $endDate])
+            ->where('status', '!=', 'cancelled')
+            ->selectRaw('DATE(created_at) as date, SUM(total_amount) as revenue')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->keyBy('date');
+
+        $data    = [];
+        $labels  = [];
+        $current = clone $startDate;
+
+        while ($current <= $endDate) {
+            $d        = $current->format('Y-m-d');
+            $data[]   = isset($trend[$d]) ? (float) $trend[$d]->revenue : 0;
+            $labels[] = $current->format('M d');
+            $current->addDay();
+        }
+
+        return ['data' => $data, 'labels' => $labels];
+    }
+
+    private function getDateRange(string $range): array
+    {
+        $end = now()->endOfDay();
+        switch ($range) {
+            case 'today':
+                $start = now()->startOfDay();
+                break;
+            case 'yesterday':
+                $start = now()->subDay()->startOfDay();
+                $end   = now()->subDay()->endOfDay();
+                break;
+            case 'last_7_days':
+                $start = now()->subDays(6)->startOfDay();
+                break;
+            case 'this_week':
+                $start = now()->startOfWeek();
+                break;
+            case 'this_month':
+                $start = now()->startOfMonth();
+                break;
+            case 'last_month':
+                $start = now()->subMonth()->startOfMonth();
+                $end   = now()->subMonth()->endOfMonth()->endOfDay();
+                break;
+            case 'this_year':
+                $start = now()->startOfYear();
+                break;
+            case 'last_30_days':
+            default:
+                $start = now()->subDays(29)->startOfDay();
+                break;
+        }
+        return ['start' => $start, 'end' => $end];
+    }
+
     private function getSystemHealth()
     {
         $dbStatus = false;
@@ -553,11 +637,14 @@ class DashboardController extends Controller
         return 0;
     }
 
-    private function getRevenueByService()
+    private function getRevenueByService($startDate = null, $endDate = null)
     {
         return Service::where('is_active', true)
-            ->withSum(['laundries' => function ($query) {
+            ->withSum(['laundries' => function ($query) use ($startDate, $endDate) {
                 $query->where('status', '!=', 'cancelled');
+                if ($startDate && $endDate) {
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                }
             }], 'total_amount')
             ->get()
             ->map(function ($service) {
@@ -601,12 +688,16 @@ class DashboardController extends Controller
         })->filter()->values()->toArray();
     }
 
-    private function getServiceChartData()
+    private function getServiceChartData($startDate = null, $endDate = null)
     {
+        $dateFilter = fn($q) => ($startDate && $endDate)
+            ? $q->where('status', '!=', 'cancelled')->whereBetween('created_at', [$startDate, $endDate])
+            : $q->where('status', '!=', 'cancelled');
+
         // Services table covers drop_off and self_service categories
         $services = Service::where('is_active', true)
-            ->withCount(['laundries as laundry_count'  => fn($q) => $q->where('status', '!=', 'cancelled')])
-            ->withSum(['laundries as laundry_revenue'  => fn($q) => $q->where('status', '!=', 'cancelled')], 'total_amount')
+            ->withCount(['laundries as laundry_count'  => $dateFilter])
+            ->withSum(['laundries as laundry_revenue'  => $dateFilter], 'total_amount')
             ->orderBy('name')
             ->get();
 
@@ -703,7 +794,11 @@ class DashboardController extends Controller
      */
     public function clearCache()
     {
-        Cache::forget('dashboard_stats_' . Auth::id());
+        $ranges = ['today','yesterday','last_7_days','this_week','this_month','last_month','this_year','last_30_days'];
+        foreach ($ranges as $range) {
+            Cache::forget('admin_dashboard_' . Auth::id() . '_' . $range);
+        }
+        Cache::forget('dashboard_stats_' . Auth::id()); // legacy key
         return response()->json(['message' => 'Dashboard cache cleared successfully']);
     }
 }

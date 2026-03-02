@@ -1,0 +1,397 @@
+/* =====================================================================
+   pickups.css  —  Pickup Requests shared styles
+   Works with: [data-theme="dark"] on <html> (same pattern as admin.css)
+   ===================================================================== */
+
+/* ── CSS Variables ─────────────────────────────────────────────────── */
+:root {
+    --pk-bg:           #f1f5f9;
+    --pk-card-bg:      #ffffff;
+    --pk-card-border:  #e2e8f0;
+    --pk-card-shadow:  0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --pk-card-shadow-hover: 0 4px 12px rgba(0,0,0,0.10);
+    --pk-text:         #0f172a;
+    --pk-text-muted:   #64748b;
+    --pk-text-light:   #94a3b8;
+    --pk-input-bg:     #ffffff;
+    --pk-input-border: #cbd5e1;
+    --pk-table-head:   #f8fafc;
+    --pk-table-row-hover: #f8fafc;
+    --pk-table-border: #e2e8f0;
+    --pk-badge-pending-bg:   #fef9c3;
+    --pk-badge-pending-text: #854d0e;
+    --pk-badge-accepted-bg:  #e0f2fe;
+    --pk-badge-accepted-text:#0369a1;
+    --pk-badge-enroute-bg:   #ede9fe;
+    --pk-badge-enroute-text: #6d28d9;
+    --pk-badge-pickup-bg:    #dcfce7;
+    --pk-badge-pickup-text:  #15803d;
+    --pk-badge-cancel-bg:    #fee2e2;
+    --pk-badge-cancel-text:  #b91c1c;
+    --pk-primary:      #3D3B6B;
+    --pk-primary-light:#5452a0;
+    --pk-stat-icon-size: 2.5rem;
+}
+
+[data-theme="dark"] {
+    --pk-bg:           #0f172a;
+    --pk-card-bg:      #1e293b;
+    --pk-card-border:  #334155;
+    --pk-card-shadow:  0 1px 3px rgba(0,0,0,0.3);
+    --pk-card-shadow-hover: 0 4px 12px rgba(0,0,0,0.4);
+    --pk-text:         #f1f5f9;
+    --pk-text-muted:   #94a3b8;
+    --pk-text-light:   #64748b;
+    --pk-input-bg:     #0f172a;
+    --pk-input-border: #334155;
+    --pk-table-head:   #0f172a;
+    --pk-table-row-hover: #0f172a;
+    --pk-table-border: #334155;
+    --pk-badge-pending-bg:   rgba(234,179,8,0.15);
+    --pk-badge-pending-text: #fbbf24;
+    --pk-badge-accepted-bg:  rgba(14,165,233,0.15);
+    --pk-badge-accepted-text:#38bdf8;
+    --pk-badge-enroute-bg:   rgba(139,92,246,0.15);
+    --pk-badge-enroute-text: #a78bfa;
+    --pk-badge-pickup-bg:    rgba(34,197,94,0.15);
+    --pk-badge-pickup-text:  #4ade80;
+    --pk-badge-cancel-bg:    rgba(239,68,68,0.15);
+    --pk-badge-cancel-text:  #f87171;
+}
+
+/* ── Page layout ───────────────────────────────────────────────────── */
+.pk-page { padding: 1.5rem; }
+
+/* ── Stat Cards ────────────────────────────────────────────────────── */
+.pk-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+@media (max-width: 768px) { .pk-stats-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 480px) { .pk-stats-grid { grid-template-columns: 1fr; } }
+
+.pk-stat-card {
+    background: var(--pk-card-bg);
+    border: 1px solid var(--pk-card-border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--pk-card-shadow);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: box-shadow .2s, transform .2s;
+}
+.pk-stat-card:hover {
+    box-shadow: var(--pk-card-shadow-hover);
+    transform: translateY(-1px);
+}
+.pk-stat-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+.pk-stat-icon.warning  { background: rgba(234,179,8,0.12);   color: #d97706; }
+.pk-stat-icon.info     { background: rgba(14,165,233,0.12);  color: #0284c7; }
+.pk-stat-icon.primary  { background: rgba(99,102,241,0.12);  color: #6366f1; }
+.pk-stat-icon.success  { background: rgba(34,197,94,0.12);   color: #16a34a; }
+.pk-stat-label {
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--pk-text-muted);
+    margin-bottom: .2rem;
+}
+.pk-stat-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--pk-text);
+    line-height: 1;
+}
+
+/* ── Filter Card ───────────────────────────────────────────────────── */
+.pk-filter-card {
+    background: var(--pk-card-bg);
+    border: 1px solid var(--pk-card-border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--pk-card-shadow);
+    margin-bottom: 1.5rem;
+}
+.pk-filter-card .form-label {
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--pk-text-muted);
+    margin-bottom: .35rem;
+}
+.pk-filter-card .form-control,
+.pk-filter-card .form-select {
+    background: var(--pk-input-bg);
+    border-color: var(--pk-input-border);
+    color: var(--pk-text);
+    border-radius: 8px;
+    font-size: .875rem;
+}
+.pk-filter-card .form-control:focus,
+.pk-filter-card .form-select:focus {
+    border-color: var(--pk-primary-light);
+    box-shadow: 0 0 0 3px rgba(84,82,160,0.15);
+}
+[data-theme="dark"] .pk-filter-card .form-control,
+[data-theme="dark"] .pk-filter-card .form-select {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+[data-theme="dark"] .pk-filter-card .form-select option { background: #1e293b; }
+
+/* ── Table Card ────────────────────────────────────────────────────── */
+.pk-table-card {
+    background: var(--pk-card-bg);
+    border: 1px solid var(--pk-card-border);
+    border-radius: 12px;
+    box-shadow: var(--pk-card-shadow);
+    overflow: hidden;
+}
+.pk-table-card .table {
+    margin-bottom: 0;
+    color: var(--pk-text);
+}
+.pk-table-card .table th {
+    background: var(--pk-table-head);
+    color: var(--pk-text-muted);
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    border-bottom: 2px solid var(--pk-table-border);
+    padding: .85rem 1rem;
+    white-space: nowrap;
+}
+.pk-table-card .table td {
+    vertical-align: middle;
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--pk-table-border);
+    font-size: .875rem;
+    color: var(--pk-text);
+}
+.pk-table-card .table tbody tr:last-child td { border-bottom: none; }
+.pk-table-card .table tbody tr { transition: background .15s; }
+.pk-table-card .table tbody tr:hover { background: var(--pk-table-row-hover); }
+
+/*
+ * ── CRITICAL: Override Bootstrap 5's internal table CSS variables ────
+ *
+ * Bootstrap 5 uses its own --bs-table-* variables on .table which take
+ * priority over any color or background declarations we write on th/td.
+ * In dark mode Bootstrap does NOT flip these automatically, so the table
+ * renders dark text on a dark card — making everything invisible.
+ *
+ * Fix: override every Bootstrap table var inside [data-theme="dark"].
+ */
+[data-theme="dark"] .pk-table-card .table {
+    /* Bootstrap 5 table variables */
+    --bs-table-color:          #f1f5f9;   /* main text  */
+    --bs-table-bg:             #1e293b;   /* row background */
+    --bs-table-border-color:   #334155;   /* row dividers */
+    --bs-table-striped-color:  #f1f5f9;
+    --bs-table-striped-bg:     rgba(255,255,255,0.03);
+    --bs-table-active-color:   #f1f5f9;
+    --bs-table-active-bg:      rgba(255,255,255,0.06);
+    --bs-table-hover-color:    #f1f5f9;
+    --bs-table-hover-bg:       rgba(255,255,255,0.04);
+    color:            #f1f5f9;
+    border-color:     #334155;
+    background-color: #1e293b;
+}
+
+/* Header row in dark mode */
+[data-theme="dark"] .pk-table-card .table th {
+    background:    #0f172a !important;
+    color:         #94a3b8 !important;
+    border-color:  #334155 !important;
+}
+
+/* Body cells in dark mode — !important beats Bootstrap specificity */
+[data-theme="dark"] .pk-table-card .table td {
+    color:        #f1f5f9 !important;
+    background:   transparent !important;
+    border-color: #334155 !important;
+}
+
+/* Row hover in dark mode */
+[data-theme="dark"] .pk-table-card .table tbody tr:hover td {
+    background: rgba(255,255,255,0.04) !important;
+}
+
+/* Generic text inside table cells that use inline font-weight/size styles
+   without an explicit color — they inherit from td, which is now covered. */
+[data-theme="dark"] .pk-table-card .table td span,
+[data-theme="dark"] .pk-table-card .table td div,
+[data-theme="dark"] .pk-table-card .table td small,
+[data-theme="dark"] .pk-table-card .table td a:not(.pk-btn):not(.pk-landmark) {
+    color: inherit;
+}
+
+/* ── Status Badges ─────────────────────────────────────────────────── */
+.pk-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    white-space: nowrap;
+}
+.pk-badge.pending   { background: var(--pk-badge-pending-bg);  color: var(--pk-badge-pending-text); }
+.pk-badge.accepted  { background: var(--pk-badge-accepted-bg); color: var(--pk-badge-accepted-text); }
+.pk-badge.en_route  { background: var(--pk-badge-enroute-bg);  color: var(--pk-badge-enroute-text); }
+.pk-badge.picked_up { background: var(--pk-badge-pickup-bg);   color: var(--pk-badge-pickup-text); }
+.pk-badge.cancelled { background: var(--pk-badge-cancel-bg);   color: var(--pk-badge-cancel-text); }
+
+/* ── Action Buttons ────────────────────────────────────────────────── */
+.pk-actions { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
+
+.pk-btn {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .35rem .75rem;
+    border-radius: 8px;
+    font-size: .78rem;
+    font-weight: 600;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .15s;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+.pk-btn-view     { background: rgba(99,102,241,0.08);  color: #6366f1; border-color: rgba(99,102,241,0.3); }
+.pk-btn-view:hover { background: #6366f1; color: #fff; }
+
+.pk-btn-accept   { background: rgba(34,197,94,0.08);   color: #16a34a; border-color: rgba(34,197,94,0.3); }
+.pk-btn-accept:hover { background: #16a34a; color: #fff; }
+
+.pk-btn-enroute  { background: rgba(15,23,42,0.06);    color: #334155; border-color: rgba(15,23,42,0.2); }
+.pk-btn-enroute:hover { background: #334155; color: #fff; }
+
+.pk-btn-pickedup { background: rgba(99,102,241,0.08);  color: #4f46e5; border-color: rgba(99,102,241,0.3); }
+.pk-btn-pickedup:hover { background: #4f46e5; color: #fff; }
+
+.pk-btn-create   { background: rgba(34,197,94,0.10);   color: #15803d; border-color: rgba(34,197,94,0.35); }
+.pk-btn-create:hover { background: #15803d; color: #fff; }
+
+.pk-btn-view-laundry { background: rgba(14,165,233,0.08); color: #0284c7; border-color: rgba(14,165,233,0.3); }
+.pk-btn-view-laundry:hover { background: #0284c7; color: #fff; }
+
+/* dark mode button adjustments */
+[data-theme="dark"] .pk-btn-enroute  { background: rgba(241,245,249,0.06); color: #cbd5e1; border-color: rgba(241,245,249,0.15); }
+[data-theme="dark"] .pk-btn-enroute:hover { background: #475569; color: #fff; }
+
+/* ── Assigned-by-admin notice ──────────────────────────────────────── */
+.pk-admin-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: .7rem; font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(61,59,107,0.10);
+    color: var(--pk-primary);
+    margin-top: 3px;
+}
+[data-theme="dark"] .pk-admin-badge {
+    background: rgba(139,92,246,0.15);
+    color: #c4b5fd;
+}
+
+/* ── Laundry-created indicator ─────────────────────────────────────── */
+.pk-laundry-done {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: .72rem; font-weight: 600;
+    color: var(--pk-badge-pickup-text);
+}
+
+/* ── Customer / address cell ───────────────────────────────────────── */
+.pk-customer-name { font-weight: 700; color: var(--pk-text); margin-bottom: 1px; }
+.pk-customer-phone { font-size: .75rem; color: var(--pk-text-muted); }
+.pk-address { font-size: .8rem; color: var(--pk-text); }
+.pk-landmark { font-size: .73rem; color: #0891b2; margin-top: 2px; }
+[data-theme="dark"] .pk-landmark { color: #67e8f9; }
+
+/* ── Fee display ───────────────────────────────────────────────────── */
+.pk-fee-total { font-weight: 800; font-size: .95rem; color: #16a34a; }
+[data-theme="dark"] .pk-fee-total { color: #4ade80; }
+.pk-fee-breakdown { font-size: .72rem; color: var(--pk-text-muted); }
+
+/* ── Table ID ──────────────────────────────────────────────────────── */
+.pk-id { font-weight: 800; color: var(--pk-primary); font-size: .85rem; }
+[data-theme="dark"] .pk-id { color: #a5b4fc; }
+
+/* ── Timestamp ─────────────────────────────────────────────────────── */
+.pk-timestamp { font-size: .75rem; color: var(--pk-text-muted); }
+
+/* ── Empty state ───────────────────────────────────────────────────── */
+.pk-empty {
+    text-align: center;
+    padding: 3.5rem 1rem;
+}
+.pk-empty i { font-size: 3rem; color: var(--pk-text-light); margin-bottom: .75rem; }
+.pk-empty p { color: var(--pk-text-muted); margin: 0; }
+
+/* ── Alert overrides ───────────────────────────────────────────────── */
+[data-theme="dark"] .alert-success {
+    background: rgba(34,197,94,0.1);
+    border-color: rgba(34,197,94,0.25);
+    color: #4ade80;
+}
+[data-theme="dark"] .alert-danger {
+    background: rgba(239,68,68,0.1);
+    border-color: rgba(239,68,68,0.25);
+    color: #f87171;
+}
+
+/*
+ * ── Stat / filter card text visibility in dark mode ─────────────────
+ * Bootstrap's .card and inline font-weight styles don't carry color,
+ * so they inherit from the card background — which is now dark.
+ * Explicitly set text colors for every element inside our cards.
+ */
+[data-theme="dark"] .pk-stat-card,
+[data-theme="dark"] .pk-filter-card,
+[data-theme="dark"] .pk-table-card {
+    color: #f1f5f9;
+}
+
+/* Any <div> or <span> with inline style (font-size/font-weight only)
+   that sits inside these cards needs to inherit the light text color */
+[data-theme="dark"] .pk-stat-card div,
+[data-theme="dark"] .pk-stat-card span,
+[data-theme="dark"] .pk-filter-card div,
+[data-theme="dark"] .pk-filter-card span,
+[data-theme="dark"] .pk-filter-card label {
+    color: inherit;
+}
+
+/* Branch name cell (uses inline style with no color) */
+[data-theme="dark"] .pk-table-card .table td span[style],
+[data-theme="dark"] .pk-table-card .table td div[style] {
+    color: #f1f5f9 !important;
+}
+
+/* ── Pagination ────────────────────────────────────────────────────── */
+[data-theme="dark"] .page-link {
+    background: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
+}
+[data-theme="dark"] .page-item.active .page-link {
+    background: var(--pk-primary);
+    border-color: var(--pk-primary);
+    color: #fff;
+}
+[data-theme="dark"] .page-link:hover { background: #334155; color: #f1f5f9; }

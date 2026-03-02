@@ -122,6 +122,73 @@ class AuthController extends Controller
     }
 
     /**
+     * Google OAuth Login
+     *
+     * POST /api/v1/google-login
+     */
+    public function googleLogin(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'google_id' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'name' => ['required', 'string'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $customer = Customer::where('google_id', $request->google_id)
+            ->orWhere('email', $request->email)
+            ->first();
+
+        if ($customer) {
+            if (!$customer->google_id) {
+                $customer->update(['google_id' => $request->google_id]);
+            }
+
+            if (!$customer->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account has been deactivated. Please contact support.',
+                ], 403);
+            }
+        } else {
+            $customer = Customer::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'google_id' => $request->google_id,
+                'phone' => $request->phone ?? '',
+                'registration_type' => 'self_registered',
+                'is_active' => true,
+            ]);
+        }
+
+        $customer->tokens()->delete();
+        $token = $customer->createToken('mobile-app')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Login successful',
+            'data' => [
+                'customer' => [
+                    'id' => $customer->id,
+                    'name' => $customer->name,
+                    'email' => $customer->email,
+                    'phone' => $customer->phone,
+                    'address' => $customer->address,
+                    'preferred_branch_id' => $customer->preferred_branch_id,
+                ],
+                'token' => $token,
+            ]
+        ]);
+    }
+
+    /**
      * Logout customer (revoke current token)
      *
      * POST /api/v1/logout

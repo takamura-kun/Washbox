@@ -10,12 +10,21 @@
     {{-- Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <p class="text-muted small mb-0">Track and manage all laundry </p>
+            <p class="text-muted small mb-0">Track and manage all laundry</p>
         </div>
-        <a href="{{ route('admin.laundries.create') }}" class="btn btn-primary shadow-sm" style="background: #3D3B6B; border: none;">
+        {{-- BUG FIX: replaced inline style="background:#3D3B6B" with btn-primary (dark mode handles it) --}}
+        <a href="{{ route('admin.laundries.create') }}" class="btn btn-primary shadow-sm">
             <i class="bi bi-plus-circle me-2"></i>Create New Laundry
         </a>
     </div>
+
+    {{-- Alerts --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
     {{-- Stats Overview --}}
     <div class="row g-3 mb-4">
@@ -67,7 +76,7 @@
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-body p-3 text-center">
                     <div class="bg-dark bg-opacity-10 p-2 rounded-3 d-inline-block mb-2">
-                        <i class="bi bi-check-all fs-4 text-dark"></i>
+                        <i class="bi bi-check-all fs-4"></i>
                     </div>
                     <h4 class="fw-bold mb-0">{{ $stats['completed'] }}</h4>
                     <small class="text-muted">Completed</small>
@@ -98,21 +107,16 @@
                 <div class="col-md-2">
                     <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="">All Status</option>
-                        <option value="received" {{ request('status') === 'received' ? 'selected' : '' }}>Received</option>
-                        <option value="processing" {{ request('status') === 'processing' ? 'selected' : '' }}>Processing</option>
-                        <option value="ready" {{ request('status') === 'ready' ? 'selected' : '' }}>Ready</option>
-                        <option value="paid" {{ request('status') === 'paid' ? 'selected' : '' }}>Paid</option>
-                        <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
-                        <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                        @foreach(['received','processing','ready','paid','completed','cancelled'] as $st)
+                            <option value="{{ $st }}" {{ request('status')===$st?'selected':'' }}>{{ ucfirst($st) }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="col-md-2">
                     <select name="branch_id" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="">All Branches</option>
                         @foreach($branches as $branch)
-                            <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
-                                {{ $branch->name }}
-                            </option>
+                            <option value="{{ $branch->id }}" {{ request('branch_id')==$branch->id?'selected':'' }}>{{ $branch->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -120,9 +124,7 @@
                     <select name="service_id" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="">All Services</option>
                         @foreach($services as $service)
-                            <option value="{{ $service->id }}" {{ request('service_id') == $service->id ? 'selected' : '' }}>
-                                {{ $service->name }}
-                            </option>
+                            <option value="{{ $service->id }}" {{ request('service_id')==$service->id?'selected':'' }}>{{ $service->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -137,124 +139,107 @@
         </div>
     </div>
 
-    {{-- Laundries Table --}}
+    {{-- Laundries List --}}
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="px-4 py-3">Tracking #</th>
-                            <th class="px-4 py-3">Customer</th>
-                            <th class="px-4 py-3">Service</th>
-                            <th class="px-4 py-3">Branch</th>
-                            <th class="px-4 py-3">Weight / Loads</th>
-                            <th class="px-4 py-3">Amount</th>
-                            <th class="px-4 py-3">Status</th>
-                            <th class="px-4 py-3">Date</th>
-                            <th class="px-4 py-3 text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($laundries as $laundry)
-                        <tr>
-                            <td class="px-4 py-3">
-                                <strong class="text-primary">{{ $laundry->tracking_number }}</strong>
-                                @if($laundry->pickupRequest)
-                                    <br><small class="text-muted">
-                                        <i class="bi bi-truck me-1"></i>Pickup #{{ $laundry->pickupRequest->id }}
-                                    </small>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="fw-semibold">{{ $laundry->customer->name ?? 'N/A' }}</div>
-                                <small class="text-muted">{{ $laundry->customer->phone ?? '' }}</small>
-                            </td>
-                            <td class="px-4 py-3">
-                                {{ $laundry->service->name ?? 'N/A' }}
-                                @if($laundry->addons_total > 0)
-                                    <br><small class="text-success">+₱{{ number_format($laundry->addons_total, 2) }} add-ons</small>
-                                @endif
-                                @if($laundry->promotion)
-                                    <br><small class="text-info"><i class="bi bi-tag me-1"></i>{{ $laundry->promotion->name }}</small>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="badge bg-light text-dark border">
-                                    {{ $laundry->branch->name ?? 'N/A' }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3">
-                                @if($laundry->weight > 0)
-                                    <span>{{ number_format($laundry->weight, 2) }} kg</span><br>
-                                @endif
-                                @if($laundry->number_of_loads)
-                                    <small class="text-muted">
-                                        {{ $laundry->number_of_loads }}
-                                        {{ ($laundry->service?->pricing_type === 'per_piece') ? 'pc(s)' : 'load(s)' }}
-                                    </small>
-                                @endif
-                                @if(!$laundry->weight && !$laundry->number_of_loads)
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                <strong>₱{{ number_format($laundry->total_amount, 2) }}</strong>
-                                @if($laundry->discount_amount > 0)
-                                    <br><small class="text-success">-₱{{ number_format($laundry->discount_amount, 2) }} disc.</small>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                @php
-                                    $statusColors = [
-                                        'completed' => 'success',
-                                        'ready' => 'info',
-                                        'processing' => 'warning',
-                                        'paid' => 'primary',
-                                        'cancelled' => 'danger',
-                                        'received' => 'secondary',
-                                        'pending' => 'warning'
-                                    ];
-                                    $color = $statusColors[$laundry->status] ?? 'secondary';
-                                @endphp
-                                <span class="badge bg-{{ $color }}">{{ ucfirst($laundry->status) }}</span>
-                            </td>
-                            <td class="px-4 py-3">
-                                <small>{{ $laundry->created_at->format('M d, Y') }}</small>
-                                <br><small class="text-muted">{{ $laundry->created_at->format('h:i A') }}</small>
-                            </td>
-                            <td class="px-4 py-3 text-center">
-                                <a href="{{ route('admin.laundries.show', $laundry) }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="9" class="text-center py-5">
-                                <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.2;"></i>
-                                <p class="text-muted mt-2 mb-3">
-                                    @if(request()->anyFilled(['search', 'status', 'branch_id', 'service_id', 'date_from']))
-                                        No laundries match your filters
-                                        <br>
-                                        <a href="{{ route('admin.laundries.index') }}" class="btn btn-link">Clear all filters</a>
-                                    @else
-                                        No laundries found
-                                    @endif
-                                </p>
-                                <a href="{{ route('admin.laundries.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="bi bi-plus-circle me-1"></i>Create First Laundry
-                                </a>
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            @forelse($laundries as $laundry)
+            @php
+                $statusColors = [
+                    'completed'  => 'success',
+                    'ready'      => 'info',
+                    'processing' => 'warning',
+                    'paid'       => 'primary',
+                    'cancelled'  => 'danger',
+                    'received'   => 'secondary',
+                    'pending'    => 'warning',
+                ];
+                $color = $statusColors[$laundry->status] ?? 'secondary';
+            @endphp
+            <div class="d-flex align-items-center px-4 py-3 border-bottom laundry-row">
+                {{-- Tracking + pickup link --}}
+                <div style="min-width:175px;">
+                    <a href="{{ route('admin.laundries.show', $laundry) }}" class="tracking-number fw-bold">
+                        {{ $laundry->tracking_number }}
+                    </a>
+                    @if($laundry->pickupRequest)
+                        <div class="text-muted small mt-1">
+                            <i class="bi bi-truck me-1"></i>Pickup #{{ $laundry->pickupRequest->id }}
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Customer --}}
+                <div style="min-width:140px;" class="me-3">
+                    <div class="fw-semibold">{{ $laundry->customer->name ?? 'N/A' }}</div>
+                    <div class="text-muted small">{{ $laundry->customer->phone ?? '' }}</div>
+                </div>
+
+                {{-- Branch badge --}}
+                <div style="min-width:130px;" class="me-3">
+                    <span class="badge bg-secondary">{{ $laundry->branch->name ?? 'N/A' }}</span>
+                </div>
+
+                {{-- Loads / pieces --}}
+                <div style="min-width:90px;" class="me-3 text-muted small">
+                    @if($laundry->weight > 0)
+                        <div>{{ number_format($laundry->weight, 2) }} kg</div>
+                    @endif
+                    @if($laundry->number_of_loads)
+                        {{ $laundry->number_of_loads }}
+                        {{ ($laundry->service?->pricing_type === 'per_piece') ? 'pc(s)' : 'load(s)' }}
+                    @endif
+                    @if(!$laundry->weight && !$laundry->number_of_loads) — @endif
+                </div>
+
+                {{-- Amount --}}
+                <div style="min-width:110px;" class="me-3">
+                    <strong class="amount">₱{{ number_format($laundry->total_amount, 2) }}</strong>
+                    @if($laundry->addons_total > 0)
+                        <div class="text-success small">+₱{{ number_format($laundry->addons_total, 2) }} add-ons</div>
+                    @endif
+                    @if($laundry->promotion)
+                        <div class="text-info small"><i class="bi bi-tag me-1"></i>{{ Str::limit($laundry->promotion->name,15) }}</div>
+                    @endif
+                </div>
+
+                {{-- Status --}}
+                <div style="min-width:110px;" class="me-3">
+                    <span class="badge bg-{{ $color }}">{{ ucfirst($laundry->status) }}</span>
+                </div>
+
+                {{-- Date --}}
+                <div class="text-muted small me-3" style="min-width:90px;">
+                    {{ $laundry->created_at->format('M d, Y') }}<br>
+                    {{ $laundry->created_at->format('h:i A') }}
+                </div>
+
+                {{-- Actions --}}
+                <div class="ms-auto">
+                    <a href="{{ route('admin.laundries.show', $laundry) }}" class="action-btn view" title="View">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </div>
             </div>
+            @empty
+            <div class="empty-state">
+                <div><i class="bi bi-inbox"></i></div>
+                <p>
+                    @if(request()->anyFilled(['search','status','branch_id','service_id','date_from']))
+                        No laundries match your filters<br>
+                        <a href="{{ route('admin.laundries.index') }}" class="btn btn-link">Clear all filters</a>
+                    @else
+                        No laundries found
+                    @endif
+                </p>
+                <a href="{{ route('admin.laundries.create') }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i>Create First Laundry
+                </a>
+            </div>
+            @endforelse
         </div>
 
         @if($laundries->hasPages())
-        <div class="card-footer bg-white border-top">
+        <div class="card-footer border-top">
             <div class="d-flex justify-content-between align-items-center">
                 <small class="text-muted">
                     Showing {{ $laundries->firstItem() }}–{{ $laundries->lastItem() }}
@@ -266,4 +251,12 @@
         @endif
     </div>
 </div>
+
+@push('styles')
+<style>
+/* row-level border in dark mode */
+[data-theme="dark"] .laundry-row { border-color: #334155 !important; }
+[data-theme="dark"] .laundry-row:hover { background: rgba(255,255,255,0.03); }
+</style>
+@endpush
 @endsection

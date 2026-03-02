@@ -350,6 +350,13 @@ class UnclaimedController extends Controller
                 ]);
             }
 
+            // ✅ FIX: Always explicitly set payment_status and paid_at
+            // updateStatus() only changes the status column, not payment_status
+            $laundry->update([
+                'payment_status' => 'paid',
+                'paid_at'        => now(),
+            ]);
+
             // Clear unclaimed flag if exists
             if (isset($laundry->is_unclaimed)) {
                 $laundry->update(['is_unclaimed' => false]);

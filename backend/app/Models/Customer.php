@@ -18,6 +18,7 @@ class Customer extends Authenticatable
         'phone',
         'email',
         'password',
+        'google_id',
         'registration_type',
         'address',
         'latitude',

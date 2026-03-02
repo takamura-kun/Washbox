@@ -23,6 +23,10 @@ import { API_BASE_URL, STORAGE_KEYS } from '../../constants/config';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
 import { registerForPushNotifications } from '../../utils/notification';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 
 
 const { width, height } = Dimensions.get('window');
@@ -34,6 +38,17 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: '985931590530-m0ijettduj55nbjei2sdndc8i55n4k3e.apps.googleusercontent.com',
+    expoClientId: '985931590530-6a93igrj8eelimvesfbljgqthaudv47s.apps.googleusercontent.com',
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      handleGoogleLogin(response.authentication.accessToken);
+    }
+  }, [response]);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -124,6 +139,39 @@ export default function LoginScreen() {
       }
     } catch (error) {
       Alert.alert('Connection Error', 'Unable to connect to server');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async (accessToken) => {
+    setLoading(true);
+    try {
+      const userInfoResponse = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const userInfo = await userInfoResponse.json();
+
+      const response = await fetch(`${API_BASE_URL}/v1/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          google_id: userInfo.id,
+          email: userInfo.email,
+          name: userInfo.name,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        await login(data.data.token, data.data.customer);
+        registerForPushNotifications(data.data.token).catch(console.error);
+      } else {
+        Alert.alert('Login Failed', data.message || 'Google login failed');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Google login failed');
     } finally {
       setLoading(false);
     }
@@ -316,13 +364,18 @@ export default function LoginScreen() {
 
               {/* Social Login Buttons */}
               <View style={styles.socialButtons}>
-                <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+                <TouchableOpacity 
+                  style={styles.socialButton} 
+                  activeOpacity={0.8}
+                  onPress={() => promptAsync()}
+                  disabled={loading}
+                >
                   <Ionicons name="logo-google" size={22} color="#EA4335" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+                <TouchableOpacity style={styles.socialButton} activeOpacity={0.8} disabled={loading}>
                   <Ionicons name="logo-facebook" size={22} color="#1877F2" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+                <TouchableOpacity style={styles.socialButton} activeOpacity={0.8} disabled={loading}>
                   <Ionicons name="logo-apple" size={22} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
