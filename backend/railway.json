@@ -22,21 +22,22 @@
         },
         "install": {
           "cmds": [
-            "composer install --optimize-autoloader --no-dev"
+            "curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer",
+            "cd backend && composer install --optimize-autoloader --no-dev"
           ]
         },
         "build": {
           "cmds": [
-            "php artisan config:cache",
-            "php artisan route:cache",
-            "php artisan view:cache"
+            "cd backend && php artisan config:cache",
+            "cd backend && php artisan route:cache",
+            "cd backend && php artisan view:cache"
           ]
         }
       }
     }
   },
   "deploy": {
-    "startCommand": "php -S 0.0.0.0:$PORT -t public",
+    "startCommand": "cd backend && php -S 0.0.0.0:$PORT -t public",
     "healthcheckPath": "/",
     "restartPolicyType": "ON_FAILURE"
   }
