@@ -463,8 +463,10 @@
                         ->where('current_stock', '>', 0)->count();
                     $lowStockItems = \App\Models\BranchStock::when($branchId, fn($q) => $q->where('branch_id', $branchId))
                         ->whereRaw('current_stock > reorder_point * 0.5 AND current_stock <= reorder_point')->count();
-                    $totalValue = \App\Models\BranchStock::when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                        ->selectRaw('SUM(current_stock * cost_price) as total')->value('total') ?? 0;
+                    $totalValue = \App\Models\BranchStock::join('inventory_items', 'branch_stocks.inventory_item_id', '=', 'inventory_items.id')
+                        ->when($branchId, fn($q) => $q->where('branch_stocks.branch_id', $branchId))
+                        ->where('branch_stocks.current_stock', '>', 0)
+                        ->selectRaw('SUM(branch_stocks.current_stock * inventory_items.unit_cost_price) as total')->value('total') ?? 0;
                     
                     // Get all inventory items with their stock status
                     $allInventoryItems = \App\Models\BranchStock::with(['inventoryItem', 'branch'])
