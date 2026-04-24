@@ -27,9 +27,6 @@
         color: var(--text-primary) !important;
         border-color: var(--border-color) !important;
     }
-    .table tbody tr:hover td {
-        background: var(--hover-bg, rgba(0,0,0,0.05)) !important;
-    }
     [data-theme="dark"] .table tbody tr:hover td {
         background: rgba(255,255,255,0.05) !important;
     }

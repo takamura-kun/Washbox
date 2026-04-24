@@ -34,6 +34,8 @@ export default function NotificationsScreen() {
 
   useEffect(() => {
     fetchNotifications();
+    const interval = setInterval(() => fetchNotifications(true), 30000);
+    return () => clearInterval(interval);
   }, [filter]);
 
   const fetchNotifications = async (isRefresh = false) => {

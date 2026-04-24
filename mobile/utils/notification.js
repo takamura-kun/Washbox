@@ -35,6 +35,7 @@ if (Platform.OS === 'web') {
       
       Notifications.setNotificationHandler({
         handleNotification: async () => ({
+          shouldShowAlert: true,
           shouldShowBanner: true,
           shouldShowList: true,
           shouldPlaySound: true,
@@ -74,7 +75,7 @@ if (Platform.OS === 'web') {
           importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 300, 200, 300],
           lightColor: '#10B981',
-          sound: 'default',
+          sound: 'order_update',
         });
 
         await Notifications.setNotificationChannelAsync('washbox-pickup', {
@@ -82,7 +83,7 @@ if (Platform.OS === 'web') {
           importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 500, 100, 500],
           lightColor: '#F59E0B',
-          sound: 'default',
+          sound: 'pickup_alert',
         });
 
         await Notifications.setNotificationChannelAsync('washbox-promo', {
@@ -90,7 +91,7 @@ if (Platform.OS === 'web') {
           importance: Notifications.AndroidImportance.DEFAULT,
           vibrationPattern: [0, 200, 100, 200],
           lightColor: '#EC4899',
-          sound: 'default',
+          sound: 'promo_chime',
         });
       } catch (channelError) {
         console.warn('[FCM] Failed to set notification channel:', channelError);

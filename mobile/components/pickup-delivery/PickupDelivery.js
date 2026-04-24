@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Alert, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import OSMMap from '../common/OSMMap';
 import { LocationService } from '../../services/locationService';
@@ -323,6 +323,15 @@ const PickupDeliveryMap = ({
   };
 
   const hasLocations = !!(pickupLocation || userLocation);
+
+  if (!region) {
+    return (
+      <View style={[styles.container, style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F1332' }]}>
+        <ActivityIndicator size="large" color="#0EA5E9" />
+        <Text style={{ color: '#94A3B8', marginTop: 12, fontSize: 13 }}>Loading map...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, style]}>

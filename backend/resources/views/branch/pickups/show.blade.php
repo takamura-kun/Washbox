@@ -374,7 +374,7 @@
                                 <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(14, 165, 233, 0.15);">
                                     <p class="text-muted mb-0" style="font-size: 0.9rem;">
                                         <i class="bi bi-clock me-2"></i> 
-                                        Uploaded {{ $pickup->proof_uploaded_at->diffForHumans() }}
+                                        Uploaded {{ $pickup->proof_uploaded_at ? \Carbon\Carbon::parse($pickup->proof_uploaded_at)->diffForHumans() : '' }}
                                     </p>
                                 </div>
                             </div>
@@ -451,7 +451,7 @@
                     <div class="card-body">
                         <p id="locationStatus" class="mb-2">
                             @if($pickup->staff_latitude && $pickup->staff_longitude)
-                                Last location update: {{ $pickup->location_updated_at->diffForHumans() }}
+                                Last location update: {{ $pickup->location_updated_at ? \Carbon\Carbon::parse($pickup->location_updated_at)->diffForHumans() : 'N/A' }}
                             @else
                                 Tracking is inactive. Click "Start Tracking" to share your location with the system.
                             @endif

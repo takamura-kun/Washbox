@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "washbox",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.washbox.app",
@@ -62,8 +62,7 @@
             "./assets/sounds/order_update.mp3",
             "./assets/sounds/pickup_alert.mp3",
             "./assets/sounds/promo_chime.mp3"
-          ],
-          "vapidPublicKey": "<your-vapid-public-key>"
+          ]
         }
       ],
       [
@@ -87,9 +86,6 @@
         "origin": false
       }
     },
-    "owner": "nel_chan",
-    "notification": {
-      "vapidPublicKey": "<your-vapid-public-key>"
-    }
+    "owner": "nel_chan"
   }
 }
