@@ -6,7 +6,7 @@ import MapView, {
   Polyline,
   Circle,
   Callout 
-} from 'react-native-maps';
+} from './MapView';
 import { StyleSheet, View, Text } from 'react-native';
 import { MAP_CONFIG } from '../../constants/mapConstants';
 import DeliveryMarker from '../pickup-delivery/DeliveryMarker';
@@ -18,6 +18,7 @@ const OSMMap = ({
   circles = [],
   onRegionChange,
   onMarkerPress,
+  onMapPress, // NEW: Handle map tap to pin location
   style,
   showAttribution = true,
   zoomEnabled = true,
@@ -62,8 +63,8 @@ const OSMMap = ({
         provider={PROVIDER_DEFAULT}
         style={styles.map}
         initialRegion={initialRegion}
-        region={initialRegion}
         onRegionChangeComplete={onRegionChange}
+        onPress={onMapPress} // NEW: Tap to pin
         zoomEnabled={zoomEnabled}
         scrollEnabled={scrollEnabled}
         showsUserLocation={true}

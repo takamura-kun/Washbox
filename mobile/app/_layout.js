@@ -4,7 +4,33 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { Platform } from 'react-native';
-import { setupNotificationListeners } from '../utils/notification';
+import { setupNotificationListeners, registerForPushNotifications } from '../utils/notification';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '../constants/config';
+
+// Polyfill window object for native platforms BEFORE any imports that use it
+if (Platform.OS !== 'web') {
+  if (typeof window === 'undefined') {
+    global.window = {};
+  }
+  
+  // Add required window properties
+  if (!global.window.addEventListener) {
+    global.window.addEventListener = () => {};
+  }
+  if (!global.window.removeEventListener) {
+    global.window.removeEventListener = () => {};
+  }
+  if (!global.window.location) {
+    global.window.location = { href: '' };
+  }
+  if (!global.window.history) {
+    global.window.history = { pushState: () => {}, replaceState: () => {} };
+  }
+  if (!global.window.document) {
+    global.window.document = {};
+  }
+}
 
 // Import web CSS only on web platform
 if (Platform.OS === 'web') {
@@ -36,12 +62,17 @@ function RootLayoutNav() {
     SplashScreen.hideAsync();
   }, [hasToken, isReady, segments]);
 
-  // Setup notification listeners when authenticated
+  // Register FCM token and setup notification listeners when authenticated
   useEffect(() => {
     if (!hasToken || !isReady) return;
     
     console.log('[FCM] Setting up notification listeners');
     const cleanup = setupNotificationListeners(router);
+
+    // Register FCM token with backend
+    AsyncStorage.getItem(STORAGE_KEYS.TOKEN).then(authToken => {
+      if (authToken) registerForPushNotifications(authToken);
+    });
     
     return cleanup;
   }, [hasToken, isReady, router]);
