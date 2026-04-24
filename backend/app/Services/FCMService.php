@@ -13,8 +13,9 @@ class FCMService
 
     public function __construct()
     {
-        if (file_exists(base_path('firebase-credentials.json'))) {
-            $factory = (new Factory)->withServiceAccount(base_path('firebase-credentials.json'));
+        $credentialsPath = storage_path('app/firebase/service-account.json');
+        if (file_exists($credentialsPath)) {
+            $factory = (new Factory)->withServiceAccount($credentialsPath);
             $this->messaging = $factory->createMessaging();
         }
     }

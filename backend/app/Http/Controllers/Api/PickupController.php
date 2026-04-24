@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\PickupRequest;
 use App\Models\Notification;  // ✅ ADDED
+use App\Services\ServiceAvailabilityService; // ✅ ADDED
+use App\Services\SecureFileUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -33,10 +35,14 @@ class PickupController extends Controller
                     'preferred_date' => $pickup->preferred_date->format('Y-m-d'),
                     'preferred_time' => $pickup->preferred_time,
                     'notes' => $pickup->notes,
+                    'phone_number' => $pickup->phone_number,
+                    'estimated_weight' => $pickup->estimated_weight,
                     'service_name' => $pickup->service->name ?? null,
+                    'branch_id' => $pickup->branch_id,
                     'branch' => [
                         'id' => $pickup->branch->id,
                         'name' => $pickup->branch->name,
+                        'address' => $pickup->branch->address ?? null,
                         'phone' => $pickup->branch->phone ?? null,
                     ],
                     'created_at' => $pickup->created_at->toIso8601String(),
@@ -82,39 +88,57 @@ class PickupController extends Controller
                 ], 404);
             }
 
+            $responseData = [
+                'pickup' => [
+                    'id' => $pickup->id,
+                    'status' => $pickup->status,
+                    'pickup_address' => $pickup->pickup_address,
+                    'latitude' => $pickup->latitude,
+                    'longitude' => $pickup->longitude,
+                    'preferred_date' => $pickup->preferred_date->format('Y-m-d'),
+                    'preferred_time' => $pickup->preferred_time,
+                    'notes' => $pickup->notes,
+                    'service' => $pickup->service ? [
+                        'id' => $pickup->service->id,
+                        'name' => $pickup->service->name,
+                    ] : null,
+                    'branch' => [
+                        'id' => $pickup->branch->id,
+                        'name' => $pickup->branch->name,
+                        'address' => $pickup->branch->address ?? null,
+                        'phone' => $pickup->branch->phone ?? null,
+                    ],
+                    'assigned_staff' => $pickup->assignedStaff ? [
+                        'id' => $pickup->assignedStaff->id,
+                        'name' => $pickup->assignedStaff->name,
+                    ] : null,
+                    'laundries_id' => $pickup->laundries_id,
+                    'customer_proof_photo_url' => $pickup->customer_proof_photo_url,
+                    'customer_proof_uploaded_at' => $pickup->customer_proof_uploaded_at ? $pickup->customer_proof_uploaded_at->toIso8601String() : null,
+                    'pickup_proof_photo_url' => $pickup->pickup_proof_photo_url,
+                    'proof_uploaded_at' => $pickup->proof_uploaded_at ? $pickup->proof_uploaded_at->toIso8601String() : null,
+                    'accepted_at' => $pickup->accepted_at ? $pickup->accepted_at->toIso8601String() : null,
+                    'en_route_at' => $pickup->en_route_at ? $pickup->en_route_at->toIso8601String() : null,
+                    'picked_up_at' => $pickup->picked_up_at ? $pickup->picked_up_at->toIso8601String() : null,
+                    'created_at' => $pickup->created_at->toIso8601String(),
+                ],
+            ];
+
+            // Include linked laundry details if exists
+            if ($pickup->laundry) {
+                $responseData['laundry'] = [
+                    'id' => $pickup->laundry->id,
+                    'status' => $pickup->laundry->status,
+                    'total_amount' => $pickup->laundry->total_amount,
+                    'payment_status' => $pickup->laundry->payment_status,
+                    'created_at' => $pickup->laundry->created_at->toIso8601String(),
+                    'updated_at' => $pickup->laundry->updated_at->toIso8601String(),
+                ];
+            }
+
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'pickup' => [
-                        'id' => $pickup->id,
-                        'status' => $pickup->status,
-                        'pickup_address' => $pickup->pickup_address,
-                        'latitude' => $pickup->latitude,
-                        'longitude' => $pickup->longitude,
-                        'preferred_date' => $pickup->preferred_date->format('Y-m-d'),
-                        'preferred_time' => $pickup->preferred_time,
-                        'notes' => $pickup->notes,
-                        'service' => $pickup->service ? [
-                            'id' => $pickup->service->id,
-                            'name' => $pickup->service->name,
-                        ] : null,
-                        'branch' => [
-                            'id' => $pickup->branch->id,
-                            'name' => $pickup->branch->name,
-                            'address' => $pickup->branch->address ?? null,
-                            'phone' => $pickup->branch->phone ?? null,
-                        ],
-                        'assigned_staff' => $pickup->assignedStaff ? [
-                            'id' => $pickup->assignedStaff->id,
-                            'name' => $pickup->assignedStaff->name,
-                        ] : null,
-                        'laundries_id' => $pickup->laundries_id,
-                        'accepted_at' => $pickup->accepted_at ? $pickup->accepted_at->toIso8601String() : null,
-                        'en_route_at' => $pickup->en_route_at ? $pickup->en_route_at->toIso8601String() : null,
-                        'picked_up_at' => $pickup->picked_up_at ? $pickup->picked_up_at->toIso8601String() : null,
-                        'created_at' => $pickup->created_at->toIso8601String(),
-                    ],
-                ]
+                'data' => $responseData
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching pickup: ' . $e->getMessage());
@@ -135,7 +159,19 @@ class PickupController extends Controller
 public function store(Request $request)
 {
     try {
+        // Check if pickup service is enabled
+        if (!ServiceAvailabilityService::isPickupEnabled()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pickup service is currently disabled. Please contact us directly or visit our branch.',
+                'service_status' => ServiceAvailabilityService::getServiceStatus()
+            ], 503); // Service Unavailable
+        }
+
         $customer = $request->user();
+
+        // Check if customer proof photo is required
+        $requireProof = (bool) \App\Models\SystemSetting::get('require_customer_proof_photo', true);
 
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
@@ -146,7 +182,41 @@ public function store(Request $request)
             'preferred_time' => 'nullable|string',
             'notes' => 'nullable|string|max:500',
             'service_id' => 'nullable|exists:services,id',
+            'service_type' => 'nullable|in:pickup_only,delivery_only,both',
+            'phone_number' => 'required|string|max:20',
+            'customer_proof_photo' => $requireProof ? 'required|image|mimes:jpeg,png,jpg|max:5120' : 'nullable|image|mimes:jpeg,png,jpg|max:5120',
         ]);
+
+        // Validate service type availability
+        $serviceType = $validated['service_type'] ?? 'both'; // Default to both
+        if (!ServiceAvailabilityService::isServiceTypeAvailable($serviceType)) {
+            return response()->json([
+                'success' => false,
+                'message' => ServiceAvailabilityService::getDisabledServiceMessage($serviceType),
+                'service_status' => ServiceAvailabilityService::getServiceStatus()
+            ], 400);
+        }
+
+        // Store customer proof photo securely
+        $customerProofFilename = null;
+        if ($request->hasFile('customer_proof_photo')) {
+            try {
+                $uploadResult = SecureFileUploadService::uploadImage(
+                    $request->file('customer_proof_photo'),
+                    'customer-pickup-proofs'
+                );
+                $customerProofFilename = $uploadResult['filename'];
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File upload failed: ' . $e->getMessage(),
+                ], 400);
+            }
+        }
+
+        // Calculate pickup and delivery fees using the proper DeliveryFee model
+        $deliveryFee = \App\Models\DeliveryFee::getOrCreateForBranch($validated['branch_id']);
+        $fees = $deliveryFee->calculateFee($serviceType);
 
         $pickup = PickupRequest::create([
             'customer_id' => $customer->id,
@@ -157,7 +227,13 @@ public function store(Request $request)
             'preferred_date' => $validated['preferred_date'],
             'preferred_time' => $validated['preferred_time'] ?? null,
             'notes' => $validated['notes'] ?? null,
+            'phone_number' => $validated['phone_number'],
             'service_id' => $validated['service_id'] ?? null,
+            'service_type' => $serviceType,
+            'pickup_fee' => $fees['pickup_fee'],
+            'delivery_fee' => $fees['delivery_fee'],
+            'customer_proof_photo' => $customerProofFilename,
+            'customer_proof_uploaded_at' => now(),
             'status' => 'pending',
         ]);
 
@@ -172,6 +248,11 @@ public function store(Request $request)
                     'status' => $pickup->status,
                     'preferred_date' => $pickup->preferred_date->format('Y-m-d'),
                     'preferred_time' => $pickup->preferred_time,
+                    'service_type' => $pickup->service_type,
+                    'pickup_fee' => $pickup->pickup_fee,
+                    'delivery_fee' => $pickup->delivery_fee,
+                    'total_fee' => $pickup->pickup_fee + $pickup->delivery_fee,
+                    'customer_proof_photo_url' => $pickup->customer_proof_photo_url,
                 ],
             ]
         ], 201);
@@ -212,24 +293,43 @@ public function store(Request $request)
                 ], 404);
             }
 
-            // Only allow cancellation of pending or accepted requests
-            if (!in_array($pickup->status, ['pending', 'accepted'])) {
+            // Only allow cancellation of pending requests (before admin/staff confirmation)
+            if ($pickup->status !== 'pending') {
+                $statusMessages = [
+                    'accepted' => 'This pickup has been accepted by our staff and cannot be cancelled. Please contact us directly.',
+                    'en_route' => 'Our driver is already on the way. Please contact us directly to make changes.',
+                    'picked_up' => 'Your laundry has already been picked up and is being processed.',
+                    'cancelled' => 'This pickup request has already been cancelled.',
+                    'delivered' => 'This pickup has already been completed.',
+                ];
+                
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot cancel pickup in current status',
+                    'message' => $statusMessages[$pickup->status] ?? 'Cannot cancel pickup in current status',
                 ], 400);
             }
 
+            // Cancel the pickup
             $pickup->update([
                 'status' => 'cancelled',
                 'cancelled_at' => now(),
-                'cancellation_reason' => $request->reason ?? 'Cancelled by customer',
-                'cancelled_by' => null, // Customer cancel, no user_id
+                'cancellation_reason' => $request->input('reason', 'Cancelled by customer'),
+                'cancelled_by' => null, // Customer cancel, no user_id needed
             ]);
+
+            // Create notification for admin/staff
+            Notification::createPickupCancelled($pickup, 'customer');
 
             return response()->json([
                 'success' => true,
                 'message' => 'Pickup request cancelled successfully',
+                'data' => [
+                    'pickup' => [
+                        'id' => $pickup->id,
+                        'status' => $pickup->status,
+                        'cancelled_at' => $pickup->cancelled_at->toIso8601String(),
+                    ]
+                ]
             ]);
         } catch (\Exception $e) {
             Log::error('Error cancelling pickup: ' . $e->getMessage());
@@ -331,7 +431,8 @@ public function store(Request $request)
     }
 
     /**
-     * Mark pickup as picked up (Laundry collected)
+     * Mark pickup as picked up (Laundry collected and arrived at shop)
+     * Automatically creates a laundry order
      *
      * PUT /api/v1/staff/pickups/{id}/picked-up
      */
@@ -347,24 +448,131 @@ public function store(Request $request)
                 ], 400);
             }
 
+            // Require proof photo before marking as picked up
+            if (!$pickup->hasProofPhoto()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please upload proof photo before marking as picked up',
+                ], 400);
+            }
+
+            // Start database transaction
+            \DB::beginTransaction();
+
+            // Update pickup status
             $pickup->update([
                 'status' => 'picked_up',
                 'picked_up_at' => now(),
             ]);
 
-            // ✅ CREATE NOTIFICATION
-            Notification::createPickupCompleted($pickup);
+            // Automatically create laundry order from pickup
+            $laundry = \App\Models\Laundry::create([
+                'customer_id' => $pickup->customer_id,
+                'branch_id' => $pickup->branch_id,
+                'pickup_request_id' => $pickup->id,
+                'service_id' => $pickup->service_id,
+                'status' => 'pending',
+                'delivery_address' => $pickup->pickup_address, // Same address for delivery
+                'delivery_latitude' => $pickup->latitude,
+                'delivery_longitude' => $pickup->longitude,
+                'phone_number' => $pickup->phone_number,
+                'notes' => $pickup->notes,
+                'pickup_fee' => $pickup->pickup_fee ?? 0,
+                'delivery_fee' => $pickup->delivery_fee ?? 0,
+                'service_type' => $pickup->service_type ?? 'both',
+            ]);
+
+            // Link laundry to pickup
+            $pickup->update(['laundries_id' => $laundry->id]);
+
+            \DB::commit();
+
+            // ✅ CREATE NOTIFICATION with proof photo
+            Notification::createPickupProofUploaded($pickup);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Pickup marked as picked up',
+                'message' => 'Pickup marked as picked up. Laundry order created automatically.',
+                'data' => [
+                    'pickup_id' => $pickup->id,
+                    'laundry_id' => $laundry->id,
+                    'laundry_status' => $laundry->status,
+                ]
             ]);
         } catch (\Exception $e) {
+            \DB::rollBack();
             Log::error('Error marking pickup as picked up: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to mark pickup as picked up',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload pickup proof photo (Staff - when laundry arrives at shop)
+     *
+     * POST /api/v1/staff/pickups/{id}/upload-proof
+     */
+    public function uploadProof(Request $request, $id)
+    {
+        try {
+            $validated = $request->validate([
+                'proof_photo' => 'required|image|mimes:jpeg,png,jpg|max:5120', // 5MB max
+            ]);
+
+            $pickup = PickupRequest::findOrFail($id);
+
+            // Check if pickup is en_route (laundry should be arriving/arrived at shop)
+            if (!in_array($pickup->status, ['en_route', 'picked_up'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pickup must be en route or picked up to upload proof',
+                ], 400);
+            }
+
+            // Store the proof image securely
+            try {
+                $uploadResult = SecureFileUploadService::uploadImage(
+                    $request->file('proof_photo'),
+                    'pickup-proofs'
+                );
+                $filename = $uploadResult['filename'];
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File upload failed: ' . $e->getMessage(),
+                ], 400);
+            }
+
+            // Update pickup request with proof photo
+            $pickup->update([
+                'pickup_proof_photo' => $filename,
+                'proof_uploaded_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pickup proof uploaded successfully. You can now mark as picked up.',
+                'data' => [
+                    'proof_photo_url' => $pickup->pickup_proof_photo_url,
+                    'uploaded_at' => $pickup->proof_uploaded_at->toIso8601String(),
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error uploading pickup proof: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload pickup proof',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -399,6 +607,48 @@ public function store(Request $request)
                 'success' => false,
                 'message' => 'Failed to link laundry',
                 'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getByIds(Request $request)
+    {
+        try {
+            $pickupIds = $request->input('pickup_ids', []);
+            
+            if (empty($pickupIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No pickup IDs provided'
+                ], 400);
+            }
+            
+            $pickups = PickupRequest::with(['customer', 'branch'])
+                ->whereIn('id', $pickupIds)
+                ->get()
+                ->map(function ($pickup) {
+                    return [
+                        'id' => $pickup->id,
+                        'pickup_latitude' => $pickup->latitude,
+                        'pickup_longitude' => $pickup->longitude,
+                        'customer_name' => $pickup->customer->name ?? 'Unknown',
+                        'address' => $pickup->address,
+                        'status' => $pickup->status,
+                        'branch_id' => $pickup->branch_id,
+                    ];
+                });
+            
+            return response()->json([
+                'success' => true,
+                'pickups' => $pickups
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching pickups by IDs: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch pickups',
+                'error' => $e->getMessage()
             ], 500);
         }
     }

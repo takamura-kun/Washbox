@@ -277,7 +277,7 @@
 
                         <div class="alert alert-warning">
                             <i class="bi bi-info-circle"></i>
-                            <small>This fee will be added to the final order amount when creating an order from this pickup.</small>
+                            <small>This fee will be added to the final laundry amount when creating a laundry from this pickup.</small>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100">

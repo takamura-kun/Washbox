@@ -21,6 +21,7 @@ import { Picker } from '@react-native-picker/picker';
 import { StatusBar } from 'expo-status-bar';
 import { API_BASE_URL, STORAGE_KEYS } from '../../constants/config';
 import { LinearGradient } from 'expo-linear-gradient';
+import TermsModal from '../../components/TermsModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -41,6 +42,8 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [errors, setErrors] = useState({});
+  const [showTermsModal, setShowTermsModal] = useState(true);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -201,6 +204,20 @@ export default function RegisterScreen() {
   return (
     <>
       <StatusBar style="light" />
+      
+      {/* Terms Modal - Show first */}
+      <TermsModal
+        visible={showTermsModal}
+        onClose={() => router.back()}
+        onAccept={() => {
+          setTermsAccepted(true);
+          setShowTermsModal(false);
+        }}
+        showAcceptButton={true}
+      />
+
+      {/* Register Form - Show after terms accepted */}
+      {termsAccepted && (
       <LinearGradient
         colors={['#0A0E27', '#1A1F3A', '#0A0E27']}
         style={styles.container}
@@ -531,6 +548,7 @@ export default function RegisterScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
+      )}
     </>
   );
 }
@@ -711,8 +729,8 @@ const styles = StyleSheet.create({
   termsText: {
     textAlign: 'center',
     color: '#94A3B8',
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
     marginTop: 8,
     marginBottom: 20,
   },

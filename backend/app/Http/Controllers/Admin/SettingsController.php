@@ -54,6 +54,7 @@ class SettingsController extends Controller
             // Pickup & Delivery
             'enable_pickup',
             'enable_delivery',
+            'require_customer_proof_photo',
             // Receipt options
             'receipt_show_branch',
             'receipt_show_staff',
@@ -65,13 +66,20 @@ class SettingsController extends Controller
             'hours_friday_open',
             'hours_saturday_open',
             'hours_sunday_open',
+            // Unclaimed notifications
+            'enable_unclaimed_notifications',
+            // Maintenance Mode
+            'maintenance_mode',
+            'maintenance_allow_admin',
         ];
 
         foreach ($booleanKeys as $key) {
             $group = str_starts_with($key, 'hours_')      ? 'hours'
                    : (str_starts_with($key, 'enable_pickup') || str_starts_with($key, 'enable_delivery') ? 'pickup'
                    : (str_starts_with($key, 'receipt_')     ? 'receipt'
-                   : 'notifications'));
+                   : (str_starts_with($key, 'enable_unclaimed') ? 'general'
+                   : (str_starts_with($key, 'maintenance_') ? 'maintenance'
+                   : 'notifications'))));
 
             SystemSetting::set($key, $request->has($key) ? '1' : '0', 'boolean', $group);
         }
@@ -105,6 +113,9 @@ class SettingsController extends Controller
             'disposal_threshold_days'  => 'general',
             'fcm_server_key'           => 'notifications',
             'fcm_sender_id'            => 'notifications',
+            'maintenance_message'      => 'maintenance',
+            'maintenance_start'        => 'maintenance',
+            'maintenance_end'          => 'maintenance',
         ];
 
         foreach ($data as $key => $value) {
@@ -122,7 +133,13 @@ class SettingsController extends Controller
             SystemSetting::set($key, $value, $type, $group);
         }
 
-        return redirect()->back()->with('success', 'WLMS Settings updated successfully.');
+        // Auto-sync operating hours to all branches when hours are updated
+        $this->autoSyncHoursToBranches();
+
+        // 4. Handle pickup/delivery service toggles - update system-wide availability
+        $this->updateServiceAvailability($request);
+
+        return redirect()->back()->with('success', 'Settings updated successfully.');
     }
 
     /**
@@ -359,5 +376,147 @@ class SettingsController extends Controller
         }
 
         return redirect()->back()->with('success', 'Notification settings updated successfully.');
+    }
+
+    /**
+     * Apply global operating hours to all branches
+     */
+    public function applyHoursToBranches()
+    {
+        try {
+            $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            $operatingHours = [];
+
+            // Build operating hours array from system settings
+            foreach ($days as $day) {
+                $isOpen = SystemSetting::get("hours_{$day}_open", true);
+                
+                if ($isOpen) {
+                    $operatingHours[$day] = [
+                        'open' => SystemSetting::get("hours_{$day}_start", '07:00'),
+                        'close' => SystemSetting::get("hours_{$day}_end", '20:00'),
+                        'status' => 'open'
+                    ];
+                } else {
+                    $operatingHours[$day] = 'closed';
+                }
+            }
+
+            // Update all branches with the new operating hours
+            $updatedCount = \App\Models\Branch::query()->update([
+                'operating_hours' => $operatingHours
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Operating hours applied to {$updatedCount} branch(es) successfully."
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error applying hours to branches: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update service availability based on pickup/delivery settings
+     */
+    private function updateServiceAvailability(Request $request)
+    {
+        try {
+            $enablePickup = $request->has('enable_pickup');
+            $enableDelivery = $request->has('enable_delivery');
+
+            // Check if pickup/delivery fees have changed
+            $oldPickupFee = SystemSetting::get('default_pickup_fee', 50);
+            $oldDeliveryFee = SystemSetting::get('default_delivery_fee', 50);
+            $newPickupFee = $request->input('default_pickup_fee', $oldPickupFee);
+            $newDeliveryFee = $request->input('default_delivery_fee', $oldDeliveryFee);
+
+            $feesChanged = ($oldPickupFee != $newPickupFee) || ($oldDeliveryFee != $newDeliveryFee);
+
+            // Check if service pricing has changed
+            $oldPricePerPiece = SystemSetting::get('default_price_per_piece', 60);
+            $oldPricePerLoad = SystemSetting::get('default_price_per_load', 120);
+            $newPricePerPiece = $request->input('default_price_per_piece', $oldPricePerPiece);
+            $newPricePerLoad = $request->input('default_price_per_load', $oldPricePerLoad);
+
+            $servicePricingChanged = ($oldPricePerPiece != $newPricePerPiece) || ($oldPricePerLoad != $newPricePerLoad);
+
+            // Update all branch fees if default fees changed
+            if ($feesChanged) {
+                $updatedBranches = \App\Models\DeliveryFee::updateAllBranchFeesFromSettings();
+                \Log::info('Updated branch fees from settings', [
+                    'old_pickup_fee' => $oldPickupFee,
+                    'new_pickup_fee' => $newPickupFee,
+                    'old_delivery_fee' => $oldDeliveryFee,
+                    'new_delivery_fee' => $newDeliveryFee,
+                    'branches_updated' => $updatedBranches,
+                    'updated_by' => auth()->user()->name ?? 'System'
+                ]);
+            }
+
+            // Update service prices for services with null prices
+            if ($servicePricingChanged) {
+                $serviceUpdates = \App\Models\Service::updateNullPricesFromSettings();
+                \Log::info('Updated service prices from settings', [
+                    'old_price_per_piece' => $oldPricePerPiece,
+                    'new_price_per_piece' => $newPricePerPiece,
+                    'old_price_per_load' => $oldPricePerLoad,
+                    'new_price_per_load' => $newPricePerLoad,
+                    'services_updated' => $serviceUpdates,
+                    'updated_by' => auth()->user()->name ?? 'System'
+                ]);
+            }
+
+            // Log the service availability changes
+            \Log::info('Service availability updated', [
+                'pickup_enabled' => $enablePickup,
+                'delivery_enabled' => $enableDelivery,
+                'fees_updated' => $feesChanged,
+                'service_pricing_updated' => $servicePricingChanged,
+                'updated_by' => auth()->user()->name ?? 'System'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to update service availability: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Automatically sync operating hours to all branches (called internally)
+     */
+    private function autoSyncHoursToBranches()
+    {
+        try {
+            $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            $operatingHours = [];
+
+            // Build operating hours array from system settings
+            foreach ($days as $day) {
+                $isOpen = SystemSetting::get("hours_{$day}_open", true);
+                
+                if ($isOpen) {
+                    $operatingHours[$day] = [
+                        'open' => SystemSetting::get("hours_{$day}_start", '07:00'),
+                        'close' => SystemSetting::get("hours_{$day}_end", '20:00'),
+                        'status' => 'open'
+                    ];
+                } else {
+                    $operatingHours[$day] = 'closed';
+                }
+            }
+
+            // Update all branches with the new operating hours
+            \App\Models\Branch::query()->update([
+                'operating_hours' => $operatingHours
+            ]);
+
+        } catch (\Exception $e) {
+            // Log error but don't break the settings update
+            \Log::error('Failed to auto-sync hours to branches: ' . $e->getMessage());
+        }
     }
 }

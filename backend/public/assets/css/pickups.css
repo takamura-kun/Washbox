@@ -195,6 +195,52 @@
  *
  * Fix: override every Bootstrap table var inside [data-theme="dark"].
  */
+
+/* Light mode table variables */
+[data-theme="light"] .pk-table-card .table {
+    /* Bootstrap 5 table variables for light mode */
+    --bs-table-color:          #0f172a;   /* main text  */
+    --bs-table-bg:             #ffffff;   /* row background */
+    --bs-table-border-color:   #e2e8f0;   /* row dividers */
+    --bs-table-striped-color:  #0f172a;
+    --bs-table-striped-bg:     rgba(0,0,0,0.02);
+    --bs-table-active-color:   #0f172a;
+    --bs-table-active-bg:      rgba(0,0,0,0.05);
+    --bs-table-hover-color:    #0f172a;
+    --bs-table-hover-bg:       rgba(0,0,0,0.04);
+    color:            #0f172a;
+    border-color:     #e2e8f0;
+    background-color: #ffffff;
+}
+
+/* Header row in light mode */
+[data-theme="light"] .pk-table-card .table th {
+    background:    #f8fafc !important;
+    color:         #64748b !important;
+    border-color:  #e2e8f0 !important;
+}
+
+/* Body cells in light mode */
+[data-theme="light"] .pk-table-card .table td {
+    color:        #0f172a !important;
+    background:   #ffffff !important;
+    border-color: #e2e8f0 !important;
+}
+
+/* Row hover in light mode */
+[data-theme="light"] .pk-table-card .table tbody tr:hover td {
+    background: rgba(0,0,0,0.04) !important;
+}
+
+/* Text inside table cells in light mode */
+[data-theme="light"] .pk-table-card .table td span,
+[data-theme="light"] .pk-table-card .table td div,
+[data-theme="light"] .pk-table-card .table td small,
+[data-theme="light"] .pk-table-card .table td a:not(.pk-btn):not(.pk-landmark) {
+    color: inherit;
+}
+
+/* Dark mode table variables */
 [data-theme="dark"] .pk-table-card .table {
     /* Bootstrap 5 table variables */
     --bs-table-color:          #f1f5f9;   /* main text  */
@@ -378,6 +424,11 @@
 }
 
 /* Branch name cell (uses inline style with no color) */
+[data-theme="light"] .pk-table-card .table td span[style],
+[data-theme="light"] .pk-table-card .table td div[style] {
+    color: #0f172a !important;
+}
+
 [data-theme="dark"] .pk-table-card .table td span[style],
 [data-theme="dark"] .pk-table-card .table td div[style] {
     color: #f1f5f9 !important;

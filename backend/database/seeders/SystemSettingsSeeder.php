@@ -44,6 +44,7 @@ class SystemSettingsSeeder extends Seeder
         // ── PICKUP & DELIVERY ─────────────────────────────────────
         SystemSetting::set('enable_pickup',           '1',  'boolean', 'pickup');
         SystemSetting::set('enable_delivery',         '1',  'boolean', 'pickup');
+        SystemSetting::set('require_customer_proof_photo', '1', 'boolean', 'pickup');
         SystemSetting::set('default_pickup_fee',      50,   'integer', 'pickup');
         SystemSetting::set('default_delivery_fee',    50,   'integer', 'pickup');
         SystemSetting::set('max_service_radius_km',   10,   'integer', 'pickup');

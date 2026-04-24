@@ -13,6 +13,10 @@
     <link rel="stylesheet" href="{{ asset('assets/bootstrap-icons/bootstrap-icons.css') }}">
     <!-- Unified Layout CSS -->
     <link rel="stylesheet" href="{{ asset('assets/css/layout.css') }}">
+    <!-- Responsive Design CSS -->
+    <link rel="stylesheet" href="{{ asset('assets/css/responsive.css') }}">
+    <!-- Skip Links Fix -->
+ 
 
     @stack('styles')
 </head>

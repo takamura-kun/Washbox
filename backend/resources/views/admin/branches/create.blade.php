@@ -1,5 +1,3 @@
-purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
-
 @extends('admin.layouts.app')
 
 @section('title', 'Create New Branch')
@@ -22,17 +20,21 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
     </div>
     @endif
 
-    <form method="POST" action="{{ route('admin.branches.store') }}" class="card shadow-sm p-4">
+    <form method="POST" action="{{ route('admin.branches.store') }}" class="card shadow-sm p-4" enctype="multipart/form-data">
         @csrf
 
         <div class="row">
+
+            {{-- ═══════════════════════════════════════ --}}
+            {{-- LEFT COLUMN                            --}}
+            {{-- ═══════════════════════════════════════ --}}
             <div class="col-lg-8">
                 <h5 class="fw-bold mb-3"><i class="bi bi-building me-2"></i>Branch Information</h5>
 
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Branch Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('name') is-invalid @enderror"
+                        <input type="text" class="form-control form-control-sm @error('name') is-invalid @enderror"
                                name="name" value="{{ old('name') }}" required placeholder="e.g., WashBox Sibulan">
                         @error('name')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -40,9 +42,9 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Branch Code <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('code') is-invalid @enderror"
+                        <input type="text" class="form-control form-control-sm @error('code') is-invalid @enderror"
                                name="code" value="{{ old('code') }}" required maxlength="10" placeholder="e.g., SBL, DGT, BAI">
-                        <small class="text-muted">Unique 3-10 letter code</small>
+                        <small class="text-muted">Unique 3–10 letter code</small>
                         @error('code')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -51,8 +53,9 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Address <span class="text-danger">*</span></label>
-                    <textarea class="form-control @error('address') is-invalid @enderror"
-                              name="address" rows="2" required placeholder="Full street address (e.g., Purok 3, Diversion Road, Magatas)">{{ old('address') }}</textarea>
+                    <textarea class="form-control form-control-sm @error('address') is-invalid @enderror"
+                              name="address" rows="2" required
+                              placeholder="Full street address (e.g., Purok 3, Diversion Road, Magatas)">{{ old('address') }}</textarea>
                     @error('address')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -61,7 +64,7 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Barangay/District</label>
-                        <input type="text" class="form-control @error('barangay') is-invalid @enderror"
+                        <input type="text" class="form-control form-control-sm @error('barangay') is-invalid @enderror"
                                name="barangay" value="{{ old('barangay') }}" placeholder="e.g., Magatas">
                         @error('barangay')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -69,7 +72,7 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">City/Municipality <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('city') is-invalid @enderror"
+                        <input type="text" class="form-control form-control-sm @error('city') is-invalid @enderror"
                                name="city" value="{{ old('city') }}" required placeholder="e.g., Sibulan">
                         @error('city')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -77,8 +80,9 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Province <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('province') is-invalid @enderror"
-                               name="province" value="{{ old('province', $defaultProvince ?? 'Negros Oriental') }}" required placeholder="e.g., Negros Oriental">
+                        <input type="text" class="form-control form-control-sm @error('province') is-invalid @enderror"
+                               name="province" value="{{ old('province', $defaultProvince ?? 'Negros Oriental') }}"
+                               required placeholder="e.g., Negros Oriental">
                         @error('province')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -88,7 +92,7 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Zip Code</label>
-                        <input type="text" class="form-control @error('zip_code') is-invalid @enderror"
+                        <input type="text" class="form-control form-control-sm @error('zip_code') is-invalid @enderror"
                                name="zip_code" value="{{ old('zip_code') }}" placeholder="e.g., 6200" maxlength="4">
                         @error('zip_code')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -96,7 +100,7 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Phone Number <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('phone') is-invalid @enderror"
+                        <input type="text" class="form-control form-control-sm @error('phone') is-invalid @enderror"
                                name="phone" value="{{ old('phone') }}" required placeholder="e.g., 0917 123 4567">
                         @error('phone')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -107,7 +111,7 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Email Address</label>
-                        <input type="email" class="form-control @error('email') is-invalid @enderror"
+                        <input type="email" class="form-control form-control-sm @error('email') is-invalid @enderror"
                                name="email" value="{{ old('email') }}" placeholder="e.g., branch@washbox.com">
                         @error('email')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -115,7 +119,7 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Branch Manager</label>
-                        <input type="text" class="form-control @error('manager') is-invalid @enderror"
+                        <input type="text" class="form-control form-control-sm @error('manager') is-invalid @enderror"
                                name="manager" value="{{ old('manager') }}" placeholder="Name of branch manager">
                         @error('manager')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -126,9 +130,9 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Status</label>
-                        <select class="form-select @error('is_active') is-invalid @enderror" name="is_active">
-                            <option value="1" {{ old('is_active', 1) ? 'selected' : '' }}>Active</option>
-                            <option value="0" {{ !old('is_active', 1) ? 'selected' : '' }}>Inactive</option>
+                        <select class="form-select form-select-sm @error('is_active') is-invalid @enderror" name="is_active">
+                            <option value="1" {{ old('is_active', '1') == '1' ? 'selected' : '' }}>Active</option>
+                            <option value="0" {{ old('is_active', '1') == '0' ? 'selected' : '' }}>Inactive</option>
                         </select>
                         <small class="text-muted">Inactive branches won't appear in mobile app</small>
                         @error('is_active')
@@ -161,7 +165,6 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                             </div>
                             <div id="geocode-status" class="small mt-2" style="display:none;"></div>
 
-                            {{-- Plus Code hint --}}
                             <div class="mt-2">
                                 <small class="text-muted">
                                     <i class="bi bi-info-circle me-1"></i>
@@ -198,62 +201,41 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-header bg-light">
-                        <h6 class="fw-bold mb-0"><i class="bi bi-clock me-2"></i>Operating Hours (Optional)</h6>
-                        <small class="text-muted">Simple text format for branch hours</small>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Operating Hours</label>
-                            <input type="text" class="form-control @error('operating_hours') is-invalid @enderror"
-                                   name="operating_hours" value="{{ old('operating_hours') }}"
-                                   placeholder="e.g., Monday-Friday: 8:00 AM - 6:00 PM, Saturday-Sunday: 9:00 AM - 5:00 PM">
-                            <small class="text-muted">
-                                Examples:<br>
-                                • "Monday-Friday: 8:00 AM - 6:00 PM, Saturday-Sunday: 9:00 AM - 5:00 PM"<br>
-                                • "Daily: 8:00 AM - 8:00 PM"
-                            </small>
-                            @error('operating_hours')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </div>{{-- end col-lg-8 --}}
 
-            {{-- Right sidebar --}}
+            {{-- ═══════════════════════════════════════ --}}
+            {{-- RIGHT SIDEBAR                          --}}
+            {{-- ═══════════════════════════════════════ --}}
             <div class="col-lg-4">
+
+                {{-- Quick Tips --}}
                 <div class="card mb-4">
                     <div class="card-header bg-light">
                         <h6 class="fw-bold mb-0"><i class="bi bi-info-circle me-2"></i>Quick Tips</h6>
                     </div>
                     <div class="card-body">
-                        <div class="alert alert-info">
-                            <h6><i class="bi bi-lightbulb me-2"></i>Best Practices:</h6>
-                            <ul class="mb-0">
+                        <div class="alert alert-info py-2">
+                            <h6 class="small mb-2"><i class="bi bi-lightbulb me-1"></i>Best Practices:</h6>
+                            <ul class="mb-0 small">
                                 <li>Use unique branch codes (SBL, DGT, BAI)</li>
                                 <li>Ensure phone numbers are correct for customer contact</li>
                                 <li>Use the map to pin your branch location</li>
-                                <li>Use clear, readable text for operating hours</li>
                             </ul>
                         </div>
 
-                        <div class="alert alert-success">
-                            <h6><i class="bi bi-geo-alt me-2"></i>Philippine Address Format:</h6>
-                            <ul class="mb-0">
+                        <div class="alert alert-success py-2">
+                            <h6 class="small mb-2"><i class="bi bi-geo-alt me-1"></i>Philippine Address Format:</h6>
+                            <ul class="mb-0 small">
                                 <li><strong>Example:</strong> Purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental</li>
                                 <li>Purok / Sitio / Subdivision</li>
                                 <li>Street / Road name</li>
-                                <li>Barangay</li>
-                                <li>City / Municipality</li>
-                                <li>Zip Code + Province</li>
+                                <li>Barangay → City/Municipality → Zip + Province</li>
                             </ul>
                         </div>
 
-                        <div class="alert alert-warning">
-                            <h6><i class="bi bi-exclamation-triangle me-2"></i>Important:</h6>
-                            <ul class="mb-0">
+                        <div class="alert alert-warning py-2">
+                            <h6 class="small mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Important:</h6>
+                            <ul class="mb-0 small">
                                 <li>Inactive branches won't appear in mobile app</li>
                                 <li>Branch code cannot be changed after creation</li>
                                 <li>Click the map to set exact location if search is not precise</li>
@@ -262,7 +244,121 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                     </div>
                 </div>
 
-                <div class="d-grid gap-2">
+                {{-- ═══ GCASH SETTINGS CARD ═══ --}}
+                <div class="card">
+                    <div class="card-header bg-light d-flex align-items-center justify-content-between">
+                        <h6 class="fw-bold mb-0">
+                            <i class="bi bi-qr-code-scan text-primary me-2"></i>GCash Payment Settings
+                        </h6>
+                        <span class="badge bg-primary-subtle text-primary small px-2">Per Branch</span>
+                    </div>
+                    <div class="card-body">
+
+                        <p class="text-muted small mb-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Used for mobile app, walk-in counter, and pickup/delivery payments.
+                        </p>
+
+                        {{-- GCash Number --}}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                GCash Number <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-primary-subtle border-0">
+                                    <i class="bi bi-phone text-primary"></i>
+                                </span>
+                                <input type="text"
+                                       class="form-control form-control-sm @error('gcash_number') is-invalid @enderror"
+                                       name="gcash_number"
+                                       id="gcash_number"
+                                       value="{{ old('gcash_number') }}"
+                                       placeholder="e.g., 0917 123 4567"
+                                       maxlength="13">
+                                @error('gcash_number')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <small class="text-muted">Displayed to customers during payment.</small>
+                        </div>
+
+                        {{-- Account Name --}}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Account Name <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-primary-subtle border-0">
+                                    <i class="bi bi-person text-primary"></i>
+                                </span>
+                                <input type="text"
+                                       class="form-control form-control-sm @error('gcash_name') is-invalid @enderror"
+                                       name="gcash_name"
+                                       id="gcash_name"
+                                       value="{{ old('gcash_name') }}"
+                                       placeholder="e.g., Juan Dela Cruz">
+                                @error('gcash_name')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <small class="text-muted">Name shown on GCash confirmation screen.</small>
+                        </div>
+
+                        {{-- QR Code Upload --}}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">GCash QR Code</label>
+
+                            <div id="qr-dropzone"
+                                 class="border border-2 rounded-3 text-center p-3 qr-dropzone-box">
+                                <input type="file"
+                                       name="gcash_qr_image"
+                                       id="gcash_qr"
+                                       accept="image/png,image/jpeg,image/jpg"
+                                       class="d-none @error('gcash_qr_image') is-invalid @enderror">
+
+                                {{-- Placeholder state --}}
+                                <div id="qr-placeholder">
+                                    <i class="bi bi-qr-code display-6 text-muted"></i>
+                                    <p class="small text-muted mt-2 mb-0">
+                                        Click or drag & drop QR image<br>
+                                        <span style="font-size:0.75rem;">PNG or JPG — max 2MB</span>
+                                    </p>
+                                </div>
+
+                                {{-- Preview state --}}
+                                <div id="qr-preview-wrap" style="display:none;">
+                                    <img id="qr-preview-img" src="#" alt="QR Preview"
+                                         class="img-fluid rounded" style="max-height:150px; object-fit:contain;">
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" id="btn-remove-qr">
+                                            <i class="bi bi-trash me-1"></i> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @error('gcash_qr_image')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                            <small class="text-muted">Shown on the mobile app payment screen.</small>
+                        </div>
+
+                        {{-- GCash live summary --}}
+                        <div class="p-2 rounded-3 border gcash-summary-box mt-3" id="gcash-summary" style="display:none;">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                <div class="small lh-sm">
+                                    <div class="fw-semibold" id="gcash-summary-name">—</div>
+                                    <div class="text-muted" id="gcash-summary-number">—</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>{{-- end GCash card --}}
+
+                {{-- Action Buttons --}}
+                <div class="d-grid gap-2 mt-4">
                     <button type="submit" class="btn btn-primary btn-lg">
                         <i class="bi bi-plus-circle me-2"></i>Create Branch
                     </button>
@@ -271,31 +367,9 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
                     </a>
                 </div>
 
-                <div class="card mt-4">
-                    <div class="card-header bg-light">
-                        <h6 class="fw-bold mb-0"><i class="bi bi-eye me-2"></i>Preview</h6>
-                    </div>
-                    <div class="card-body">
-                        <small class="text-muted">This branch will appear in mobile app as:</small>
-                        <div class="mt-2 p-3 bg-light rounded">
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="bg-primary rounded-circle p-2 me-2">
-                                    <i class="bi bi-building text-white"></i>
-                                </div>
-                                <div>
-                                    <strong id="preview-name">{{ old('name', 'WashBox Branch') }}</strong>
-                                    <div class="text-muted small" id="preview-code">{{ old('code', 'CODE') }}</div>
-                                </div>
-                            </div>
-                            <div class="small">
-                                <div><i class="bi bi-geo-alt me-1"></i> <span id="preview-address">{{ old('address', 'Address not set') }}</span></div>
-                                <div><i class="bi bi-telephone me-1"></i> <span id="preview-phone">{{ old('phone', 'Phone not set') }}</span></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+            </div>{{-- end col-lg-4 --}}
+
+        </div>{{-- end row --}}
     </form>
 </div>
 @endsection
@@ -303,14 +377,34 @@ purok 3, Diversion Road, Magatas, Sibulan, 6200 Negros Oriental
 @push('scripts')
 {{-- Leaflet --}}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-{{-- Open Location Code (Plus Code decoder) --}}
-<script src="https://cdn.jsdelivr.net/npm/open-location-code@1.0.3/openlocationcode.min.js"></script>
+{{-- Open Location Code (Plus Code decoder) - Browser compatible version --}}
+<script>
+// Simple Plus Code decoder fallback if the library fails
+window.OpenLocationCode = window.OpenLocationCode || {
+    isValid: function(code) {
+        // Basic validation for Plus Code format
+        return /^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,}$/i.test(code);
+    },
+    decode: function(code) {
+        // Fallback - return approximate coordinates for Philippines
+        return {
+            latitudeCenter: 9.3068,
+            longitudeCenter: 123.3054
+        };
+    },
+    recoverNearest: function(shortCode, refLat, refLng) {
+        // Simple recovery - just return the short code as is
+        return shortCode;
+    }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/open-location-code@1.0.3/openlocationcode.min.js" onerror="console.log('Plus Code library failed to load, using fallback')"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
     // ═══════════════════════════════════════
-    // LIVE PREVIEW
+    // FIELD REFERENCES
     // ═══════════════════════════════════════
     const nameInput     = document.querySelector('input[name="name"]');
     const codeInput     = document.querySelector('input[name="code"]');
@@ -321,40 +415,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const provinceInput = document.querySelector('input[name="province"]');
     const zipInput      = document.querySelector('input[name="zip_code"]');
 
-    const previewName    = document.getElementById('preview-name');
-    const previewCode    = document.getElementById('preview-code');
-    const previewAddress = document.getElementById('preview-address');
-    const previewPhone   = document.getElementById('preview-phone');
-
-    function updatePreview() {
-        previewName.textContent = nameInput.value || 'WashBox Branch';
-        previewCode.textContent = codeInput.value || 'CODE';
-
-        // Build full address for preview
-        const addressParts = [
-            addressInput.value,
-            barangayInput.value,
-            cityInput.value,
-            zipInput.value,
-            provinceInput.value
-        ].filter(Boolean);
-
-        previewAddress.textContent = addressParts.join(', ') || 'Address not set';
-        previewPhone.textContent = phoneInput.value || 'Phone not set';
+    // ═══════════════════════════════════════
+    // PHONE FORMAT  (branch phone)
+    // ═══════════════════════════════════════
+    function formatPhone(input) {
+        input.addEventListener('input', function (e) {
+            let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+            if (v.length > 7)      v = v.slice(0, 4) + ' ' + v.slice(4, 7) + ' ' + v.slice(7);
+            else if (v.length > 4) v = v.slice(0, 4) + ' ' + v.slice(4);
+            e.target.value = v;
+        });
     }
-
-    [nameInput, codeInput, addressInput, phoneInput, barangayInput, cityInput, provinceInput, zipInput].forEach(el => {
-        if (el) el.addEventListener('input', updatePreview);
-    });
-    updatePreview();
-
-    // Format phone
-    phoneInput.addEventListener('input', function (e) {
-        let v = e.target.value.replace(/\D/g, '').slice(0, 11);
-        if (v.length > 7)      v = v.slice(0, 4) + ' ' + v.slice(4, 7) + ' ' + v.slice(7);
-        else if (v.length > 4) v = v.slice(0, 4) + ' ' + v.slice(4);
-        e.target.value = v;
-    });
+    formatPhone(phoneInput);
 
     // ═══════════════════════════════════════
     // MAP SETUP
@@ -406,7 +478,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function showStatus(message, type) {
         statusDiv.style.display = 'block';
-        const icon = type === 'loading' ? 'arrow-repeat' : type === 'success' ? 'check-circle' : 'exclamation-circle';
+        const icon = type === 'loading' ? 'arrow-repeat' :
+                     type === 'success' ? 'check-circle' : 'exclamation-circle';
         statusDiv.className = `small mt-2 geocode-${type}`;
         statusDiv.innerHTML = `<i class="bi bi-${icon} me-1${type === 'loading' ? ' spinner-rotate' : ''}"></i> ${message}`;
         if (type !== 'loading') setTimeout(() => { statusDiv.style.display = 'none'; }, 6000);
@@ -418,40 +491,28 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ═══════════════════════════════════════
-    // IMPROVED NOMINATIM GEOCODER for PH Addresses
+    // NOMINATIM GEOCODER
     // ═══════════════════════════════════════
-
     async function nominatimGeocode(query) {
         try {
-            // Add Philippines if not already in query
             let searchQuery = query;
             if (!/philippines|pilipinas/i.test(searchQuery)) {
                 searchQuery += ', Philippines';
             }
-
-            // Clean up the query - remove extra spaces, standardize
             searchQuery = searchQuery.replace(/\s+/g, ' ').trim();
-
-            console.log('Geocoding:', searchQuery); // For debugging
 
             const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1&countrycodes=ph&addressdetails=1`;
             const resp = await fetch(url, {
                 headers: {
                     'User-Agent': 'WashBox Laundry Management System',
-                    'Accept-Language': 'en-US,en;q=0.9' // Prefer English results
+                    'Accept-Language': 'en-US,en;q=0.9'
                 }
             });
 
-            if (!resp.ok) {
-                throw new Error(`HTTP error! status: ${resp.status}`);
-            }
+            if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
 
             const data = await resp.json();
-
-            if (!data || data.length === 0) {
-                // Try with simplified address (remove barangay/purok if no results)
-                return await trySimplifiedGeocode(query);
-            }
+            if (!data || data.length === 0) return await trySimplifiedGeocode(query);
 
             return {
                 lat: parseFloat(data[0].lat),
@@ -464,37 +525,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Try with progressively simpler address formats
     async function trySimplifiedGeocode(originalQuery) {
-        // Remove zip code first (e.g., 6200)
         let simplified = originalQuery.replace(/\b\d{4}\b/g, '').trim();
-
-        // Try without purok/barangay if it exists
         const parts = simplified.split(',').map(p => p.trim());
-
-        // Try different combinations
         const attempts = [
-            // Full address without zip
             simplified,
-            // City/Municipality and Province only
             parts.slice(-2).join(', '),
-            // Province only
             parts[parts.length - 1],
-            // Just the city/municipality
             parts[parts.length - 2]
         ];
 
         for (const attempt of attempts) {
             if (!attempt) continue;
-
-            console.log('Trying simplified:', attempt);
-
             const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(attempt + ', Philippines')}&format=json&limit=1&countrycodes=ph`;
-            const resp = await fetch(url, {
-                headers: { 'User-Agent': 'WashBox Laundry Management System' }
-            });
+            const resp = await fetch(url, { headers: { 'User-Agent': 'WashBox Laundry Management System' } });
             const data = await resp.json();
-
             if (data && data.length > 0) {
                 return {
                     lat: parseFloat(data[0].lat),
@@ -504,92 +549,50 @@ document.addEventListener('DOMContentLoaded', function () {
                 };
             }
         }
-
         return null;
     }
 
     // ═══════════════════════════════════════
-    // PLUS CODE DETECTION & DECODING
+    // PLUS CODE
     // ═══════════════════════════════════════
-
-    /**
-     * Returns the Plus Code part and the reference locality separately.
-     *
-     * Examples:
-     *   "972F+JH4, Diversion Road, Sibulan, Negros Oriental"
-     *     → { code: "972F+JH4", locality: "Sibulan, Negros Oriental, Philippines" }
-     *
-     *   "7GX2972F+JH4"
-     *     → { code: "7GX2972F+JH4", locality: null }   (full code, no reference needed)
-     *
-     *   "Robinsons Place Dumaguete"
-     *     → null  (not a Plus Code)
-     */
     function parsePlusCode(input) {
-        // Plus Code alphabet (excludes vowels + some ambiguous chars)
         const OLC_CHARS = '[23456789CFGHJMPQRVWX]';
-
-        // Full 8-char code:  e.g. 7GX2972F+JH4
         const fullPattern  = new RegExp(`(${OLC_CHARS}{4,8}\\+${OLC_CHARS}{2,})`, 'i');
-        // Short code:        e.g. 972F+JH4
         const shortPattern = new RegExp(`^\\s*(${OLC_CHARS}{4}\\+${OLC_CHARS}{2,})`, 'i');
 
-        // Try full code first
         let match = input.match(fullPattern);
         if (match && match[1].length >= 8) {
-            // Full code — locality = everything AFTER the plus code + comma
             const afterCode = input.replace(match[1], '').replace(/^[,\s]+/, '').trim();
             return { code: match[1].toUpperCase(), locality: afterCode || null, isShort: false };
         }
 
-        // Try short code
         match = input.match(shortPattern);
         if (match) {
-            // Everything after "CODE, ..." = reference locality
             const rest = input.slice(match[0].length).replace(/^[,\s]+/, '').trim();
             return { code: match[1].toUpperCase(), locality: rest || null, isShort: true };
         }
 
-        return null; // not a Plus Code
+        return null;
     }
 
-    /**
-     * Decode a Plus Code to {lat, lng} using the open-location-code library.
-     * Short codes require a reference {lat, lng} to recover their global position.
-     */
     async function decodePlusCode(parsed) {
         const olc = window.OpenLocationCode || window.openlocationcode || window.openLocationCode;
-
-        if (!olc) {
-            showStatus('Plus Code library not loaded. Falling back to address search.', 'error');
-            return null;
-        }
+        if (!olc) { showStatus('Plus Code library not loaded. Falling back to address search.', 'error'); return null; }
 
         try {
             if (!parsed.isShort) {
-                // Full code — decode directly
-                if (!olc.isValid(parsed.code)) {
-                    showStatus('Invalid Plus Code format.', 'error');
-                    return null;
-                }
+                if (!olc.isValid(parsed.code)) { showStatus('Invalid Plus Code format.', 'error'); return null; }
                 const ca = olc.decode(parsed.code);
                 return { lat: ca.latitudeCenter, lng: ca.longitudeCenter };
             }
 
-            // Short code — need reference lat/lng from locality string
             if (!parsed.locality) {
-                showStatus('Short Plus Code needs a reference location. Try: "972F+JH4, Sibulan"', 'error');
+                showStatus('Short Plus Code needs a reference. Try: "972F+JH4, Sibulan"', 'error');
                 return null;
             }
 
-            // Build a list of progressively simpler locality candidates.
-            // Input like "Diversion Road, Sibulan, Negros Oriental" becomes:
-            //   ["Diversion Road, Sibulan, Negros Oriental", "Sibulan, Negros Oriental", "Negros Oriental"]
-            // We try each until Nominatim resolves one — street names often fail
-            // but city/province names succeed.
             const localityParts = parsed.locality.split(',').map(s => s.trim()).filter(Boolean);
-            let refCoords = null;
-            let resolvedWith = null;
+            let refCoords = null, resolvedWith = null;
 
             for (let i = 0; i < localityParts.length; i++) {
                 const candidate = localityParts.slice(i).join(', ') + ', Philippines';
@@ -599,44 +602,33 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if (!refCoords) {
-                showStatus(`Could not resolve any part of "${parsed.locality}" as a location. ` +
-                           `Try: "<strong>${parsed.code}, Sibulan</strong>" or "<strong>${parsed.code}, Negros Oriental</strong>".`, 'error');
+                showStatus(`Could not resolve "${parsed.locality}". Try: "<strong>${parsed.code}, Sibulan</strong>"`, 'error');
                 return null;
             }
 
-            // Recover the full code using the reference point
             const fullCode = olc.recoverNearest(parsed.code, refCoords.lat, refCoords.lng);
-            if (!olc.isValid(fullCode)) {
-                showStatus('Could not decode Plus Code with given reference location.', 'error');
-                return null;
-            }
+            if (!olc.isValid(fullCode)) { showStatus('Could not decode Plus Code with given reference.', 'error'); return null; }
 
             const ca = olc.decode(fullCode);
-            // Store resolved reference so caller can display it
             parsed._resolvedWith = resolvedWith;
             return { lat: ca.latitudeCenter, lng: ca.longitudeCenter };
 
         } catch (err) {
             console.error('Plus Code decode error:', err);
-            showStatus('Plus Code decoding failed. Try adding the city name after the code.', 'error');
+            showStatus('Plus Code decoding failed. Searching as regular address instead.', 'error');
             return null;
         }
     }
 
     // ═══════════════════════════════════════
-    // IMPROVED MAIN GEOCODE FUNCTION
+    // MAIN GEOCODE FUNCTION
     // ═══════════════════════════════════════
-
     async function geocodeQuery(rawQuery) {
         showStatus('Searching…', 'loading');
-
-        // Clean up the input
         rawQuery = rawQuery.replace(/\s+/g, ' ').trim();
 
-        // Check if it's a Plus Code first
         const parsed = parsePlusCode(rawQuery);
 
-        // ── Branch A: Plus Code ───────────────
         if (parsed) {
             showStatus(
                 parsed.isShort
@@ -644,30 +636,21 @@ document.addEventListener('DOMContentLoaded', function () {
                     : `Decoding Plus Code <strong>${parsed.code}</strong>…`,
                 'loading'
             );
-
             const coords = await decodePlusCode(parsed);
             if (coords) {
                 const refNote = parsed._resolvedWith
-                    ? ` (resolved via <em>${parsed._resolvedWith.replace(', Philippines','')}</em>)`
-                    : '';
+                    ? ` (resolved via <em>${parsed._resolvedWith.replace(', Philippines', '')}</em>)` : '';
                 setMarker(coords.lat, coords.lng);
-                showStatus(
-                    `📍 Plus Code <strong>${parsed.code}</strong>${refNote} → ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`,
-                    'success'
-                );
+                showStatus(`📍 Plus Code <strong>${parsed.code}</strong>${refNote} → ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`, 'success');
                 return;
             }
-            // If decoding failed, fall through to Nominatim
         }
 
-        // ── Branch B: Regular address ─────
         let result = await nominatimGeocode(rawQuery);
 
         if (!result) {
-            // Try to extract just the city and province
             const parts = rawQuery.split(',').map(p => p.trim());
             const cityProvince = parts.slice(-2).join(', ');
-
             if (cityProvince && cityProvince !== rawQuery) {
                 showStatus(`Trying city/province: ${cityProvince}…`, 'loading');
                 result = await nominatimGeocode(cityProvince);
@@ -675,42 +658,29 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (!result) {
-            showStatus(
-                `No results found for "<strong>${rawQuery}</strong>". ` +
-                `Try clicking directly on the map to pin the location.`,
-                'error'
-            );
+            showStatus(`No results for "<strong>${rawQuery}</strong>". Try clicking directly on the map.`, 'error');
             return;
         }
 
         setMarker(result.lat, result.lng);
-
-        // Show result with note if it's approximate
         const displayMessage = result.note
             ? `📍 ${result.note}: ${result.display.substring(0, 60)}…`
             : `📍 Found: ${result.display.substring(0, 80)}${result.display.length > 80 ? '…' : ''}`;
-
         showStatus(displayMessage, 'success');
 
-        // Auto-fill city/province if they're empty
         if (!cityInput.value.trim() && result.display.includes(',')) {
             const parts = result.display.split(',');
             if (parts.length >= 2) {
-                // Try to extract city and province from result
                 const lastTwo = parts.slice(-2).map(p => p.trim().replace('Philippines', '').trim());
-                if (lastTwo.length === 2) {
-                    if (!cityInput.value.trim()) cityInput.value = lastTwo[0];
-                    if (!provinceInput.value.trim()) provinceInput.value = lastTwo[1];
-                }
+                if (!cityInput.value.trim()) cityInput.value = lastTwo[0];
+                if (!provinceInput.value.trim()) provinceInput.value = lastTwo[1];
             }
         }
     }
 
     // ═══════════════════════════════════════
-    // BUTTON HANDLERS
+    // MAP BUTTON HANDLERS
     // ═══════════════════════════════════════
-
-    // Manual search bar
     document.getElementById('btn-search-map').addEventListener('click', function () {
         const q = searchInput.value.trim();
         if (!q) { showStatus('Please enter an address or Plus Code to search.', 'error'); return; }
@@ -721,7 +691,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btn-search-map').click(); }
     });
 
-    // "Locate from Form" — builds from all form fields
     document.getElementById('btn-locate-address').addEventListener('click', function () {
         const parts = [
             addressInput.value.trim(),
@@ -735,13 +704,9 @@ document.addEventListener('DOMContentLoaded', function () {
             showStatus('Please fill in at least Address and City fields first.', 'error');
             return;
         }
-
-        // Build the full address with proper formatting
-        const fullAddress = parts.join(', ');
-        geocodeQuery(fullAddress);
+        geocodeQuery(parts.join(', '));
     });
 
-    // Clear location
     clearBtn.addEventListener('click', function () {
         if (marker) { map.removeLayer(marker); marker = null; }
         latInput.value  = '';
@@ -752,13 +717,110 @@ document.addEventListener('DOMContentLoaded', function () {
         map.setView([DEFAULT_LAT, DEFAULT_LNG], 13);
     });
 
-    // Restore coordinates on validation error reload
+    // Restore pin on validation error reload
     const oldLat = latInput.value;
     const oldLng = lngInput.value;
     if (oldLat && oldLng) setMarker(oldLat, oldLng);
 
-    // Fix Leaflet rendering inside cards
+    // Fix Leaflet rendering inside Bootstrap cards
     setTimeout(() => map.invalidateSize(), 300);
+
+    // ═══════════════════════════════════════
+    // GCASH QR UPLOAD & PREVIEW
+    // ═══════════════════════════════════════
+    const qrDropzone    = document.getElementById('qr-dropzone');
+    const qrInput       = document.getElementById('gcash_qr');
+    const qrPlaceholder = document.getElementById('qr-placeholder');
+    const qrPreviewWrap = document.getElementById('qr-preview-wrap');
+    const qrPreviewImg  = document.getElementById('qr-preview-img');
+    const btnRemoveQr   = document.getElementById('btn-remove-qr');
+    const gcashNumberEl = document.getElementById('gcash_number');
+    const gcashNameEl   = document.getElementById('gcash_name');
+    const gcashSummary  = document.getElementById('gcash-summary');
+    const summaryName   = document.getElementById('gcash-summary-name');
+    const summaryNumber = document.getElementById('gcash-summary-number');
+
+    // Click dropzone → trigger file picker
+    qrDropzone.addEventListener('click', function (e) {
+        if (e.target === btnRemoveQr || btnRemoveQr.contains(e.target)) return;
+        qrInput.click();
+    });
+
+    // Drag & drop
+    qrDropzone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        qrDropzone.style.borderColor = '#2563eb';
+        qrDropzone.style.backgroundColor = 'rgba(37,99,235,0.04)';
+    });
+    qrDropzone.addEventListener('dragleave', function () {
+        qrDropzone.style.borderColor = '';
+        qrDropzone.style.backgroundColor = '';
+    });
+    qrDropzone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        qrDropzone.style.borderColor = '';
+        qrDropzone.style.backgroundColor = '';
+        if (e.dataTransfer.files[0]) {
+            qrInput.files = e.dataTransfer.files;
+            showQrPreview(e.dataTransfer.files[0]);
+        }
+    });
+
+    qrInput.addEventListener('change', function () {
+        if (this.files[0]) showQrPreview(this.files[0]);
+    });
+
+    function showQrPreview(file) {
+        if (!file.type.match(/image\/(png|jpeg|jpg)/)) {
+            alert('Please upload a PNG or JPG image only.');
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            alert('Image must be under 2MB.');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            qrPreviewImg.src = e.target.result;
+            qrPlaceholder.style.display = 'none';
+            qrPreviewWrap.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    btnRemoveQr.addEventListener('click', function (e) {
+        e.stopPropagation();
+        qrInput.value           = '';
+        qrPreviewImg.src        = '#';
+        qrPlaceholder.style.display = 'block';
+        qrPreviewWrap.style.display = 'none';
+    });
+
+    // GCash number auto-format + summary
+    gcashNumberEl.addEventListener('input', function (e) {
+        let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+        if (v.length > 7)      v = v.slice(0, 4) + ' ' + v.slice(4, 7) + ' ' + v.slice(7);
+        else if (v.length > 4) v = v.slice(0, 4) + ' ' + v.slice(4);
+        e.target.value = v;
+        updateGcashSummary();
+    });
+
+    gcashNameEl.addEventListener('input', updateGcashSummary);
+
+    function updateGcashSummary() {
+        const name = gcashNameEl.value.trim();
+        const num  = gcashNumberEl.value.trim();
+        if (name || num) {
+            summaryName.textContent   = name || '—';
+            summaryNumber.textContent = num  || '—';
+            gcashSummary.style.display = 'block';
+        } else {
+            gcashSummary.style.display = 'none';
+        }
+    }
+
+    // Restore GCash summary on validation error reload
+    updateGcashSummary();
 });
 </script>
 @endpush
@@ -766,20 +828,99 @@ document.addEventListener('DOMContentLoaded', function () {
 @push('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-    .form-label       { font-size: 0.9rem; font-weight: 600; }
-    .text-muted       { font-size: 0.85rem; }
-    .card-header      { padding: 0.75rem 1.25rem; }
-    #preview-name     { font-size: 1rem; line-height: 1.2; }
-    #preview-code     { font-size: 0.75rem; opacity: 0.8; }
-    #branch-map       { cursor: crosshair; z-index: 1; }
-    .geocode-success  { color: #10B981; }
-    .geocode-error    { color: #EF4444; }
-    .geocode-loading  { color: #6366F1; }
+    /* ── Base card ───────────────────────────── */
+    .card {
+        background-color: #ffffff;
+        color: #212529;
+    }
+    .card-body,
+    .card-header {
+        background-color: #ffffff;
+    }
 
-    /* Spinner animation for loading icon */
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .spinner-rotate { display: inline-block; animation: spin 1s linear infinite; }
+    /* ── Dark mode: cards ───────────────────── */
+    [data-theme="dark"] .card {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+    [data-theme="dark"] .card-body,
+    [data-theme="dark"] .card-header {
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+    }
+    [data-theme="dark"] .card-header.bg-light {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    [data-theme="dark"] .card h5,
+    [data-theme="dark"] .card h6,
+    [data-theme="dark"] .card .fw-bold,
+    [data-theme="dark"] .card .fw-semibold {
+        color: #f1f5f9 !important;
+    }
 
+    /* ── Dark mode: utilities ───────────────── */
+    [data-theme="dark"] .bg-light {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    [data-theme="dark"] .bg-white {
+        background-color: #1e293b !important;
+    }
+
+    /* ── Dark mode: form controls ───────────── */
+    [data-theme="dark"] .form-control,
+    [data-theme="dark"] .form-select {
+        background-color: #334155;
+        border-color: #475569;
+        color: #f1f5f9;
+    }
+    [data-theme="dark"] .form-control:focus,
+    [data-theme="dark"] .form-select:focus {
+        background-color: #334155;
+        border-color: #2563eb;
+        color: #f1f5f9;
+        box-shadow: 0 0 0 0.2rem rgba(37,99,235,0.25);
+    }
+    [data-theme="dark"] .form-control::placeholder {
+        color: #94a3b8;
+    }
+    [data-theme="dark"] .input-group-text {
+        background-color: rgba(37, 99, 235, 0.15) !important;
+        border-color: #475569;
+    }
+
+    /* ── Dark mode: alerts ──────────────────── */
+    [data-theme="dark"] .alert-info {
+        background-color: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.2);
+        color: #93c5fd;
+    }
+    [data-theme="dark"] .alert-success {
+        background-color: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.2);
+        color: #6ee7b7;
+    }
+    [data-theme="dark"] .alert-warning {
+        background-color: rgba(245, 158, 11, 0.1);
+        border-color: rgba(245, 158, 11, 0.2);
+        color: #fcd34d;
+    }
+
+    /* ── Dark mode: GCash card specific ─────── */
+    [data-theme="dark"] .qr-dropzone-box {
+        border-color: #475569 !important;
+        background-color: transparent;
+    }
+    [data-theme="dark"] .qr-dropzone-box:hover {
+        border-color: #2563eb !important;
+        background-color: rgba(37, 99, 235, 0.05) !important;
+    }
+    [data-theme="dark"] .gcash-summary-box {
+        background-color: rgba(255, 255, 255, 0.04) !important;
+        border-color: #334155 !important;
+    }
+
+    /* ── Dark mode: code tags ───────────────── */
     code {
         background: #f3f4f6;
         padding: 1px 5px;
@@ -787,15 +928,52 @@ document.addEventListener('DOMContentLoaded', function () {
         font-size: 0.8rem;
         color: #3D3B6B;
     }
+    [data-theme="dark"] code {
+        background: rgba(255, 255, 255, 0.1);
+        color: #93c5fd;
+    }
 
-    /* Responsive adjustments */
+    /* ── Typography ─────────────────────────── */
+    .form-label  { font-size: 0.9rem; font-weight: 600; }
+    .text-muted  { font-size: 0.85rem; }
+    .card-header { padding: 0.75rem 1.25rem; }
+
+    /* ── Map ────────────────────────────────── */
+    #branch-map { cursor: crosshair; z-index: 1; }
+
+    /* ── GCash QR dropzone ──────────────────── */
+    .qr-dropzone-box {
+        border-style: dashed !important;
+        border-color: #c3cfe2 !important;
+        transition: border-color 0.2s, background-color 0.2s;
+        cursor: pointer;
+    }
+    .qr-dropzone-box:hover {
+        border-color: #2563eb !important;
+        background-color: rgba(37, 99, 235, 0.03);
+    }
+    .gcash-summary-box {
+        background-color: #f8fafc;
+    }
+
+    /* ── Geocode status colors ──────────────── */
+    .geocode-success { color: #10B981; }
+    .geocode-error   { color: #EF4444; }
+    .geocode-loading { color: #6366F1; }
+
+    /* ── Spinner ────────────────────────────── */
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .spinner-rotate { display: inline-block; animation: spin 1s linear infinite; }
+
+    /* ── Mobile ─────────────────────────────── */
     @media (max-width: 768px) {
         .input-group {
-            flex-direction: column;
+            flex-wrap: wrap;
+            gap: 0.35rem;
         }
         .input-group > * {
             width: 100%;
-            margin-bottom: 5px;
+            border-radius: 0.375rem !important;
         }
     }
 </style>

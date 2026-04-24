@@ -5,13 +5,57 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('assets/css/laundry.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/dark-mode-fixes.css') }}">
+    <style>
+        .info-card {
+            border-left: 4px solid #3D3B6B;
+            transition: transform 0.2s;
+        }
+        .info-card:hover {
+            transform: translateX(4px);
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .timeline-vertical .timeline-item {
+            position: relative;
+            padding-left: 40px;
+            padding-bottom: 24px;
+        }
+        .timeline-vertical .timeline-item:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 40px;
+            bottom: 0;
+            width: 2px;
+            background: #E5E7EB;
+        }
+        .timeline-vertical .timeline-marker {
+            position: absolute;
+            left: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+    </style>
 @endpush
 
 @section('content')
     <div class="row g-4">
         <!-- Left Column -->
         <div class="col-lg-8">
-            <!-- Order Information -->
+            <!-- Laundry Information -->
             <div class="table-container mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0">Laundry Information</h5>
@@ -161,7 +205,7 @@
                                 @endphp
                                 <div class="small text-muted mt-1">
                                     {{ $loads }} {{ $loads > 1 ? $units : $unit }}
-                                    × ₱{{ number_format($laundry->service->price_per_load ?? 0, 2) }}/{{ $unit }}
+                                    × ₱{{ number_format($laundry->service->pricing_type === 'per_piece' ? $laundry->service->price_per_piece : $laundry->service->price_per_load, 2) }}/{{ $laundry->service->pricing_type === 'per_piece' ? 'piece' : 'load' }}
                                     @if($laundry->weight && !$isSpecial)
                                         &bull; {{ number_format($laundry->weight, 1) }} kg total
                                         @if($laundry->service->max_weight)
@@ -249,7 +293,16 @@
                         <tr class="text-success">
                             <td>
                                 <i class="bi bi-check-circle"></i> Payment Status
-                                <small class="text-muted d-block">Paid via {{ $laundry->payment_method }}</small>
+                                <small class="text-muted d-block">
+                                    Paid via 
+                                    @if($laundry->payment_method === 'cash')
+                                        <span class="badge bg-success"><i class="bi bi-cash"></i> Cash</span>
+                                    @elseif($laundry->payment_method === 'gcash')
+                                        <span class="badge bg-primary"><i class="bi bi-phone"></i> GCash</span>
+                                    @else
+                                        {{ $laundry->payment_method ?? 'N/A' }}
+                                    @endif
+                                </small>
                             </td>
                             <td class="text-end fw-semibold">
                                 ₱{{ number_format($laundry->total_amount, 2) }}
@@ -260,7 +313,18 @@
                         </tr>
                     @else
                         <tr class="text-danger">
-                            <td><i class="bi bi-exclamation-circle"></i> Payment Status</td>
+                            <td>
+                                <i class="bi bi-exclamation-circle"></i> Payment Status
+                                @if($laundry->payment_method === 'cash')
+                                    <small class="text-muted d-block">
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-cash"></i> Cash - Pay at pickup</span>
+                                    </small>
+                                @elseif($laundry->payment_method === 'gcash')
+                                    <small class="text-muted d-block">
+                                        <span class="badge bg-info"><i class="bi bi-phone"></i> GCash - Awaiting proof</span>
+                                    </small>
+                                @endif
+                            </td>
                             <td class="text-end fw-semibold">Unpaid</td>
                         </tr>
                     @endif
@@ -315,7 +379,7 @@
         <div class="col-lg-4">
             <!-- Timeline -->
             <div class="table-container mb-4">
-                <h5 class="mb-3">Order Timeline</h5>
+                <h5 class="mb-3">Laundry Timeline</h5>
                 <div class="timeline-vertical">
                     @php
                         $timeline = $laundry->getTimeline();
@@ -370,8 +434,41 @@
                     @endif
 
                     @if($laundry->status === 'ready' && $laundry->payment_status !== 'paid')
+                        @if($laundry->payment_method === 'cash')
+                            <div class="alert alert-warning mb-3">
+                                <i class="bi bi-cash"></i> <strong>Cash Payment Selected</strong>
+                                <p class="mb-0 small mt-1">Customer will pay in cash when picking up. Click "Record Payment" after receiving cash.</p>
+                            </div>
+                        @endif
+                        
+                        @if($laundry->latestPaymentProof && $laundry->latestPaymentProof->status === 'pending')
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-exclamation-triangle"></i> <strong>GCash Payment Proof Submitted</strong>
+                                <p class="mb-0 small mt-1">Please verify the payment proof before recording payment.</p>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                @if($laundry->latestPaymentProof->proof_image)
+                                    <div class="col-6">
+                                        <button type="button" class="btn btn-info w-100" data-bs-toggle="modal" data-bs-target="#paymentProofModal">
+                                            <i class="bi bi-eye"></i> View Image
+                                        </button>
+                                    </div>
+                                @endif
+                                <div class="col-6">
+                                    <a href="{{ route('staff.payments.verification.show', $laundry->latestPaymentProof) }}" class="btn btn-primary w-100">
+                                        <i class="bi bi-check-circle"></i> Verify Payment
+                                    </a>
+                                </div>
+                            </div>
+                        @endif
+                        
                         <a href="#" onclick="event.preventDefault(); document.getElementById('record-payment-form').submit();" class="btn btn-primary w-100">
-                            <i class="bi bi-currency-dollar"></i> Record Payment
+                            <i class="bi bi-currency-dollar"></i> 
+                            @if($laundry->payment_method === 'cash')
+                                Record Cash Payment
+                            @else
+                                Record Payment
+                            @endif
                         </a>
                         <form id="record-payment-form" action="{{ route('staff.laundries.record-payment', $laundry) }}" method="POST" style="display: none;">
                             @csrf
@@ -396,15 +493,15 @@
                     @if(!in_array($laundry->status, ['completed', 'cancelled']))
                         <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal"
                             data-bs-target="#cancelModal">
-                            <i class="bi bi-x-circle"></i> Cancel Order
+                            <i class="bi bi-x-circle"></i> Cancel Laundry
                         </button>
                     @endif
                 </div>
             </div>
 
-            <!-- Order Stats -->
+            <!-- Laundry Stats -->
             <div class="table-container">
-                <h5 class="mb-3">Order Summary</h5>
+                <h5 class="mb-3">Laundry Summary</h5>
                 <div class="mb-3">
                     <small class="text-muted">Category</small>
                     <div class="fw-semibold">
@@ -451,11 +548,7 @@
                     <small class="text-muted">Pricing Type</small>
                     <div class="fw-semibold">
                         @if($laundry->service)
-                            @if($laundry->service->service_type === 'special_item')
-                                Per Piece
-                            @else
-                                Per Load
-                            @endif
+                            {{ ucfirst(str_replace('_', ' ', $laundry->service->pricing_type ?? 'per_load')) }}
                         @else
                             Promotion Fixed Price
                         @endif
@@ -486,7 +579,7 @@
                 @endif
 
                 <div class="mb-3">
-                    <small class="text-muted">Order Age</small>
+                    <small class="text-muted">Laundry Age</small>
                     <div class="fw-semibold">{{ $laundry->created_at->diffForHumans() }}</div>
                 </div>
 
@@ -502,7 +595,7 @@
         </div>
     </div>
 
-    <!-- Cancel Order Modal -->
+    <!-- Cancel Laundry Modal -->
     <div class="modal fade" id="cancelModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -532,4 +625,35 @@
             </div>
         </div>
     </div>
+
+    <!-- Payment Proof Modal -->
+    @if($laundry->latestPaymentProof && $laundry->latestPaymentProof->proof_image)
+        <div class="modal fade" id="paymentProofModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Payment Proof</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img src="{{ $laundry->latestPaymentProof->proof_image_url }}" 
+                             alt="Payment Proof" 
+                             class="img-fluid" 
+                             style="max-height: 70vh;">
+                        <div class="mt-3">
+                            <p class="mb-1"><strong>Amount:</strong> ₱{{ number_format($laundry->latestPaymentProof->amount, 2) }}</p>
+                            <p class="mb-1"><strong>Method:</strong> {{ ucfirst($laundry->latestPaymentProof->payment_method) }}</p>
+                            @if($laundry->latestPaymentProof->reference_number)
+                                <p class="mb-1"><strong>Reference:</strong> {{ $laundry->latestPaymentProof->reference_number }}</p>
+                            @endif
+                            <p class="mb-0"><strong>Submitted:</strong> {{ $laundry->latestPaymentProof->created_at->format('M d, Y h:i A') }}</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection

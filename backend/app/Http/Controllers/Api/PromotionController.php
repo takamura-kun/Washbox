@@ -38,6 +38,9 @@ class PromotionController extends Controller
                 'banner_image' => $promo->banner_image
                     ? asset('storage/' . $promo->banner_image)
                     : null,
+                'banner_image_url' => $promo->banner_image
+                    ? asset('storage/' . $promo->banner_image)
+                    : null,
                 'is_active' => $promo->is_active,
                 'start_date' => $promo->start_date->format('Y-m-d'),
                 'end_date' => $promo->end_date->format('Y-m-d'),
@@ -85,6 +88,9 @@ class PromotionController extends Controller
                 'banner_image' => $promo->banner_image
                     ? asset('storage/' . $promo->banner_image)
                     : null,
+                'banner_image_url' => $promo->banner_image
+                    ? asset('storage/' . $promo->banner_image)
+                    : null,
                 'is_active' => $promo->is_active,
                 'branch_name' => $promo->branch->name ?? 'All Branches',
             ];
@@ -124,6 +130,9 @@ class PromotionController extends Controller
                     'promo_code' => $promotion->promo_code,
                     'color_theme' => $promotion->color_theme,
                     'banner_image' => $promotion->banner_image
+                        ? asset('storage/' . $promotion->banner_image)
+                        : null,
+                    'banner_image_url' => $promotion->banner_image
                         ? asset('storage/' . $promotion->banner_image)
                         : null,
                     'is_active' => $promotion->is_active,

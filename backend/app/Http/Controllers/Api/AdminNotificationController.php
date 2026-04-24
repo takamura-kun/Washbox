@@ -18,7 +18,7 @@ class AdminNotificationController extends Controller
 
         // Filter by unread only
         if ($request->boolean('unread_only')) {
-            $query->where('is_read', false);
+            $query->whereNull('read_at');
         }
 
         // Filter by type
@@ -27,6 +27,28 @@ class AdminNotificationController extends Controller
         }
 
         $notifications = $query->paginate($request->get('per_page', 20));
+
+        // Transform the data to include safe date formatting
+        $notifications->getCollection()->transform(function ($notification) {
+            return [
+                'id' => $notification->id,
+                'type' => $notification->type,
+                'title' => $notification->title,
+                'message' => $notification->message,
+                'icon' => $notification->icon,
+                'color' => $notification->color,
+                'link' => $notification->link,
+                'data' => $notification->data,
+                'branch_id' => $notification->branch_id,
+                'user_id' => $notification->user_id,
+                'is_read' => $notification->read_at !== null,
+                'read_at' => $notification->read_at ? $notification->read_at->toISOString() : null,
+                'created_at' => $notification->created_at ? $notification->created_at->toISOString() : null,
+                'updated_at' => $notification->updated_at ? $notification->updated_at->toISOString() : null,
+                'time_ago' => $notification->created_at ? $notification->created_at->diffForHumans() : 'Just now',
+                'formatted_date' => $notification->created_at ? $notification->created_at->format('M d, Y h:i A') : 'Date unavailable',
+            ];
+        });
 
         return response()->json([
             'success' => true,
@@ -39,7 +61,7 @@ class AdminNotificationController extends Controller
      */
     public function unreadCount()
     {
-        $count = AdminNotification::where('is_read', false)->count();
+        $count = AdminNotification::whereNull('read_at')->count();
 
         return response()->json([
             'success' => true,
@@ -54,7 +76,6 @@ class AdminNotificationController extends Controller
     {
         $notification = AdminNotification::findOrFail($id);
         $notification->update([
-            'is_read' => true,
             'read_at' => now(),
         ]);
 
@@ -69,8 +90,7 @@ class AdminNotificationController extends Controller
      */
     public function markAllAsRead()
     {
-        AdminNotification::where('is_read', false)->update([
-            'is_read' => true,
+        AdminNotification::whereNull('read_at')->update([
             'read_at' => now(),
         ]);
 
@@ -99,7 +119,7 @@ class AdminNotificationController extends Controller
      */
     public function clearRead()
     {
-        $deleted = AdminNotification::where('is_read', true)->delete();
+        $deleted = AdminNotification::whereNotNull('read_at')->delete();
 
         return response()->json([
             'success' => true,

@@ -17,7 +17,8 @@ class AddOn extends Model
         'slug',
         'description',
         'price',
-        'is_active'
+        'is_active',
+        'image'
     ];
 
     protected $casts = [
@@ -42,6 +43,14 @@ class AddOn extends Model
     public function getFormattedPriceAttribute()
     {
         return '₱' . number_format($this->price, 2);
+    }
+
+    /**
+     * Get image URL attribute
+     */
+    public function getImageUrlAttribute()
+    {
+        return $this->image ? asset('storage/addons/' . $this->image) : null;
     }
 
     /**

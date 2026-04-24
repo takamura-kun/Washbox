@@ -47,6 +47,7 @@ export default function RatingsScreen() {
   const [ratings, setRatings] = useState([]);
   const [unratedLaundries, setUnratedLaundries] = useState([]);
   const [branches, setBranches] = useState([]);
+  const [ratedBranches, setRatedBranches] = useState([]);
   const [fadeAnim] = useState(new Animated.Value(0));
 
   // Rating Modal State
@@ -122,6 +123,9 @@ export default function RatingsScreen() {
         const data = await response.json();
         if (data.success) {
           setRatings(data.data.ratings || []);
+          // Extract rated branch IDs
+          const branchRatings = data.data.ratings.filter(r => r.type === 'branch');
+          setRatedBranches(branchRatings.map(r => r.branch_id));
           if (data.data.stats) {
             setRatingStats(data.data.stats);
           }
@@ -180,7 +184,6 @@ export default function RatingsScreen() {
         const data = await response.json();
         console.log('Branches data:', data);
         if (data.success) {
-          // Get branches array from the response
           const branchesData = data.data?.branches || [];
           console.log('Branches loaded:', branchesData);
           setBranches(branchesData);
@@ -246,6 +249,12 @@ export default function RatingsScreen() {
       setSubmitting(true);
       const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
 
+      console.log('Submitting branch rating:', {
+        branch_id: selectedBranch.id,
+        rating: selectedRating,
+        comment: ratingComment.trim() || null,
+      });
+
       const response = await fetch(`${API_BASE_URL}/v1/customer/branch-ratings`, {
         method: 'POST',
         headers: {
@@ -260,18 +269,19 @@ export default function RatingsScreen() {
         }),
       });
 
+      console.log('Branch rating response status:', response.status);
       const data = await response.json();
+      console.log('Branch rating response data:', data);
 
       if (data.success) {
         Alert.alert('Thank You!', 'Your branch rating has been submitted successfully.');
         closeRatingModal();
-        // Only refresh ratings + branches — intentionally NOT calling fetchUnratedLaundries()
-        // so the "To Rate" list stays intact after a branch rating is submitted.
         await Promise.all([fetchMyRatings(), fetchBranches()]);
       } else {
         Alert.alert('Error', data.message || 'Failed to submit branch rating.');
       }
     } catch (error) {
+      console.error('Error submitting branch rating:', error);
       Alert.alert('Error', 'Failed to submit rating. Please check your connection.');
     } finally {
       setSubmitting(false);
@@ -284,6 +294,14 @@ export default function RatingsScreen() {
     } else {
       submitBranchRating();
     }
+  };
+
+  const closeRatingModal = () => {
+    setRatingModalVisible(false);
+    setSelectedLaundry(null);
+    setSelectedBranch(null);
+    setSelectedRating(0);
+    setRatingComment('');
   };
 
   const openLaundryRatingModal = (laundry) => {
@@ -302,41 +320,36 @@ export default function RatingsScreen() {
     setSelectedRating(0);
     setRatingComment('');
     setRatingModalVisible(true);
-    // Refresh branches when opening the modal
     fetchBranches();
   };
 
-  const closeRatingModal = () => {
-    setRatingModalVisible(false);
-    setSelectedLaundry(null);
-    setSelectedBranch(null);
-    setSelectedRating(0);
-    setRatingComment('');
-    setRatingType('laundry');
-  };
-
+  // Single formatDate declaration
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    if (!dateString) return 'Unknown date';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch (error) {
+      return 'Invalid date';
+    }
   };
 
-  const formatPrice = (price) => {
-    if (!price || isNaN(price)) return '₱0.00';
-    return `₱${parseFloat(price).toFixed(2)}`;
+  const formatPrice = (amount) => {
+    if (!amount) return '₱0.00';
+    return `₱${parseFloat(amount).toFixed(2)}`;
   };
 
-  // Resolves the correct order identifier regardless of which field the API returns
   const getOrderNumber = (laundry) => {
     const raw =
-      laundry.tracking_number ||   // preferred
-      laundry.laundry_number  ||   // some API versions
-      laundry.order_number    ||   // fallback
-      laundry.id;                   // last resort (numeric id)
-    // Always prefix with "Order #" so it's clear what the number is
+      laundry.tracking_number ||
+      laundry.laundry_number ||
+      laundry.order_number ||
+      laundry.id;
     const str = String(raw);
     return str.startsWith('#') || str.toLowerCase().startsWith('order')
       ? str
@@ -360,7 +373,6 @@ export default function RatingsScreen() {
     return COLORS.danger;
   };
 
-  // Star Rating Component
   const StarRating = ({ rating, size = 20, interactive = false, onRate = null }) => (
     <View style={styles.starRow}>
       {[1, 2, 3, 4, 5].map((star) => (
@@ -381,15 +393,212 @@ export default function RatingsScreen() {
     </View>
   );
 
-  const tabs = [
-    { id: 'my_ratings', label: 'My Ratings', count: ratings.length },
-    { id: 'to_rate', label: 'To Rate', count: unratedLaundries.length },
-    { id: 'rate_branch', label: 'Rate Branch', count: 0 },
-  ];
+
+
+  const renderStars = (rating, onPress = null, size = 24) => {
+    return (
+      <View style={styles.starsContainer}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <TouchableOpacity
+            key={star}
+            onPress={() => onPress && onPress(star)}
+            disabled={!onPress}
+            style={styles.starButton}
+          >
+            <Ionicons
+              name={star <= rating ? 'star' : 'star-outline'}
+              size={size}
+              color={star <= rating ? COLORS.star : COLORS.starEmpty}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
+  const renderMyRatings = () => {
+    if (ratings.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="star-outline" size={64} color={COLORS.textMuted} />
+          <Text style={styles.emptyTitle}>No Ratings Yet</Text>
+          <Text style={styles.emptySubtitle}>
+            Complete some laundry orders to leave ratings
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Stats Card */}
+        <View style={styles.statsCard}>
+          <Text style={styles.statsTitle}>Your Rating Summary</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{ratingStats.averageRating.toFixed(1)}</Text>
+              <Text style={styles.statLabel}>Average</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{ratingStats.totalRatings}</Text>
+              <Text style={styles.statLabel}>Total</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{ratingStats.laundryRatings}</Text>
+              <Text style={styles.statLabel}>Laundry</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{ratingStats.branchRatings}</Text>
+              <Text style={styles.statLabel}>Branch</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Ratings List */}
+        {ratings.map((rating) => (
+          <View key={`${rating.type}-${rating.id}`} style={styles.ratingCard}>
+            <View style={styles.ratingHeader}>
+              <View style={styles.ratingInfo}>
+                <Text style={styles.ratingTitle}>
+                  {rating.type === 'laundry' ? rating.service_name || 'Unknown Service' : rating.branch_name || 'Unknown Branch'}
+                </Text>
+                <Text style={styles.ratingSubtitle}>
+                  {rating.type === 'laundry' ? 'Service Rating' : 'Branch Rating'} • {formatDate(rating.created_at)}
+                </Text>
+              </View>
+              <View style={styles.ratingBadge}>
+                <Text style={styles.ratingBadgeText}>{rating.type}</Text>
+              </View>
+            </View>
+
+            {renderStars(rating.rating, null, 20)}
+
+            {rating.comment && (
+              <Text style={styles.ratingComment}>{rating.comment}</Text>
+            )}
+          </View>
+        ))}
+      </ScrollView>
+    );
+  };
+
+  const renderToRate = () => {
+    if (unratedLaundries.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="checkmark-circle-outline" size={64} color={COLORS.success} />
+          <Text style={styles.emptyTitle}>All Caught Up!</Text>
+          <Text style={styles.emptySubtitle}>
+            You've rated all your completed orders
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {unratedLaundries.map((laundry) => (
+          <View key={laundry.id} style={styles.laundryCard}>
+            <View style={styles.laundryHeader}>
+              <View style={styles.laundryInfo}>
+                <Text style={styles.laundryTitle}>{laundry.service_name || 'Unknown Service'}</Text>
+                <Text style={styles.laundrySubtitle}>
+                  {laundry.branch_name || 'Unknown Branch'} • {formatDate(laundry.completed_at)}
+                </Text>
+                <Text style={styles.laundryPrice}>₱{laundry.total_amount || '0.00'}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.rateButton}
+                onPress={() => openLaundryRatingModal(laundry)}
+              >
+                <Text style={styles.rateButtonText}>Rate</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    );
+  };
+
+  const renderRateBranch = () => {
+    if (branches.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="business-outline" size={64} color={COLORS.textMuted} />
+          <Text style={styles.emptyTitle}>No Branches Available</Text>
+          <Text style={styles.emptySubtitle}>
+            No branches found to rate
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.instructionCard}>
+          <Ionicons name="information-circle" size={24} color={COLORS.primary} />
+          <Text style={styles.instructionText}>
+            Rate your experience with our branches to help us improve our services.
+          </Text>
+        </View>
+
+        {branches.map((branch) => (
+          <View key={branch.id} style={styles.branchCard}>
+            <View style={styles.branchHeader}>
+              <View style={styles.branchInfo}>
+                <Text style={styles.branchTitle}>{branch.name || 'Unknown Branch'}</Text>
+                <Text style={styles.branchSubtitle}>
+                  {branch.address || 'No address available'}
+                </Text>
+                {branch.average_rating && (
+                  <View style={styles.branchRating}>
+                    <Ionicons name="star" size={16} color={COLORS.star} />
+                    <Text style={styles.branchRatingText}>
+                      {parseFloat(branch.average_rating).toFixed(1)} ({branch.ratings_count || 0} reviews)
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {ratedBranches.includes(branch.id) ? (
+                <View style={[styles.rateButton, { backgroundColor: COLORS.success }]}>
+                  <Text style={styles.rateButtonText}>Rated</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.rateButton}
+                  onPress={() => {
+                    setSelectedBranch(branch);
+                    openBranchRatingModal();
+                  }}
+                >
+                  <Text style={styles.rateButtonText}>Rate</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    );
+  };
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Loading ratings...</Text>
       </View>
@@ -406,287 +615,53 @@ export default function RatingsScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Ratings</Text>
-          <Text style={styles.headerSubtitle}>Share your feedback</Text>
-        </View>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>Ratings & Reviews</Text>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={COLORS.primary}
-          />
-        }
-      >
-        <Animated.View style={{ opacity: fadeAnim }}>
-          {/* Rating Summary Card */}
-          <View style={styles.summaryCard}>
-            <LinearGradient
-              colors={['#1C2340', '#252D4C']}
-              style={styles.summaryGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.summaryStats}>
-                <View style={styles.summaryMain}>
-                  <Text style={styles.summaryScore}>
-                    {(ratingStats.averageRating || 0).toFixed(1)}
-                  </Text>
-                  <StarRating rating={Math.round(ratingStats.averageRating || 0)} size={16} />
-                  <Text style={styles.summaryTotal}>
-                    {ratingStats.totalRatings} total ratings
-                  </Text>
-                </View>
-                <View style={styles.summaryBreakdown}>
-                  <View style={styles.summaryItem}>
-                    <Ionicons name="shirt" size={16} color={COLORS.primary} />
-                    <Text style={styles.summaryItemText}>
-                      {ratingStats.laundryRatings} Laundry
-                    </Text>
-                  </View>
-                  <View style={styles.summaryItem}>
-                    <Ionicons name="business" size={16} color={COLORS.success} />
-                    <Text style={styles.summaryItemText}>
-                      {ratingStats.branchRatings} Branches
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.summaryBars}>
-                {[5, 4, 3, 2, 1].map((star) => {
-                  const count = ratingStats.distribution?.[star] || 0;
-                  const total = ratingStats.totalRatings || 1;
-                  const percentage = (count / total) * 100;
-                  return (
-                    <View key={star} style={styles.barRow}>
-                      <Text style={styles.barLabel}>{star}</Text>
-                      <Ionicons name="star" size={12} color={COLORS.star} />
-                      <View style={styles.barTrack}>
-                        <View
-                          style={[
-                            styles.barFill,
-                            { width: `${percentage}%`, backgroundColor: getRatingColor(star) },
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.barCount}>{count}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </LinearGradient>
-          </View>
-
-          {/* Tabs */}
-          <View style={styles.tabsContainer}>
-            {tabs.map((tab) => (
-              <TouchableOpacity
-                key={tab.id}
-                style={[styles.tab, activeTab === tab.id && styles.tabActive]}
-                onPress={() => setActiveTab(tab.id)}
-              >
-                <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
-                  {tab.label}
-                </Text>
-                {tab.count > 0 && (
-                  <View style={[styles.tabBadge, activeTab === tab.id && styles.tabBadgeActive]}>
-                    <Text style={[styles.tabBadgeText, activeTab === tab.id && styles.tabBadgeTextActive]}>
-                      {tab.count}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Content */}
-          {activeTab === 'my_ratings' && (
-            <View style={styles.listContainer}>
-              {ratings.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="star-outline" size={64} color={COLORS.textMuted} />
-                  <Text style={styles.emptyTitle}>No Ratings Yet</Text>
-                  <Text style={styles.emptyText}>
-                    Your ratings will appear here after you rate your laundries or branches
-                  </Text>
-                </View>
-              ) : (
-                ratings.map((rating) => (
-                  <TouchableOpacity 
-                    key={rating.id} 
-                    style={styles.ratingCard}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.ratingCardTop}>
-                      <View style={[
-                        styles.ratingIconContainer,
-                        { backgroundColor: rating.type === 'branch' ? COLORS.success + '20' : COLORS.primary + '20' }
-                      ]}>
-                        <Ionicons 
-                          name={rating.type === 'branch' ? 'business' : 'shirt'} 
-                          size={24} 
-                          color={rating.type === 'branch' ? COLORS.success : COLORS.primary} 
-                        />
-                      </View>
-                      <View style={styles.ratingCardInfo}>
-                        <Text style={styles.ratingTrackingNumber}>
-                          {rating.type === 'branch'
-                            ? (rating.branch_name || 'Branch')
-                            : (rating.tracking_number
-                                ? `Order #${rating.tracking_number}`
-                                : `Order #${rating.laundry_id || rating.id}`)}
-                        </Text>
-                        <Text style={styles.ratingServiceName}>
-                          {rating.type === 'branch' ? 'Branch Rating' : rating.service_name}
-                        </Text>
-                        <View style={styles.ratingMetaRow}>
-                          <Ionicons name="calendar-outline" size={12} color={COLORS.textMuted} />
-                          <Text style={styles.ratingMetaText}>{formatDate(rating.created_at)}</Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.ratingStarSection}>
-                      <View style={styles.ratingStarContainer}>
-                        <StarRating rating={rating.rating} size={18} />
-                        <View style={[styles.ratingLabelBadge, { backgroundColor: getRatingColor(rating.rating) + '20' }]}>
-                          <Text style={[styles.ratingLabelText, { color: getRatingColor(rating.rating) }]}>
-                            {getRatingLabel(rating.rating)}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {rating.comment && (
-                      <View style={styles.ratingCommentBox}>
-                        <Ionicons name="chatbubble-outline" size={14} color={COLORS.textMuted} />
-                        <Text style={styles.ratingComment}>{rating.comment}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))
-              )}
+      {/* Tabs */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'my_ratings' && styles.activeTab]}
+          onPress={() => setActiveTab('my_ratings')}
+        >
+          <Text style={[styles.tabText, activeTab === 'my_ratings' && styles.activeTabText]}>
+            My Ratings
+          </Text>
+          {ratings.length > 0 && (
+            <View style={styles.tabBadge}>
+              <Text style={styles.tabBadgeText}>{ratings.length}</Text>
             </View>
           )}
-
-          {activeTab === 'to_rate' && (
-            <View style={styles.listContainer}>
-              {unratedLaundries.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="checkmark-done-circle-outline" size={64} color={COLORS.success} />
-                  <Text style={styles.emptyTitle}>All Caught Up!</Text>
-                  <Text style={styles.emptyText}>
-                    You've rated all your completed laundries. Thank you for your feedback!
-                  </Text>
-                </View>
-              ) : (
-                unratedLaundries.map((laundry) => (
-                  <View key={laundry.id} style={styles.unratedCard}>
-                    <View style={styles.unratedInfo}>
-                      <View style={styles.unratedIconContainer}>
-                        <Ionicons name="shirt" size={24} color={COLORS.primary} />
-                      </View>
-                      <View style={styles.unratedDetails}>
-                        <Text style={styles.unratedTracking}>
-                          {getOrderNumber(laundry)}
-                        </Text>
-                        <Text style={styles.unratedService}>
-                          {laundry.service_name} • {laundry.branch_name}
-                        </Text>
-                        <Text style={styles.unratedMeta}>
-                          {formatDate(laundry.completed_at || laundry.created_at)} • {formatPrice(laundry.total_amount)}
-                        </Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.rateButton}
-                      onPress={() => openLaundryRatingModal(laundry)}
-                      activeOpacity={0.8}
-                    >
-                      <LinearGradient
-                        colors={COLORS.gradientPrimary}
-                        style={styles.rateButtonGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                      >
-                        <Ionicons name="star" size={16} color="#FFF" />
-                        <Text style={styles.rateButtonText}>Rate</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  </View>
-                ))
-              )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'to_rate' && styles.activeTab]}
+          onPress={() => setActiveTab('to_rate')}
+        >
+          <Text style={[styles.tabText, activeTab === 'to_rate' && styles.activeTabText]}>
+            To Rate
+          </Text>
+          {unratedLaundries.length > 0 && (
+            <View style={styles.tabBadge}>
+              <Text style={styles.tabBadgeText}>{unratedLaundries.length}</Text>
             </View>
           )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'rate_branch' && styles.activeTab]}
+          onPress={() => setActiveTab('rate_branch')}
+        >
+          <Text style={[styles.tabText, activeTab === 'rate_branch' && styles.activeTabText]}>
+            Rate Branch
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-          {activeTab === 'rate_branch' && (
-            <View style={styles.listContainer}>
-              <View style={styles.rateBranchCard}>
-                <LinearGradient
-                  colors={['#1C2340', '#252D4C']}
-                  style={styles.rateBranchGradient}
-                >
-                  <View style={styles.rateBranchIconContainer}>
-                    <Ionicons name="business" size={48} color={COLORS.primary} />
-                  </View>
-                  <Text style={styles.rateBranchTitle}>Rate a Branch</Text>
-                  <Text style={styles.rateBranchDescription}>
-                    Share your feedback about our branches to help us improve our service quality
-                  </Text>
-                  
-                  <TouchableOpacity
-                    style={styles.startRatingButton}
-                    onPress={openBranchRatingModal}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={COLORS.gradientPrimary}
-                      style={styles.startRatingGradient}
-                    >
-                      <Ionicons name="star" size={20} color="#FFF" />
-                      <Text style={styles.startRatingText}>Start Rating</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </LinearGradient>
-              </View>
-
-              {ratings.filter(r => r.type === 'branch').length > 0 && (
-                <View style={styles.recentBranchRatings}>
-                  <Text style={styles.recentBranchTitle}>Your Branch Ratings</Text>
-                  {ratings
-                    .filter(r => r.type === 'branch')
-                    .slice(0, 3)
-                    .map((rating) => (
-                      <View key={rating.id} style={styles.recentBranchItem}>
-                        <View style={styles.recentBranchInfo}>
-                          <Ionicons name="business" size={20} color={COLORS.primary} />
-                          <Text style={styles.recentBranchName}>
-                            {rating.branch_name || 'Branch'}
-                          </Text>
-                        </View>
-                        <View style={styles.recentBranchRating}>
-                          <StarRating rating={rating.rating} size={14} />
-                          <Text style={styles.recentBranchDate}>
-                            {formatDate(rating.created_at)}
-                          </Text>
-                        </View>
-                      </View>
-                    ))}
-                </View>
-              )}
-            </View>
-          )}
-
-          <View style={{ height: 40 }} />
-        </Animated.View>
-      </ScrollView>
+      {/* Content */}
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        {activeTab === 'my_ratings' && renderMyRatings()}
+        {activeTab === 'to_rate' && renderToRate()}
+        {activeTab === 'rate_branch' && renderRateBranch()}
+      </Animated.View>
 
       {/* Rating Modal */}
       <Modal
@@ -697,230 +672,89 @@ export default function RatingsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={styles.modalHandle} />
-            
-            <ScrollView 
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.modalScrollContent}
-            >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {ratingType === 'laundry' ? 'Rate Your Laundry' : 'Rate a Branch'}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Rate {ratingType === 'laundry' ? 'Service' : 'Branch'}
+              </Text>
+              <TouchableOpacity onPress={closeRatingModal}>
+                <Ionicons name="close" size={24} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {ratingType === 'laundry' && selectedLaundry && (
+              <View style={styles.modalInfo}>
+                <Text style={styles.modalInfoTitle}>{selectedLaundry.service_name}</Text>
+                <Text style={styles.modalInfoSubtitle}>
+                  {selectedLaundry.branch?.name} • ₱{selectedLaundry.total_amount}
                 </Text>
-                <TouchableOpacity onPress={closeRatingModal}>
-                  <Ionicons name="close" size={24} color={COLORS.textSecondary} />
-                </TouchableOpacity>
               </View>
+            )}
 
-              {/* Rating Type Toggle */}
-              <View style={styles.ratingTypeToggle}>
-                <TouchableOpacity
-                  style={[
-                    styles.ratingTypeButton,
-                    ratingType === 'laundry' && styles.ratingTypeButtonActive,
-                  ]}
-                  onPress={() => setRatingType('laundry')}
-                >
-                  <Ionicons 
-                    name="shirt" 
-                    size={16} 
-                    color={ratingType === 'laundry' ? COLORS.primary : COLORS.textMuted} 
-                  />
-                  <Text style={[
-                    styles.ratingTypeText,
-                    ratingType === 'laundry' && styles.ratingTypeTextActive,
-                  ]}>
-                    Rate Laundry
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={[
-                    styles.ratingTypeButton,
-                    ratingType === 'branch' && styles.ratingTypeButtonActive,
-                  ]}
-                  onPress={() => setRatingType('branch')}
-                >
-                  <Ionicons 
-                    name="business" 
-                    size={16} 
-                    color={ratingType === 'branch' ? COLORS.primary : COLORS.textMuted} 
-                  />
-                  <Text style={[
-                    styles.ratingTypeText,
-                    ratingType === 'branch' && styles.ratingTypeTextActive,
-                  ]}>
-                    Rate Branch
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Laundry Info */}
-              {ratingType === 'laundry' && selectedLaundry && (
-                <View style={styles.modalLaundryInfo}>
-                  <View style={styles.modalLaundryIcon}>
-                    <Ionicons name="shirt" size={28} color={COLORS.primary} />
-                  </View>
-                  <View>
-                    <Text style={styles.modalLaundryTracking}>
-                      {getOrderNumber(selectedLaundry)}
-                    </Text>
-                    <Text style={styles.modalLaundryService}>
-                      {selectedLaundry.service_name} • {selectedLaundry.branch_name}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Branch Selector */}
-              {ratingType === 'branch' && (
-                <View style={styles.branchSelectorContainer}>
-                  <Text style={styles.branchSelectorLabel}>Select Branch</Text>
-                  {branches.length === 0 ? (
-                    <View style={styles.noBranchesContainer}>
-                      <ActivityIndicator size="small" color={COLORS.primary} />
-                      <Text style={styles.noBranchesText}>Loading branches...</Text>
-                      <TouchableOpacity 
-                        onPress={fetchBranches}
-                        style={{ marginTop: 10 }}
-                      >
-                        <Text style={{ color: COLORS.primary }}>Tap to retry</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <ScrollView 
-                      horizontal 
-                      showsHorizontalScrollIndicator={false}
-                      style={styles.branchList}
+            {ratingType === 'branch' && (
+              <View style={styles.branchSelector}>
+                <Text style={styles.selectorLabel}>Select Branch:</Text>
+                <ScrollView style={styles.branchList}>
+                  {branches.map((branch) => (
+                    <TouchableOpacity
+                      key={branch.id}
+                      style={[
+                        styles.branchOption,
+                        selectedBranch?.id === branch.id && styles.selectedBranchOption
+                      ]}
+                      onPress={() => setSelectedBranch(branch)}
                     >
-                      {branches.map((branch) => {
-                        // Use the correct field names from the API response
-                        const branchName = branch.name || branch.full_name || 'Branch';
-                        const branchCode = branch.code || '';
-                        const branchAddress = branch.address || '';
-                        
-                        return (
-                          <TouchableOpacity
-                            key={branch.id}
-                            style={[
-                              styles.branchCard,
-                              selectedBranch?.id === branch.id && styles.branchCardSelected,
-                            ]}
-                            onPress={() => setSelectedBranch(branch)}
-                            activeOpacity={0.7}
-                          >
-                            <LinearGradient
-                              colors={selectedBranch?.id === branch.id 
-                                ? COLORS.gradientPrimary 
-                                : ['#1C2340', '#252D4C']}
-                              style={styles.branchGradient}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 1 }}
-                            >
-                              <Ionicons 
-                                name="business" 
-                                size={28} 
-                                color={selectedBranch?.id === branch.id ? '#FFF' : COLORS.primary} 
-                              />
-                              <Text style={[
-                                styles.branchName,
-                                selectedBranch?.id === branch.id && styles.branchNameSelected,
-                              ]} numberOfLines={2}>
-                                {branchName}
-                              </Text>
-                              {branchCode ? (
-                                <Text style={[
-                                  styles.branchCode,
-                                  selectedBranch?.id === branch.id && styles.branchCodeSelected,
-                                ]}>
-                                  {branchCode}
-                                </Text>
-                              ) : (
-                                <Text style={[
-                                  styles.branchAddress,
-                                  selectedBranch?.id === branch.id && styles.branchAddressSelected,
-                                ]} numberOfLines={1}>
-                                  {branchAddress}
-                                </Text>
-                              )}
-                            </LinearGradient>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-                  )}
-                </View>
-              )}
-
-              {/* Star Rating */}
-              <View style={styles.modalRatingSection}>
-                <Text style={styles.modalRatingPrompt}>
-                  {ratingType === 'laundry' 
-                    ? 'How was the laundry service?' 
-                    : 'How would you rate this branch?'}
-                </Text>
-                <StarRating
-                  rating={selectedRating}
-                  size={44}
-                  interactive
-                  onRate={setSelectedRating}
-                />
-                {selectedRating > 0 && (
-                  <Text style={[styles.modalRatingLabel, { color: getRatingColor(selectedRating) }]}>
-                    {getRatingLabel(selectedRating)}
-                  </Text>
-                )}
+                      <Text style={[
+                        styles.branchOptionText,
+                        selectedBranch?.id === branch.id && styles.selectedBranchOptionText
+                      ]}>
+                        {branch.name}
+                      </Text>
+                      {selectedBranch?.id === branch.id && (
+                        <Ionicons name="checkmark" size={20} color={COLORS.primary} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
+            )}
 
-              {/* Comment Input */}
-              <View style={styles.modalCommentSection}>
-                <Text style={styles.modalCommentLabel}>
-                  {ratingType === 'laundry' 
-                    ? 'Leave a comment about the service (optional)' 
-                    : 'Leave a comment about the branch (optional)'}
-                </Text>
-                <TextInput
-                  style={styles.modalCommentInput}
-                  placeholder="Tell us about your experience..."
-                  placeholderTextColor={COLORS.textMuted}
-                  value={ratingComment}
-                  onChangeText={setRatingComment}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  maxLength={500}
-                />
-                <Text style={styles.modalCharCount}>{ratingComment.length}/500</Text>
-              </View>
+            <View style={styles.ratingSection}>
+              <Text style={styles.ratingLabel}>Your Rating:</Text>
+              {renderStars(selectedRating, setSelectedRating, 32)}
+            </View>
 
-              {/* Submit Button */}
+            <View style={styles.commentSection}>
+              <Text style={styles.commentLabel}>Comment (Optional):</Text>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Share your experience..."
+                placeholderTextColor={COLORS.textMuted}
+                value={ratingComment}
+                onChangeText={setRatingComment}
+                multiline
+                maxLength={500}
+              />
+            </View>
+
+            <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[
-                  styles.modalSubmitButton,
-                  (selectedRating === 0 || (ratingType === 'branch' && !selectedBranch)) 
-                    && styles.modalSubmitDisabled
-                ]}
+                style={styles.cancelButton}
+                onPress={closeRatingModal}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, submitting && styles.disabledButton]}
                 onPress={handleSubmitRating}
-                disabled={
-                  submitting || 
-                  selectedRating === 0 || 
-                  (ratingType === 'branch' && !selectedBranch)
-                }
-                activeOpacity={0.8}
+                disabled={submitting || selectedRating === 0 || (ratingType === 'branch' && !selectedBranch)}
               >
                 {submitting ? (
-                  <ActivityIndicator color="#FFF" />
+                  <ActivityIndicator size="small" color={COLORS.textPrimary} />
                 ) : (
-                  <>
-                    <Ionicons name="checkmark-circle" size={22} color="#FFF" />
-                    <Text style={styles.modalSubmitText}>Submit Rating</Text>
-                  </>
+                  <Text style={styles.submitButtonText}>Submit Rating</Text>
                 )}
               </TouchableOpacity>
-              
-              {/* Extra bottom padding */}
-              <View style={{ height: Platform.OS === 'ios' ? 20 : 10 }} />
-            </ScrollView>
+            </View>
           </View>
         </View>
       </Modal>
@@ -933,173 +767,116 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  centerContent: {
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.background,
   },
   loadingText: {
     color: COLORS.textSecondary,
     marginTop: 16,
-    fontSize: 14,
+    fontSize: 16,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.cardDark,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.cardDark,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
+    marginRight: 16,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '600',
     color: COLORS.textPrimary,
   },
-  headerSubtitle: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  summaryCard: {
-    margin: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  summaryGradient: {
-    padding: 20,
-  },
-  summaryStats: {
+  tabContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  summaryMain: {
-    alignItems: 'center',
-  },
-  summaryScore: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: COLORS.textPrimary,
-  },
-  summaryTotal: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
-  summaryBreakdown: {
-    gap: 8,
-  },
-  summaryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  summaryItemText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-  },
-  summaryBars: {
-    gap: 6,
-  },
-  barRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  barLabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    width: 12,
-    textAlign: 'right',
-  },
-  barTrack: {
-    flex: 1,
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  barCount: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    width: 30,
-    textAlign: 'right',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
+    backgroundColor: COLORS.cardDark,
     paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 20,
+    paddingBottom: 20,
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.cardDark,
     paddingVertical: 12,
-    borderRadius: 14,
-    gap: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+    marginHorizontal: 4,
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  activeTab: {
+    backgroundColor: COLORS.primary,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.textSecondary,
+  },
+  activeTabText: {
+    color: COLORS.textPrimary,
+  },
+  content: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+    padding: 20,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  statsCard: {
+    backgroundColor: COLORS.cardDark,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  tabActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  tabText: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
+  statsTitle: {
+    fontSize: 18,
     fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 16,
   },
-  tabTextActive: {
-    color: '#FFF',
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  tabBadge: {
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    minWidth: 24,
+  statItem: {
     alignItems: 'center',
   },
-  tabBadgeActive: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-  },
-  tabBadgeText: {
-    color: COLORS.textPrimary,
-    fontSize: 12,
+  statValue: {
+    fontSize: 24,
     fontWeight: 'bold',
+    color: COLORS.primary,
   },
-  tabBadgeTextActive: {
-    color: '#FFF',
-  },
-  listContainer: {
-    paddingHorizontal: 20,
+  statLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 4,
   },
   ratingCard: {
     backgroundColor: COLORS.cardDark,
@@ -1109,75 +886,51 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  ratingCardTop: {
+  ratingHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 14,
+    marginBottom: 12,
   },
-  ratingIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ratingCardInfo: {
+  ratingInfo: {
     flex: 1,
   },
-  ratingTrackingNumber: {
-    fontSize: 15,
-    fontWeight: '700',
+  ratingTitle: {
+    fontSize: 16,
+    fontWeight: '600',
     color: COLORS.textPrimary,
-    marginBottom: 2,
   },
-  ratingServiceName: {
-    fontSize: 13,
+  ratingSubtitle: {
+    fontSize: 14,
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    marginTop: 4,
   },
-  ratingMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  ratingMetaText: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-  },
-  ratingStarSection: {
-    marginBottom: 4,
-  },
-  ratingStarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  ratingLabelBadge: {
-    paddingHorizontal: 10,
+  ratingBadge: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 6,
   },
-  ratingLabelText: {
+  ratingBadgeText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '500',
+    color: COLORS.textPrimary,
+    textTransform: 'capitalize',
   },
-  ratingCommentBox: {
+  starsContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    marginBottom: 8,
+  },
+  starButton: {
+    marginRight: 4,
   },
   ratingComment: {
-    flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     color: COLORS.textSecondary,
-    lineHeight: 18,
+    fontStyle: 'italic',
+    marginTop: 8,
   },
-  unratedCard: {
+  laundryCard: {
     backgroundColor: COLORS.cardDark,
     borderRadius: 16,
     padding: 16,
@@ -1185,162 +938,225 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  unratedInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginBottom: 14,
-  },
-  unratedIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  unratedDetails: {
-    flex: 1,
-  },
-  unratedTracking: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: 2,
-  },
-  unratedService: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    marginBottom: 2,
-  },
-  unratedMeta: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-  },
-  rateButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  rateButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 8,
-  },
-  rateButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFF',
-  },
-  rateBranchCard: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  rateBranchGradient: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  rateBranchIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  rateBranchTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.textPrimary,
-    marginBottom: 8,
-  },
-  rateBranchDescription: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  startRatingButton: {
-    width: '100%',
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  startRatingGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 10,
-  },
-  startRatingText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFF',
-  },
-  recentBranchRatings: {
-    marginTop: 8,
-  },
-  recentBranchTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  recentBranchItem: {
+  laundryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.cardDark,
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  recentBranchInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  laundryInfo: {
+    flex: 1,
   },
-  recentBranchName: {
+  laundryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  laundrySubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+  laundryPrice: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.success,
+    marginTop: 4,
+  },
+  rateButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  rateButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.textPrimary,
   },
-  recentBranchRating: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  recentBranchDate: {
-    fontSize: 10,
-    color: COLORS.textMuted,
-  },
-  emptyState: {
+  instructionCard: {
+    backgroundColor: COLORS.cardDark,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
+  instructionText: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    textAlign: 'center',
+    marginLeft: 12,
+    flex: 1,
     lineHeight: 20,
+  },
+  branchCard: {
+    backgroundColor: COLORS.cardDark,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  branchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  branchInfo: {
+    flex: 1,
+  },
+  branchTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  branchSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+  branchRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  branchRatingText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginLeft: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.cardDark,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  modalInfo: {
+    marginBottom: 20,
+  },
+  modalInfoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  modalInfoSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+  branchSelector: {
+    marginBottom: 20,
+  },
+  selectorLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 12,
+  },
+  branchList: {
+    maxHeight: 150,
+  },
+  branchOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: COLORS.cardLight,
+  },
+  selectedBranchOption: {
+    backgroundColor: COLORS.primary + '20',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  branchOptionText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  selectedBranchOptionText: {
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  ratingSection: {
+    marginBottom: 20,
+  },
+  ratingLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 12,
+  },
+  commentSection: {
+    marginBottom: 24,
+  },
+  commentLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 12,
+  },
+  commentInput: {
+    backgroundColor: COLORS.cardLight,
+    borderRadius: 12,
+    padding: 16,
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 12,
+    marginRight: 8,
+    backgroundColor: COLORS.cardLight,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  submitButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 12,
+    marginLeft: 8,
+    backgroundColor: COLORS.primary,
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  submitButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
   },
   starRow: {
     flexDirection: 'row',
@@ -1349,216 +1165,18 @@ const styles = StyleSheet.create({
   starTouchable: {
     padding: 4,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: COLORS.cardDark,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-    maxHeight: '90%',
-  },
-  modalScrollContent: {
-    paddingBottom: 20,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: COLORS.textMuted,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  ratingTypeToggle: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.cardLight,
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 20,
-  },
-  ratingTypeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+  tabBadge: {
+    backgroundColor: COLORS.danger,
     borderRadius: 10,
-    gap: 8,
-  },
-  ratingTypeButtonActive: {
-    backgroundColor: COLORS.primary + '20',
-  },
-  ratingTypeText: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontWeight: '600',
-  },
-  ratingTypeTextActive: {
-    color: COLORS.primary,
-  },
-  modalLaundryInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: COLORS.cardLight,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 28,
-  },
-  modalLaundryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary + '20',
+    minWidth: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 6,
   },
-  modalLaundryTracking: {
-    fontSize: 15,
-    fontWeight: '700',
+  tabBadgeText: {
     color: COLORS.textPrimary,
-    marginBottom: 2,
-  },
-  modalLaundryService: {
     fontSize: 12,
-    color: COLORS.textSecondary,
-  },
-  branchSelectorContainer: {
-    marginBottom: 24,
-  },
-  branchSelectorLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  branchList: {
-    flexDirection: 'row',
-  },
-  branchCard: {
-    width: 140,
-    marginRight: 12,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  branchCardSelected: {
-    borderColor: COLORS.primary,
-  },
-  branchGradient: {
-    padding: 16,
-    alignItems: 'center',
-    gap: 8,
-  },
-  branchName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-  },
-  branchNameSelected: {
-    color: '#FFF',
-  },
-  branchCode: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-  },
-  branchCodeSelected: {
-    color: 'rgba(255,255,255,0.8)',
-  },
-  branchAddress: {
-    fontSize: 10,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-  },
-  branchAddressSelected: {
-    color: 'rgba(255,255,255,0.8)',
-  },
-  noBranchesContainer: {
-    height: 160,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.cardLight,
-    borderRadius: 16,
-    marginTop: 8,
-  },
-  noBranchesText: {
-    marginTop: 12,
-    color: COLORS.textSecondary,
-    fontSize: 14,
-  },
-  modalRatingSection: {
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  modalRatingPrompt: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginBottom: 16,
-    fontWeight: '600',
-  },
-  modalRatingLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 12,
-  },
-  modalCommentSection: {
-    marginBottom: 24,
-  },
-  modalCommentLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-    marginBottom: 10,
-  },
-  modalCommentInput: {
-    backgroundColor: COLORS.cardLight,
-    borderRadius: 14,
-    padding: 16,
-    color: COLORS.textPrimary,
-    fontSize: 14,
-    minHeight: 100,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  modalCharCount: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    textAlign: 'right',
-    marginTop: 6,
-  },
-  modalSubmitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    borderRadius: 16,
-    gap: 10,
-  },
-  modalSubmitDisabled: {
-    opacity: 0.5,
-  },
-  modalSubmitText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFF',
+    fontWeight: 'bold',
   },
 });

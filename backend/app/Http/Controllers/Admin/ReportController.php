@@ -79,6 +79,7 @@ class ReportController extends Controller
         $startDate = $request->get('start_date', now()->startOfMonth());
         $endDate = $request->get('end_date', now()->endOfMonth());
 
+        // Daily revenue data
         $data = Laundry::where('payment_status', 'paid')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->select(
@@ -90,7 +91,31 @@ class ReportController extends Controller
             ->orderBy('date', 'asc')
             ->get();
 
-        return view('admin.reports.revenue', compact('data', 'startDate', 'endDate'));
+        // Monthly revenue trends (last 12 months)
+        $monthlyTrends = $this->getMonthlyRevenueTrends();
+
+        // Revenue by service type
+        $serviceRevenue = $this->getRevenueByService($startDate, $endDate);
+
+        // Peak hours analysis
+        $peakHours = $this->getPeakHoursRevenue($startDate, $endDate);
+
+        // Payment method analytics
+        $paymentMethods = $this->getPaymentMethodAnalytics($startDate, $endDate);
+
+        // Revenue by branch
+        $branchRevenue = $this->getRevenueBranches($startDate, $endDate);
+
+        // Customer analytics
+        $customerAnalytics = $this->getCustomerRevenueAnalytics($startDate, $endDate);
+
+        // Seasonal patterns
+        $seasonalData = $this->getSeasonalRevenue();
+
+        return view('admin.reports.revenue', compact(
+            'data', 'startDate', 'endDate', 'monthlyTrends', 'serviceRevenue', 
+            'peakHours', 'paymentMethods', 'branchRevenue', 'customerAnalytics', 'seasonalData'
+        ));
     }
 
     /**
@@ -126,6 +151,9 @@ class ReportController extends Controller
     {
         $dateFrom = $this->getDateFromFilter($request);
         $dateTo = $this->getDateToFilter($request);
+
+        // Mark all ratings as viewed when accessing this page
+        \App\Models\CustomerRating::whereNull('viewed_at')->update(['viewed_at' => now()]);
 
         // Build base query
         $query = Customer::withCount(['laundries' => function($q) use ($dateFrom, $dateTo) {
@@ -269,20 +297,39 @@ class ReportController extends Controller
             $query->whereBetween('created_at', [$startDate, $endDate]);
         }])
         ->get()
-        ->map(function($branch) {
+        ->map(function($branch) use ($startDate, $endDate) {
+            $revenue = $branch->laundries()->where('payment_status', 'paid')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->sum('total_amount');
+            
             return [
                 'id' => $branch->id,
                 'name' => $branch->name,
                 'code' => $branch->code,
                 'laundries_count' => $branch->laundries_count,
-                'revenue' => $branch->laundries()->where('payment_status', 'paid')->sum('total_amount'),
-                'avg_laundry_value' => $branch->laundries_count > 0
-                    ? $branch->laundries()->where('payment_status', 'paid')->sum('total_amount') / $branch->laundries_count
-                    : 0,
+                'revenue' => $revenue,
+                'avg_laundry_value' => $branch->laundries_count > 0 ? $revenue / $branch->laundries_count : 0,
             ];
         });
 
-        return view('admin.reports.branches', compact('branches', 'startDate', 'endDate'));
+        // Calculate totals for comparison
+        $totalRevenue = $branches->sum('revenue');
+        $totalLaundries = $branches->sum('laundries_count');
+        
+        // Add percentage calculations
+        $branches = $branches->map(function($branch) use ($totalRevenue, $totalLaundries) {
+            $branch['revenue_percentage'] = $totalRevenue > 0 ? round(($branch['revenue'] / $totalRevenue) * 100, 1) : 0;
+            $branch['laundries_percentage'] = $totalLaundries > 0 ? round(($branch['laundries_count'] / $totalLaundries) * 100, 1) : 0;
+            return $branch;
+        })->sortByDesc('revenue')->values();
+
+        // Performance leaderboard data
+        $leaderboard = $branches->take(10)->map(function($branch, $index) {
+            $branch['rank'] = $index + 1;
+            return $branch;
+        });
+
+        return view('admin.reports.branches', compact('branches', 'leaderboard', 'totalRevenue', 'totalLaundries', 'startDate', 'endDate'));
     }
 
     /**
@@ -295,6 +342,9 @@ class ReportController extends Controller
         $rating = $request->get('rating');
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
+
+        // Mark all ratings as viewed when accessing this page
+        \App\Models\CustomerRating::whereNull('viewed_at')->update(['viewed_at' => now()]);
 
         // Set date range based on filter
         switch($filter) {
@@ -492,8 +542,8 @@ class ReportController extends Controller
                 return (object) $branch;
             });
 
-        // Get recent ratings for the table
-        $recentRatingsQuery = CustomerRating::with(['branch', 'customer', 'laundry'])
+        // Get recent ratings grouped by customer
+        $query = CustomerRating::with(['branch', 'customer', 'laundry'])
             ->whereBetween('created_at', [$startDate, $endDate])
             ->when($branchId, function($query) use ($branchId) {
                 return $query->where('branch_id', $branchId);
@@ -503,7 +553,18 @@ class ReportController extends Controller
             })
             ->orderBy('created_at', 'desc');
 
-        $recentRatings = $recentRatingsQuery->paginate(20)->withQueryString();
+        // Group ratings by customer
+        $allRatings = $query->get();
+        $customersWithRatings = $allRatings->groupBy('customer_id')->map(function($customerRatings) {
+            $customer = $customerRatings->first()->customer;
+            return (object) [
+                'customer' => $customer,
+                'average_rating' => round($customerRatings->avg('rating'), 1),
+                'rating_count' => $customerRatings->count(),
+                'latest_rating' => $customerRatings->first(),
+                'all_ratings' => $customerRatings
+            ];
+        })->values();
 
         return view('admin.reports.branch-ratings', compact(
             'branches',
@@ -516,13 +577,186 @@ class ReportController extends Controller
             'rating',
             'topBranches',
             'needsImprovement',
-            'recentRatings',
+            'customersWithRatings',
             'ratingDistribution'
         ));
     }
 
     /**
-     * Export Branch Ratings
+     * Profitability Analysis Report
+     */
+    public function profitability(Request $request)
+    {
+        $startDate = $request->get('start_date') ? \Carbon\Carbon::parse($request->get('start_date')) : now()->startOfMonth();
+        $endDate = $request->get('end_date') ? \Carbon\Carbon::parse($request->get('end_date')) : now()->endOfMonth();
+
+        // Service profitability analysis
+        $serviceProfitability = $this->getServiceProfitability($startDate, $endDate);
+        
+        // Branch profitability analysis
+        $branchProfitability = $this->getBranchProfitability($startDate, $endDate);
+        
+        // Overall profitability metrics
+        $overallMetrics = $this->getOverallProfitabilityMetrics($startDate, $endDate);
+        
+        // Cost breakdown analysis
+        $costBreakdown = $this->getCostBreakdown($startDate, $endDate);
+        
+        // Profit trends over time
+        $profitTrends = $this->getProfitTrends($startDate, $endDate);
+
+        return view('admin.reports.profitability', compact(
+            'serviceProfitability',
+            'branchProfitability', 
+            'overallMetrics',
+            'costBreakdown',
+            'profitTrends',
+            'startDate',
+            'endDate'
+        ));
+    }
+
+    /**
+     * Get service profitability analysis
+     */
+    private function getServiceProfitability($startDate, $endDate)
+    {
+        return DB::table('laundries')
+            ->join('services', 'laundries.service_id', '=', 'services.id')
+            ->whereBetween('laundries.created_at', [$startDate, $endDate])
+            ->where('laundries.payment_status', 'paid')
+            ->select(
+                'services.name',
+                'services.service_type',
+                DB::raw('COUNT(laundries.id) as total_orders'),
+                DB::raw('SUM(laundries.total_amount) as total_revenue'),
+                DB::raw('AVG(laundries.total_amount) as avg_order_value'),
+                // Estimated costs (30% of revenue as baseline)
+                DB::raw('SUM(laundries.total_amount * 0.30) as estimated_costs'),
+                DB::raw('SUM(laundries.total_amount * 0.70) as estimated_profit'),
+                DB::raw('ROUND((SUM(laundries.total_amount * 0.70) / SUM(laundries.total_amount)) * 100, 2) as profit_margin')
+            )
+            ->groupBy('services.id', 'services.name', 'services.service_type')
+            ->orderBy('estimated_profit', 'desc')
+            ->get();
+    }
+
+    /**
+     * Get branch profitability analysis
+     */
+    private function getBranchProfitability($startDate, $endDate)
+    {
+        return DB::table('laundries')
+            ->join('branches', 'laundries.branch_id', '=', 'branches.id')
+            ->whereBetween('laundries.created_at', [$startDate, $endDate])
+            ->where('laundries.payment_status', 'paid')
+            ->select(
+                'branches.name',
+                'branches.code',
+                DB::raw('COUNT(laundries.id) as total_orders'),
+                DB::raw('SUM(laundries.total_amount) as total_revenue'),
+                DB::raw('AVG(laundries.total_amount) as avg_order_value'),
+                // Estimated operational costs (35% for branches)
+                DB::raw('SUM(laundries.total_amount * 0.35) as estimated_costs'),
+                DB::raw('SUM(laundries.total_amount * 0.65) as estimated_profit'),
+                DB::raw('ROUND((SUM(laundries.total_amount * 0.65) / SUM(laundries.total_amount)) * 100, 2) as profit_margin')
+            )
+            ->groupBy('branches.id', 'branches.name', 'branches.code')
+            ->orderBy('estimated_profit', 'desc')
+            ->get();
+    }
+
+    /**
+     * Get overall profitability metrics
+     */
+    private function getOverallProfitabilityMetrics($startDate, $endDate)
+    {
+        $totalRevenue = Laundry::whereBetween('created_at', [$startDate, $endDate])
+            ->where('payment_status', 'paid')
+            ->sum('total_amount');
+            
+        $totalOrders = Laundry::whereBetween('created_at', [$startDate, $endDate])
+            ->where('payment_status', 'paid')
+            ->count();
+            
+        // Estimated costs breakdown
+        $estimatedCosts = [
+            'materials' => $totalRevenue * 0.15, // 15% for detergents, utilities
+            'labor' => $totalRevenue * 0.20,     // 20% for staff wages
+            'overhead' => $totalRevenue * 0.10,  // 10% for rent, equipment
+            'total' => $totalRevenue * 0.45      // 45% total costs
+        ];
+        
+        $grossProfit = $totalRevenue - $estimatedCosts['total'];
+        $profitMargin = $totalRevenue > 0 ? ($grossProfit / $totalRevenue) * 100 : 0;
+        
+        return [
+            'total_revenue' => $totalRevenue,
+            'total_orders' => $totalOrders,
+            'avg_order_value' => $totalOrders > 0 ? $totalRevenue / $totalOrders : 0,
+            'estimated_costs' => $estimatedCosts,
+            'gross_profit' => $grossProfit,
+            'profit_margin' => round($profitMargin, 2)
+        ];
+    }
+
+    /**
+     * Get cost breakdown analysis
+     */
+    private function getCostBreakdown($startDate, $endDate)
+    {
+        $totalRevenue = Laundry::whereBetween('created_at', [$startDate, $endDate])
+            ->where('payment_status', 'paid')
+            ->sum('total_amount');
+            
+        return [
+            'materials' => [
+                'amount' => $totalRevenue * 0.15,
+                'percentage' => 15,
+                'description' => 'Detergents, fabric softeners, utilities'
+            ],
+            'labor' => [
+                'amount' => $totalRevenue * 0.20,
+                'percentage' => 20,
+                'description' => 'Staff wages and benefits'
+            ],
+            'overhead' => [
+                'amount' => $totalRevenue * 0.10,
+                'percentage' => 10,
+                'description' => 'Rent, equipment maintenance, insurance'
+            ],
+            'pickup_delivery' => [
+                'amount' => Laundry::whereBetween('created_at', [$startDate, $endDate])
+                    ->where('payment_status', 'paid')
+                    ->sum(DB::raw('pickup_fee + delivery_fee')),
+                'percentage' => 0, // Will be calculated
+                'description' => 'Transportation and logistics costs'
+            ]
+        ];
+    }
+
+    /**
+     * Get profit trends over time
+     */
+    private function getProfitTrends($startDate, $endDate)
+    {
+        return DB::table('laundries')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where('payment_status', 'paid')
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('SUM(total_amount) as revenue'),
+                DB::raw('COUNT(*) as orders'),
+                DB::raw('SUM(total_amount * 0.45) as estimated_costs'),
+                DB::raw('SUM(total_amount * 0.55) as estimated_profit')
+            )
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get();
+    }
+
+    /**
+     * Export branch ratings to CSV
      */
     public function exportBranchRatings(Request $request)
     {
@@ -664,6 +898,159 @@ class ReportController extends Controller
             default:
                 return redirect()->back()->with('error', 'Invalid export type');
         }
+    }
+
+    /**
+     * Get monthly revenue trends for last 12 months
+     */
+    private function getMonthlyRevenueTrends()
+    {
+        return Laundry::where('payment_status', 'paid')
+            ->where('created_at', '>=', now()->subMonths(12))
+            ->select(
+                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw('SUM(total_amount) as revenue'),
+                DB::raw('COUNT(*) as laundries'),
+                DB::raw('AVG(total_amount) as avg_order_value')
+            )
+            ->groupBy('month')
+            ->orderBy('month', 'asc')
+            ->get();
+    }
+
+    /**
+     * Get revenue breakdown by service type
+     */
+    private function getRevenueByService($startDate, $endDate)
+    {
+        return Laundry::where('laundries.payment_status', 'paid')
+            ->whereBetween('laundries.created_at', [$startDate, $endDate])
+            ->join('services', 'laundries.service_id', '=', 'services.id')
+            ->select(
+                'services.name',
+                'services.service_type',
+                DB::raw('SUM(laundries.total_amount) as revenue'),
+                DB::raw('COUNT(laundries.id) as count'),
+                DB::raw('AVG(laundries.total_amount) as avg_value')
+            )
+            ->groupBy('services.id', 'services.name', 'services.service_type')
+            ->orderBy('revenue', 'desc')
+            ->get();
+    }
+
+    /**
+     * Get peak hours revenue analysis
+     */
+    private function getPeakHoursRevenue($startDate, $endDate)
+    {
+        return Laundry::where('payment_status', 'paid')
+            ->whereBetween('laundries.created_at', [$startDate, $endDate])
+            ->select(
+                DB::raw('HOUR(laundries.created_at) as hour'),
+                DB::raw('SUM(total_amount) as revenue'),
+                DB::raw('COUNT(*) as laundries')
+            )
+            ->groupBy('hour')
+            ->orderBy('hour', 'asc')
+            ->get();
+    }
+
+    /**
+     * Get payment method analytics
+     */
+    private function getPaymentMethodAnalytics($startDate, $endDate)
+    {
+        return Laundry::where('payment_status', 'paid')
+            ->whereBetween('laundries.created_at', [$startDate, $endDate])
+            ->select(
+                'payment_method',
+                DB::raw('SUM(total_amount) as revenue'),
+                DB::raw('COUNT(*) as count'),
+                DB::raw('AVG(total_amount) as avg_value')
+            )
+            ->groupBy('payment_method')
+            ->orderBy('revenue', 'desc')
+            ->get();
+    }
+
+    /**
+     * Get revenue by branches
+     */
+    private function getRevenueBranches($startDate, $endDate)
+    {
+        return Branch::with(['laundries' => function($query) use ($startDate, $endDate) {
+            $query->where('payment_status', 'paid')
+                  ->whereBetween('laundries.created_at', [$startDate, $endDate]);
+        }])
+        ->get()
+        ->map(function($branch) use ($startDate, $endDate) {
+            $revenue = $branch->laundries()->where('payment_status', 'paid')
+                ->whereBetween('laundries.created_at', [$startDate, $endDate])
+                ->sum('total_amount');
+            $count = $branch->laundries()->where('payment_status', 'paid')
+                ->whereBetween('laundries.created_at', [$startDate, $endDate])
+                ->count();
+            
+            return [
+                'name' => $branch->name,
+                'revenue' => $revenue,
+                'count' => $count,
+                'avg_value' => $count > 0 ? $revenue / $count : 0
+            ];
+        })
+        ->sortByDesc('revenue')
+        ->values();
+    }
+
+    /**
+     * Get customer revenue analytics
+     */
+    private function getCustomerRevenueAnalytics($startDate, $endDate)
+    {
+        $totalRevenue = Laundry::where('payment_status', 'paid')
+            ->whereBetween('laundries.created_at', [$startDate, $endDate])
+            ->sum('total_amount');
+        
+        $totalCustomers = Customer::whereHas('laundries', function($query) use ($startDate, $endDate) {
+            $query->where('payment_status', 'paid')
+                  ->whereBetween('laundries.created_at', [$startDate, $endDate]);
+        })->count();
+
+        $avgCustomerValue = $totalCustomers > 0 ? $totalRevenue / $totalCustomers : 0;
+
+        $topCustomers = Customer::withSum(['laundries' => function($query) use ($startDate, $endDate) {
+            $query->where('payment_status', 'paid')
+                  ->whereBetween('laundries.created_at', [$startDate, $endDate]);
+        }], 'total_amount')
+        ->having('laundries_sum_total_amount', '>', 0)
+        ->orderBy('laundries_sum_total_amount', 'desc')
+        ->limit(10)
+        ->get();
+
+        return [
+            'total_revenue' => $totalRevenue,
+            'total_customers' => $totalCustomers,
+            'avg_customer_value' => $avgCustomerValue,
+            'top_customers' => $topCustomers
+        ];
+    }
+
+    /**
+     * Get seasonal revenue patterns
+     */
+    private function getSeasonalRevenue()
+    {
+        return Laundry::where('payment_status', 'paid')
+            ->where('laundries.created_at', '>=', now()->subYear())
+            ->select(
+                DB::raw('MONTH(laundries.created_at) as month'),
+                DB::raw('MONTHNAME(laundries.created_at) as month_name'),
+                DB::raw('SUM(total_amount) as revenue'),
+                DB::raw('COUNT(*) as laundries')
+            )
+            ->groupBy('month', 'month_name')
+            ->orderBy('month', 'asc')
+            ->get();
     }
 
     /**

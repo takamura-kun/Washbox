@@ -225,17 +225,22 @@ class StaffController extends Controller
     /**
      * Reset staff member password
      */
-    public function resetPassword(Request $request, User $staff)
+    public function resetPassword(Request $request, User $user)
     {
-        $validated = $request->validate([
-            'password' => ['required', 'confirmed', Password::min(8)],
-        ]);
+        try {
+            $validated = $request->validate([
+                'password' => ['required', 'confirmed', Password::min(8)],
+            ]);
 
-        $staff->update([
-            'password' => Hash::make($validated['password'])
-        ]);
+            $user->update([
+                'password' => Hash::make($validated['password'])
+            ]);
 
-        return redirect()->route('admin.staff.show', $staff)
-            ->with('success', 'Password reset successfully!');
+            return redirect()->route('admin.staff.edit', $user)
+                ->with('success', 'Password reset successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Failed to reset password: ' . $e->getMessage());
+        }
     }
 }

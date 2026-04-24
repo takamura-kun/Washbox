@@ -418,6 +418,59 @@ class NotificationService
         );
     }
 
+    /**
+     * Notify customer about payment proof approval
+     */
+    public static function notifyPaymentApproved(Laundry $laundry, ?string $adminNotes = null): ?Notification
+    {
+        if (!$laundry->customer_id) {
+            return null;
+        }
+
+        $body = "Your payment proof for laundry #{$laundry->tracking_number} has been approved. Thank you for your payment!";
+        if ($adminNotes) {
+            $body .= " Note: {$adminNotes}";
+        }
+
+        return self::sendToCustomer(
+            $laundry->customer_id,
+            'payment_approved',
+            '✅ Payment Approved',
+            $body,
+            $laundry->id,
+            null,
+            [
+                'laundries_id' => $laundry->id,
+                'tracking_number' => $laundry->tracking_number,
+                'admin_notes' => $adminNotes,
+            ]
+        );
+    }
+
+    /**
+     * Notify customer about payment proof rejection
+     */
+    public static function notifyPaymentRejected(Laundry $laundry, string $reason): ?Notification
+    {
+        if (!$laundry->customer_id) {
+            return null;
+        }
+
+        return self::sendToCustomer(
+            $laundry->customer_id,
+            'payment_rejected',
+            '❌ Payment Proof Rejected',
+            "Your payment proof for laundry #{$laundry->tracking_number} has been rejected. Reason: {$reason}. Please upload a new payment proof or contact the branch for assistance.",
+            $laundry->id,
+            null,
+            [
+                'laundries_id' => $laundry->id,
+                'tracking_number' => $laundry->tracking_number,
+                'rejection_reason' => $reason,
+            ]
+        );
+    }
+
     // ========================================================================
     // UNCLAIMED LAUNDY NOTIFICATIONS
     // ========================================================================
@@ -496,10 +549,9 @@ class NotificationService
             'type'       => 'new_rating',
             'title'      => $title,
             'message'    => $message,
-            'icon_class' => 'bi-star-fill',
+            'icon'       => 'star-fill',
             'color'      => $iconColor,
             'link'       => '/admin/reports/customers',
-            'is_read'    => false,
         ]);
 
         // ── Branch staff: write to notifications (user_id based) ─────────────
@@ -549,10 +601,9 @@ class NotificationService
             'type'       => 'new_branch_rating',
             'title'      => $title,
             'message'    => $message,
-            'icon_class' => 'bi-building',
+            'icon'       => 'building',
             'color'      => $iconColor,
             'link'       => '/admin/reports/customers',
-            'is_read'    => false,
         ]);
 
         // ── Branch staff: write to notifications (user_id based) ─────────────

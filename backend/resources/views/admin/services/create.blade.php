@@ -387,8 +387,8 @@
                         <input type="text" name="icon" class="form-control" placeholder="e.g., bi-tag, bi-star">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Display Order</label>
-                        <input type="number" name="display_order" class="form-control" min="0" value="0">
+                        <label class="form-label fw-semibold">Display Laundry</label>
+                        <input type="number" name="display_laundry" class="form-control" min="0" value="0">
                         <small class="text-muted">Lower numbers appear first</small>
                     </div>
                     <div class="mb-3">
@@ -511,10 +511,10 @@
                         </div>
 
                         <!-- Icon Upload -->
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <label class="form-label fw-semibold">Service Icon</label>
                             <input type="file" name="icon" class="form-control" accept="image/*">
-                            <small class="text-muted">Optional. Upload an icon for this service.</small>
+                            <small class="text-muted">Optional. Small icon for admin panel.</small>
                         </div>
 
                         <!-- Description -->
@@ -536,7 +536,7 @@
                                 <input class="form-check-input" type="checkbox" name="is_active" id="serviceActive" checked>
                                 <label class="form-check-label fw-semibold" for="serviceActive">Active Service</label>
                             </div>
-                            <small class="text-muted">Inactive services won't appear in order creation</small>
+                            <small class="text-muted">Inactive services won't appear in laundry creation</small>
                         </div>
                     </div>
                 </div>
@@ -585,7 +585,7 @@
                             <input class="form-check-input" type="checkbox" name="is_active" id="addonActive" checked>
                             <label class="form-check-label fw-semibold" for="addonActive">Active Add-On</label>
                         </div>
-                        <small class="text-muted">Inactive add-ons won't appear in order creation</small>
+                        <small class="text-muted">Inactive add-ons won't appear in laundry creation</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1050,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             let message = `Are you sure you want to delete "${serviceName}"?`;
             if (usageCount > 0) {
-                message = `"${serviceName}" has been used ${usageCount} time${usageCount > 1 ? 's' : ''} in laundry orders. Deleting it may affect historical data. Are you sure you want to proceed?`;
+                message = `"${serviceName}" has been used ${usageCount} time${usageCount > 1 ? 's' : ''} in laundry laundries. Deleting it may affect historical data. Are you sure you want to proceed?`;
             }
 
             if (confirm(message + ' This action cannot be undone.')) {
@@ -1109,7 +1109,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             let message = `Are you sure you want to delete "${addonName}"?`;
             if (usageCount > 0) {
-                message = `"${addonName}" has been used ${usageCount} time${usageCount > 1 ? 's' : ''} in laundry orders. Deleting it may affect historical data. Are you sure you want to proceed?`;
+                message = `"${addonName}" has been used ${usageCount} time${usageCount > 1 ? 's' : ''} in laundry laundries. Deleting it may affect historical data. Are you sure you want to proceed?`;
             }
 
             if (confirm(message + ' This action cannot be undone.')) {

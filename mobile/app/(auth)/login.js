@@ -23,11 +23,7 @@ import { API_BASE_URL, STORAGE_KEYS } from '../../constants/config';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
 import { registerForPushNotifications } from '../../utils/notification';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
-
-WebBrowser.maybeCompleteAuthSession();
-
+import TermsModal from '../../components/TermsModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,17 +34,10 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showTermsModal, setShowTermsModal] = useState(true);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: '985931590530-m0ijettduj55nbjei2sdndc8i55n4k3e.apps.googleusercontent.com',
-    expoClientId: '985931590530-6a93igrj8eelimvesfbljgqthaudv47s.apps.googleusercontent.com',
-  });
 
-  useEffect(() => {
-    if (response?.type === 'success') {
-      handleGoogleLogin(response.authentication.accessToken);
-    }
-  }, [response]);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -144,42 +133,25 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleLogin = async (accessToken) => {
-    setLoading(true);
-    try {
-      const userInfoResponse = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const userInfo = await userInfoResponse.json();
 
-      const response = await fetch(`${API_BASE_URL}/v1/google-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          google_id: userInfo.id,
-          email: userInfo.email,
-          name: userInfo.name,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        await login(data.data.token, data.data.customer);
-        registerForPushNotifications(data.data.token).catch(console.error);
-      } else {
-        Alert.alert('Login Failed', data.message || 'Google login failed');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Google login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <>
       <StatusBar style="light" />
+      
+      {/* Terms Modal - Show first */}
+      <TermsModal
+        visible={showTermsModal}
+        onClose={() => router.back()}
+        onAccept={() => {
+          setTermsAccepted(true);
+          setShowTermsModal(false);
+        }}
+        showAcceptButton={true}
+      />
+
+      {/* Login Form - Show after terms accepted */}
+      {termsAccepted && (
       <LinearGradient
         colors={['#0A0E27', '#1A1F3A', '#0A0E27']}
         style={styles.container}
@@ -287,7 +259,10 @@ export default function LoginScreen() {
                 <View style={styles.inputGroup}>
                   <View style={styles.passwordLabelRow}>
                     <Text style={styles.inputLabel}>Password</Text>
-                    <TouchableOpacity activeOpacity={0.7}>
+                    <TouchableOpacity 
+                      activeOpacity={0.7}
+                      onPress={() => router.push('/(auth)/forgot-password')}
+                    >
                       <Text style={styles.forgotPassword}>Forgot Password?</Text>
                     </TouchableOpacity>
                   </View>
@@ -355,31 +330,6 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Divider */}
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* Social Login Buttons */}
-              <View style={styles.socialButtons}>
-                <TouchableOpacity 
-                  style={styles.socialButton} 
-                  activeOpacity={0.8}
-                  onPress={() => promptAsync()}
-                  disabled={loading}
-                >
-                  <Ionicons name="logo-google" size={22} color="#EA4335" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.socialButton} activeOpacity={0.8} disabled={loading}>
-                  <Ionicons name="logo-facebook" size={22} color="#1877F2" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.socialButton} activeOpacity={0.8} disabled={loading}>
-                  <Ionicons name="logo-apple" size={22} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-
               {/* Register Section */}
               <View style={styles.registerSection}>
                 <Text style={styles.registerText}>Don't have an account? </Text>
@@ -393,6 +343,7 @@ export default function LoginScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
+      )}
     </>
   );
 }

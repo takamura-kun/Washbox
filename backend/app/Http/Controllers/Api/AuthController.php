@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Services\TwoFactorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -73,6 +74,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => ['required', 'email'],
             'password' => ['required'],
+            'two_factor_code' => ['nullable', 'string', 'size:6'],
         ]);
 
         if ($validator->fails()) {
@@ -99,6 +101,37 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Check if 2FA is enabled
+        if ($customer->two_factor_enabled) {
+            // If 2FA code is provided, verify it
+            if ($request->has('two_factor_code')) {
+                if (!TwoFactorService::verifyCode($customer, $request->two_factor_code)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid or expired 2FA code',
+                    ], 401);
+                }
+
+                // Clear the code after successful verification
+                TwoFactorService::clearCode($customer);
+            } else {
+                // Generate and send 2FA code
+                $code = TwoFactorService::generateCode();
+                $customer->update([
+                    'two_factor_code' => $code,
+                    'two_factor_expires_at' => now()->addMinutes(10),
+                ]);
+
+                TwoFactorService::sendCode($customer, $code);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => '2FA code sent to your email. Please check your inbox.',
+                    'requires_2fa' => true,
+                ], 200);
+            }
+        }
+
         // Revoke old tokens
         $customer->tokens()->delete();
 
@@ -115,78 +148,14 @@ class AuthController extends Controller
                     'phone' => $customer->phone,
                     'address' => $customer->address,
                     'preferred_branch_id' => $customer->preferred_branch_id,
+                    'two_factor_enabled' => $customer->two_factor_enabled,
                 ],
                 'token' => $token,
             ]
         ]);
     }
 
-    /**
-     * Google OAuth Login
-     *
-     * POST /api/v1/google-login
-     */
-    public function googleLogin(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'google_id' => ['required', 'string'],
-            'email' => ['required', 'email'],
-            'name' => ['required', 'string'],
-        ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $customer = Customer::where('google_id', $request->google_id)
-            ->orWhere('email', $request->email)
-            ->first();
-
-        if ($customer) {
-            if (!$customer->google_id) {
-                $customer->update(['google_id' => $request->google_id]);
-            }
-
-            if (!$customer->is_active) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Your account has been deactivated. Please contact support.',
-                ], 403);
-            }
-        } else {
-            $customer = Customer::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'google_id' => $request->google_id,
-                'phone' => $request->phone ?? '',
-                'registration_type' => 'self_registered',
-                'is_active' => true,
-            ]);
-        }
-
-        $customer->tokens()->delete();
-        $token = $customer->createToken('mobile-app')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Login successful',
-            'data' => [
-                'customer' => [
-                    'id' => $customer->id,
-                    'name' => $customer->name,
-                    'email' => $customer->email,
-                    'phone' => $customer->phone,
-                    'address' => $customer->address,
-                    'preferred_branch_id' => $customer->preferred_branch_id,
-                ],
-                'token' => $token,
-            ]
-        ]);
-    }
 
     /**
      * Logout customer (revoke current token)
@@ -328,7 +297,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Forgot password - send reset link
+     * Forgot password - send reset code
      *
      * POST /api/v1/forgot-password
      */
@@ -351,20 +320,51 @@ class AuthController extends Controller
         if (!$customer) {
             return response()->json([
                 'success' => false,
-                'message' => 'Customer not found',
+                'message' => 'No account found with this email address',
             ], 404);
         }
 
-        // TODO: Implement password reset email sending
+        // Generate 6-digit reset code
+        $resetCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        
+        // Store reset code in database (expires in 15 minutes)
+        \DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $request->email],
+            [
+                'token' => Hash::make($resetCode),
+                'created_at' => now()
+            ]
+        );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Password reset link sent to your email',
-        ]);
+        try {
+            // Send notification
+            $customer->notify(new \App\Notifications\PasswordResetNotification($resetCode));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Password reset code sent to your email address. Please check your inbox and spam folder.',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send password reset email: ' . $e->getMessage(), [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // In development, log the code for testing
+            if (app()->environment('local')) {
+                \Log::info("Password reset code for {$request->email}: {$resetCode}");
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send reset code. Please check your email configuration or try again later.',
+            ], 500);
+        }
     }
 
     /**
-     * Reset password with token
+     * Reset password with code
      *
      * POST /api/v1/reset-password
      */
@@ -372,7 +372,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'email' => ['required', 'email'],
-            'token' => ['required', 'string'],
+            'code' => ['required', 'string', 'size:6'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
@@ -384,7 +384,18 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // TODO: Implement token verification
+        // Check if reset token exists and is valid (15 minutes)
+        $resetRecord = \DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->where('created_at', '>=', now()->subMinutes(15))
+            ->first();
+
+        if (!$resetRecord || !Hash::check($request->code, $resetRecord->token)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired reset code',
+            ], 400);
+        }
 
         $customer = Customer::where('email', $request->email)->first();
 
@@ -395,13 +406,209 @@ class AuthController extends Controller
             ], 404);
         }
 
+        // Update password
         $customer->update([
             'password' => Hash::make($request->password)
         ]);
 
+        // Delete reset token
+        \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        // Revoke all tokens
+        $customer->tokens()->delete();
+
         return response()->json([
             'success' => true,
-            'message' => 'Password reset successful',
+            'message' => 'Password reset successful. Please login with your new password.',
+        ]);
+    }
+
+    /**
+     * Delete customer account
+     *
+     * DELETE /api/v1/account
+     */
+    public function deleteAccount(Request $request)
+    {
+        $customer = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'password' => ['required', 'string'],
+            'confirmation' => ['required', 'string', 'in:DELETE_MY_ACCOUNT'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Verify password
+        if (!Hash::check($request->password, $customer->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password is incorrect',
+            ], 401);
+        }
+
+        try {
+            \DB::beginTransaction();
+
+            // Get customer ID before deletion
+            $customerId = $customer->id;
+            $customerName = $customer->name;
+            $customerEmail = $customer->email;
+
+            // Check for active laundries
+            $activeLaundries = $customer->laundries()
+                ->whereIn('status', ['pending', 'processing', 'ready_for_pickup'])
+                ->count();
+
+            if ($activeLaundries > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete account with active laundries. Please wait for all laundries to be completed or contact support.',
+                    'active_laundries_count' => $activeLaundries,
+                ], 400);
+            }
+
+            // Check for pending pickup requests
+            $pendingPickups = $customer->pickupRequests()
+                ->whereIn('status', ['pending', 'accepted', 'en_route'])
+                ->count();
+
+            if ($pendingPickups > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete account with pending pickup requests. Please wait for all pickups to be completed or contact support.',
+                    'pending_pickups_count' => $pendingPickups,
+                ], 400);
+            }
+
+            // Soft delete related data (keep for audit purposes)
+            // Update laundries to mark as deleted customer
+            $customer->laundries()->update([
+                'customer_notes' => \DB::raw("CONCAT(COALESCE(customer_notes, ''), ' [Customer account deleted]')")
+            ]);
+
+            // Update pickup requests
+            $customer->pickupRequests()->update([
+                'notes' => \DB::raw("CONCAT(COALESCE(notes, ''), ' [Customer account deleted]')")
+            ]);
+
+            // Delete customer ratings
+            $customer->ratings()->delete();
+
+            // Delete customer addresses
+            $customer->addresses()->delete();
+
+            // Delete payment methods
+            $customer->paymentMethods()->delete();
+
+            // Delete FCM tokens
+            \DB::table('customer_fcm_tokens')->where('customer_id', $customerId)->delete();
+
+            // Delete notification preferences
+            \DB::table('customer_notification_preferences')->where('customer_id', $customerId)->delete();
+
+            // Revoke all tokens
+            $customer->tokens()->delete();
+
+            // Delete password reset tokens
+            \DB::table('password_reset_tokens')->where('email', $customerEmail)->delete();
+
+            // Finally, delete the customer account
+            $customer->delete();
+
+            \DB::commit();
+
+            // Log the account deletion
+            \Log::info("Customer account deleted", [
+                'customer_id' => $customerId,
+                'customer_name' => $customerName,
+                'customer_email' => $customerEmail,
+                'deleted_at' => now(),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Your account has been permanently deleted. We\'re sorry to see you go!',
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Account deletion failed', [
+                'customer_id' => $customer->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete account. Please try again or contact support.',
+                'error' => app()->environment('local') ? $e->getMessage() : null,
+            ], 500);
+        }
+    }
+
+    /**
+     * Enable 2FA for customer
+     *
+     * POST /api/v1/2fa/enable
+     */
+    public function enable2FA(Request $request)
+    {
+        $customer = $request->user();
+
+        $customer->update(['two_factor_enabled' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => '2FA enabled successfully. You will receive a code via email on your next login.',
+        ]);
+    }
+
+    /**
+     * Disable 2FA for customer
+     *
+     * POST /api/v1/2fa/disable
+     */
+    public function disable2FA(Request $request)
+    {
+        $customer = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'password' => ['required', 'string'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!Hash::check($request->password, $customer->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password is incorrect',
+            ], 401);
+        }
+
+        $customer->update([
+            'two_factor_enabled' => false,
+            'two_factor_code' => null,
+            'two_factor_expires_at' => null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => '2FA disabled successfully.',
         ]);
     }
 

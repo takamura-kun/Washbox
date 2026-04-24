@@ -5,6 +5,7 @@ use App\Models\Laundry;
 use App\Models\Service;
 use App\Models\Customer;
 use App\Models\DeliveryFee;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use App\Models\PickupRequest;
 use App\Services\RouteService;
@@ -138,6 +139,30 @@ class PickupRequestController extends Controller
         return back()->with('success','Status updated: On the way to customer!');
     }
 
+    public function uploadProof(Request $request, $id)
+    {
+        $staff = Auth::user();
+        $request->validate(['proof_photo' => 'required|image|mimes:jpeg,png,jpg|max:5120']);
+        
+        $pickup = PickupRequest::findOrFail($id);
+        if ($pickup->branch_id != $staff->branch_id) abort(403);
+        
+        if (!in_array($pickup->status, ['en_route', 'picked_up'])) {
+            return back()->with('error', 'Pickup must be en route or picked up to upload proof.');
+        }
+        
+        $image = $request->file('proof_photo');
+        $filename = now()->timestamp . '_pickup_' . $pickup->id . '_' . Str::random(8) . '.' . $image->getClientOriginalExtension();
+        $image->storeAs('pickup-proofs', $filename, 'public');
+        
+        $pickup->update([
+            'pickup_proof_photo' => $filename,
+            'proof_uploaded_at' => now(),
+        ]);
+        
+        return back()->with('success', 'Proof photo uploaded successfully! You can now mark as picked up.');
+    }
+
     public function markPickedUp($id)
     {
         $staff=Auth::user();
@@ -145,9 +170,16 @@ class PickupRequestController extends Controller
         if ($pickup->branch_id!=$staff->branch_id) abort(403);
         if ($pickup->assigned_to!=$staff->id) return back()->with('error','You are not assigned to this pickup.');
         if (!$pickup->canMarkPickedUp()) return back()->with('error','Cannot mark as picked up in current status.');
+        
+        if (!$pickup->pickup_proof_photo) {
+            return back()->with('error', 'Please upload proof photo before marking as picked up.');
+        }
+        
         $pickup->markPickedUp();
+        Notification::createPickupProofUploaded($pickup);
+        
         return redirect()->route('staff.laundries.create',['pickup_id'=>$pickup->id])
-            ->with('success','Laundry picked up! Now create the laundry order.');
+            ->with('success','Laundry picked up! Customer has been notified. Now create the laundry order.');
     }
 
     public function cancel(Request $request, $id)
@@ -174,7 +206,7 @@ class PickupRequestController extends Controller
         $request->validate(['latitude'=>'required|numeric|between:-90,90','longitude'=>'required|numeric|between:-180,180']);
         $pickup=PickupRequest::findOrFail($id);
         if ($pickup->branch_id!=$staff->branch_id||$pickup->assigned_to!=$staff->id) abort(403);
-        $pickup->update(['current_latitude'=>$request->latitude,'current_longitude'=>$request->longitude,'location_updated_at'=>now()]);
+        $pickup->update(['staff_latitude'=>$request->latitude,'staff_longitude'=>$request->longitude,'location_updated_at'=>now()]);
         return response()->json(['success'=>true,'message'=>'Location updated']);
     }
 
@@ -203,6 +235,35 @@ class PickupRequestController extends Controller
             return response()->json(['success'=>true,'message'=>'Navigation started for pickup #'.$pickup->id,'pickup'=>$pickup->fresh()]);
         } catch(\Exception $e) {
             return response()->json(['success'=>false,'error'=>$e->getMessage()],500);
+        }
+    }
+
+    public function startMultiNavigation(Request $request)
+    {
+        try {
+            $staff = Auth::user();
+            $pickupIds = $request->input('pickup_ids', []);
+            
+            if (empty($pickupIds)) {
+                return response()->json(['success' => false, 'error' => 'No pickups selected'], 400);
+            }
+            
+            $updated = PickupRequest::whereIn('id', $pickupIds)
+                ->where('branch_id', $staff->branch_id)
+                ->whereIn('status', ['pending', 'accepted'])
+                ->update([
+                    'status' => 'en_route',
+                    'en_route_at' => now(),
+                    'assigned_to' => $staff->id
+                ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Navigation started for {$updated} pickup(s)",
+                'updated_count' => $updated
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }
 }

@@ -99,7 +99,7 @@ class LaundryCreateManager {
 
     cacheElements() {
         // Form elements
-        this.form = document.getElementById('laundryForm') || document.getElementById('orderForm');
+        this.form = document.getElementById('laundryForm') || document.getElementById('laundryForm');
         this.serviceSelect = document.getElementById('serviceSelect');
         this.promotionSelect = document.getElementById('promotionSelect');
         this.weightInput = document.getElementById('weightInput');
@@ -1302,3 +1302,91 @@ document.addEventListener('DOMContentLoaded', () => {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = LaundryCreateManager;
 }
+// Force dark mode application for laundry pages
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if we're in dark mode
+    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    if (isDarkMode) {
+        // Force all cards to have dark styling
+        const cards = document.querySelectorAll('.card');
+        cards.forEach(card => {
+            card.style.backgroundColor = '#1e293b';
+            card.style.borderColor = '#334155';
+            card.style.color = '#f1f5f9';
+        });
+        
+        // Force card bodies
+        const cardBodies = document.querySelectorAll('.card-body');
+        cardBodies.forEach(body => {
+            body.style.backgroundColor = '#1e293b';
+            body.style.color = '#f1f5f9';
+        });
+        
+        // Force table responsive containers
+        const tableContainers = document.querySelectorAll('.table-responsive');
+        tableContainers.forEach(container => {
+            container.style.backgroundColor = '#1e293b';
+        });
+        
+        // Force main container
+        const mainContainer = document.querySelector('.container-fluid');
+        if (mainContainer) {
+            mainContainer.style.backgroundColor = '#111827';
+        }
+    }
+    
+    // Listen for theme changes
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                
+                if (isDark) {
+                    // Apply dark mode styles
+                    const cards = document.querySelectorAll('.card');
+                    cards.forEach(card => {
+                        card.style.backgroundColor = '#1e293b';
+                        card.style.borderColor = '#334155';
+                        card.style.color = '#f1f5f9';
+                    });
+                    
+                    const cardBodies = document.querySelectorAll('.card-body');
+                    cardBodies.forEach(body => {
+                        body.style.backgroundColor = '#1e293b';
+                        body.style.color = '#f1f5f9';
+                    });
+                    
+                    const tableContainers = document.querySelectorAll('.table-responsive');
+                    tableContainers.forEach(container => {
+                        container.style.backgroundColor = '#1e293b';
+                    });
+                } else {
+                    // Remove inline styles to let CSS take over
+                    const cards = document.querySelectorAll('.card');
+                    cards.forEach(card => {
+                        card.style.backgroundColor = '';
+                        card.style.borderColor = '';
+                        card.style.color = '';
+                    });
+                    
+                    const cardBodies = document.querySelectorAll('.card-body');
+                    cardBodies.forEach(body => {
+                        body.style.backgroundColor = '';
+                        body.style.color = '';
+                    });
+                    
+                    const tableContainers = document.querySelectorAll('.table-responsive');
+                    tableContainers.forEach(container => {
+                        container.style.backgroundColor = '';
+                    });
+                }
+            }
+        });
+    });
+    
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
+    });
+});

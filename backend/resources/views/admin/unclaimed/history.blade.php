@@ -96,7 +96,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="ps-4">Order #</th>
+                            <th class="ps-4">Laundry #</th>
                             <th>Customer</th>
                             <th>Branch</th>
                             <th class="text-end">Amount Lost</th>
@@ -109,11 +109,11 @@
                         @forelse($history as $item)
                             <tr>
                                 <td class="ps-4">
-                                    <span class="fw-semibold">{{ $item->order->tracking_number ?? 'N/A' }}</span>
+                                    <span class="fw-semibold">{{ $item->laundry->tracking_number ?? 'N/A' }}</span>
                                 </td>
                                 <td>
-                                    <div class="fw-semibold">{{ $item->order->customer->name ?? $item->customer->name ?? 'N/A' }}</div>
-                                    <div class="small text-muted">{{ $item->order->customer->phone ?? $item->customer->phone ?? '' }}</div>
+                                    <div class="fw-semibold">{{ $item->laundry->customer->name ?? $item->customer->name ?? 'N/A' }}</div>
+                                    <div class="small text-muted">{{ $item->laundry->customer->phone ?? $item->customer->phone ?? '' }}</div>
                                 </td>
                                 <td>
                                     <span class="badge bg-secondary bg-opacity-10 text-secondary">
@@ -121,7 +121,7 @@
                                     </span>
                                 </td>
                                 <td class="text-end fw-bold text-danger">
-                                    ₱{{ number_format($item->order->total_amount ?? 0, 2) }}
+                                    ₱{{ number_format($item->laundry->total_amount ?? 0, 2) }}
                                 </td>
                                 <td class="text-center">
                                     <span class="badge bg-danger">{{ $item->days_unclaimed }} days</span>

@@ -36,14 +36,14 @@
             {{-- Left Column --}}
             <div class="col-lg-8">
                 {{-- Basic Information --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-info-circle me-2" style="color: #3D3B6B;"></i>
                             Basic Information
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Promotion Name (Internal) <span class="text-danger">*</span></label>
@@ -98,14 +98,14 @@
                 </div>
 
                 {{-- Price Settings --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-tag me-2" style="color: #3D3B6B;"></i>
                             Price Settings
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Display Price (₱) <span class="text-danger">*</span></label>
@@ -132,14 +132,14 @@
                 </div>
 
                 {{-- Features --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-star me-2" style="color: #3D3B6B;"></i>
                             Promotion Features
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <label class="form-label fw-semibold">Free Services / Features</label>
                         <div id="features-container" class="mb-2">
                             @php
@@ -177,14 +177,14 @@
                 </div>
 
                 {{-- Validity Period --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-calendar-range me-2" style="color: #3D3B6B;"></i>
                             Validity Period
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Start Date <span class="text-danger">*</span></label>
@@ -210,14 +210,14 @@
                 </div>
 
                 {{-- Target Branch --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-building me-2" style="color: #3D3B6B;"></i>
                             Target Branch
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <label class="form-label fw-semibold">Applicable Branch</label>
                         <select name="branch_id" class="form-select @error('branch_id') is-invalid @enderror">
                             <option value="">All Branches (Network-wide)</option>
@@ -235,14 +235,14 @@
                 </div>
 
                 {{-- Design Options --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-palette me-2" style="color: #3D3B6B;"></i>
                             Design Options
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Color Theme</label>
                             <div class="d-flex gap-3">
@@ -276,7 +276,7 @@
                         @if($promotion->banner_image)
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Current Background Image</label>
-                            <div class="border rounded-3 p-3 bg-light">
+                            <div class="border rounded-3 p-3" style="background-color: var(--input-bg) !important;">
                                 <img src="{{ asset('storage/' . $promotion->banner_image) }}"
                                     alt="Current Background" class="img-fluid rounded-3" style="max-height: 200px;">
                             </div>
@@ -296,7 +296,7 @@
 
                             <div id="backgroundPreview" class="mt-3 d-none">
                                 <label class="form-label fw-semibold">Preview</label>
-                                <div class="border rounded-3 p-3 bg-light">
+                                <div class="border rounded-3 p-3" style="background-color: var(--input-bg) !important;">
                                     <img id="backgroundPreviewImg" src="" alt="Preview" class="img-fluid rounded-3" style="max-height: 200px;">
                                 </div>
                             </div>
@@ -327,40 +327,40 @@
             <div class="col-lg-4">
                 <div class="sticky-top" style="top: 20px;">
                     {{-- Current Stats --}}
-                    <div class="card border-0 shadow-sm rounded-4 mb-3">
-                        <div class="card-header bg-white border-bottom py-3">
-                            <h6 class="mb-0 fw-bold text-dark">
+                    <div class="card border-0 shadow-sm rounded-4 mb-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                            <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                                 <i class="bi bi-graph-up me-2" style="color: #3D3B6B;"></i>
                                 Current Stats
                             </h6>
                         </div>
-                        <div class="card-body p-4">
+                        <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                             <div class="mb-3">
-                                <small class="text-muted text-uppercase fw-bold d-block mb-1">Total Uses</small>
-                                <div class="fw-bold text-dark fs-4">{{ $promotion->usage_count ?? 0 }}</div>
+                                <small class="text-uppercase fw-bold d-block mb-1" style="color: var(--text-secondary) !important;">Total Uses</small>
+                                <div class="fw-bold fs-4" style="color: var(--text-primary) !important;">{{ $promotion->usage_count ?? 0 }}</div>
                                 @if($promotion->max_usage)
-                                    <small class="text-muted">of {{ $promotion->max_usage }} maximum</small>
+                                    <small style="color: var(--text-secondary) !important;">of {{ $promotion->max_usage }} maximum</small>
                                     <div class="progress mt-2" style="height: 6px;">
                                         <div class="progress-bar" style="width: {{ min(100, ($promotion->usage_count / $promotion->max_usage) * 100) }}%; background: #3D3B6B;"></div>
                                     </div>
                                 @else
-                                    <small class="text-muted">Unlimited uses</small>
+                                    <small style="color: var(--text-secondary) !important;">Unlimited uses</small>
                                 @endif
                             </div>
                             <div class="mb-3">
-                                <small class="text-muted text-uppercase fw-bold d-block mb-1">Created</small>
-                                <div class="text-dark">{{ $promotion->created_at->format('M d, Y') }}</div>
+                                <small class="text-uppercase fw-bold d-block mb-1" style="color: var(--text-secondary) !important;">Created</small>
+                                <div style="color: var(--text-primary) !important;">{{ $promotion->created_at->format('M d, Y') }}</div>
                             </div>
                             <div>
-                                <small class="text-muted text-uppercase fw-bold d-block mb-1">Last Updated</small>
-                                <div class="text-dark">{{ $promotion->updated_at->diffForHumans() }}</div>
+                                <small class="text-uppercase fw-bold d-block mb-1" style="color: var(--text-secondary) !important;">Last Updated</small>
+                                <div style="color: var(--text-primary) !important;">{{ $promotion->updated_at->diffForHumans() }}</div>
                             </div>
                         </div>
                     </div>
 
                     {{-- Active Status --}}
-                    <div class="card border-0 shadow-sm rounded-4 mb-3">
-                        <div class="card-body p-4">
+                    <div class="card border-0 shadow-sm rounded-4 mb-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="is_active" id="is_active"
                                     {{ old('is_active', $promotion->is_active) ? 'checked' : '' }}>
@@ -372,12 +372,12 @@
                     </div>
 
                     {{-- Quick Tips --}}
-                    <div class="card border-0 shadow-sm rounded-4">
-                        <div class="card-body p-4">
-                            <h6 class="fw-bold mb-3">
+                    <div class="card border-0 shadow-sm rounded-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                            <h6 class="fw-bold mb-3" style="color: var(--text-primary) !important;">
                                 <i class="bi bi-lightbulb text-warning me-2"></i>Quick Tips
                             </h6>
-                            <ul class="small text-muted mb-0 ps-3">
+                            <ul class="small mb-0 ps-3" style="color: var(--text-secondary) !important;">
                                 <li class="mb-2">Use eye-catching poster titles</li>
                                 <li class="mb-2">Keep features short and clear</li>
                                 <li class="mb-2">Choose colors that match your brand</li>

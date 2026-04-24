@@ -4,6 +4,7 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('assets/css/laundry.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/dark-mode-fixes.css') }}">
 @endpush
 
 @section('content')
@@ -278,7 +279,7 @@
                             </div>
                             <small class="text-muted d-block mt-2">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Fees and add-ons are preserved from the original order.
+                                Fees and add-ons are preserved from the original laundry.
                             </small>
                         </div>
                     </div>
@@ -287,7 +288,7 @@
                     <div class="card border-0 shadow-sm rounded-4">
                         <div class="card-body p-4">
                             <h6 class="fw-bold mb-3">
-                                <i class="bi bi-clock-history text-muted me-2"></i>Original Order
+                                <i class="bi bi-clock-history text-muted me-2"></i>Original Laundry
                             </h6>
                             <div class="small text-muted">
                                 <div class="mb-1"><strong>Created:</strong> {{ $laundry->created_at->format('M d, Y h:i A') }}</div>

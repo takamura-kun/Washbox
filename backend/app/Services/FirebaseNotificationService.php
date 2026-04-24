@@ -25,12 +25,45 @@ class FirebaseNotificationService
     /**
      * Send a notification to a single device token
      */
-    public function sendToDevice(string $deviceToken, string $title, string $body, array $data = []): bool
+    public function sendToDevice(string $deviceToken, string $title, string $body, array $data = [], ?string $sound = 'default'): bool
     {
         try {
+            $notification = Notification::create($title, $body);
+            
             $message = CloudMessage::withTarget('token', $deviceToken)
-                ->withNotification(Notification::create($title, $body))
+                ->withNotification($notification)
                 ->withData($data);
+            
+            // Add Android-specific configuration with sound
+            if ($sound) {
+                $message = $message->withAndroidConfig([
+                    'priority' => 'high',
+                    'notification' => [
+                        'sound' => $sound,
+                        'channel_id' => 'washbox_notifications',
+                        'default_sound' => true,
+                        'default_vibrate_timings' => true,
+                        'default_light_settings' => true,
+                    ]
+                ]);
+                
+                // Add iOS-specific configuration with sound
+                $message = $message->withApnsConfig([
+                    'headers' => [
+                        'apns-priority' => '10',
+                    ],
+                    'payload' => [
+                        'aps' => [
+                            'sound' => $sound === 'default' ? 'default' : $sound . '.caf',
+                            'badge' => 1,
+                            'alert' => [
+                                'title' => $title,
+                                'body' => $body,
+                            ],
+                        ],
+                    ],
+                ]);
+            }
 
             $this->messaging->send($message);
             return true;
@@ -47,14 +80,47 @@ class FirebaseNotificationService
     /**
      * Send to multiple device tokens at once
      */
-    public function sendToMultiple(array $deviceTokens, string $title, string $body, array $data = []): void
+    public function sendToMultiple(array $deviceTokens, string $title, string $body, array $data = [], ?string $sound = 'default'): void
     {
         if (empty($deviceTokens)) return;
 
         try {
+            $notification = Notification::create($title, $body);
+            
             $message = CloudMessage::new()
-                ->withNotification(Notification::create($title, $body))
+                ->withNotification($notification)
                 ->withData($data);
+            
+            // Add Android-specific configuration with sound
+            if ($sound) {
+                $message = $message->withAndroidConfig([
+                    'priority' => 'high',
+                    'notification' => [
+                        'sound' => $sound,
+                        'channel_id' => 'washbox_notifications',
+                        'default_sound' => true,
+                        'default_vibrate_timings' => true,
+                        'default_light_settings' => true,
+                    ]
+                ]);
+                
+                // Add iOS-specific configuration with sound
+                $message = $message->withApnsConfig([
+                    'headers' => [
+                        'apns-priority' => '10',
+                    ],
+                    'payload' => [
+                        'aps' => [
+                            'sound' => $sound === 'default' ? 'default' : $sound . '.caf',
+                            'badge' => 1,
+                            'alert' => [
+                                'title' => $title,
+                                'body' => $body,
+                            ],
+                        ],
+                    ],
+                ]);
+            }
 
             $this->messaging->sendMulticast($message, $deviceTokens);
 
@@ -78,7 +144,8 @@ class FirebaseNotificationService
             $token,
             '📦 Order Received!',
             "Your laundry (Order #$orderId) has been received at $branchName.",
-            ['order_id' => $orderId, 'type' => 'order_received']
+            ['order_id' => $orderId, 'type' => 'order_received'],
+            'default'
         );
     }
 
@@ -93,7 +160,8 @@ class FirebaseNotificationService
             $token,
             '✅ Laundry Ready!',
             "Your laundry (Order #$orderId) is clean and ready for pickup at $branchName.",
-            ['order_id' => $orderId, 'type' => 'laundry_ready']
+            ['order_id' => $orderId, 'type' => 'laundry_ready'],
+            'default'
         );
     }
 
@@ -108,7 +176,8 @@ class FirebaseNotificationService
             $token,
             '🎉 Order Completed!',
             "Order #$orderId has been completed. Thank you for choosing WashBox!",
-            ['order_id' => $orderId, 'type' => 'order_completed']
+            ['order_id' => $orderId, 'type' => 'order_completed'],
+            'default'
         );
     }
 
@@ -128,7 +197,8 @@ class FirebaseNotificationService
             $token,
             '⚠️ Unclaimed Laundry Reminder',
             "Order #$orderId has been unclaimed for $daysUnclaimed day(s). Storage fee: ₱$fee. Please pick up soon.",
-            ['order_id' => $orderId, 'type' => 'unclaimed_reminder', 'days' => (string) $daysUnclaimed]
+            ['order_id' => $orderId, 'type' => 'unclaimed_reminder', 'days' => (string) $daysUnclaimed],
+            'default'
         );
     }
 
@@ -141,7 +211,8 @@ class FirebaseNotificationService
             $token,
             '🚚 Out for Delivery!',
             "Your laundry (Order #$orderId) is on its way! Driver: $driverName.",
-            ['order_id' => $orderId, 'type' => 'out_for_delivery']
+            ['order_id' => $orderId, 'type' => 'out_for_delivery'],
+            'default'
         );
     }
 }

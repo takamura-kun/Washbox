@@ -85,11 +85,36 @@ class UnclaimedController extends Controller
 
         $laundries = $query->paginate(15)->withQueryString();
 
+        // Add calculated fields to each laundry
+        $laundries->getCollection()->transform(function ($laundry) {
+            $days = $this->getDaysUnclaimed($laundry);
+            $laundry->days_unclaimed = $days;
+            $laundry->unclaimed_status = $this->getUrgencyLevel($days);
+            
+            // Set color based on urgency
+            $laundry->unclaimed_color = match($laundry->unclaimed_status) {
+                'final' => 'danger',
+                'urgent' => 'warning',
+                'second' => 'info',
+                default => 'secondary',
+            };
+            
+            // Calculate storage fee if applicable
+            $feePerDay = config('unclaimed.storage_fee_per_day', 10);
+            $extraDays = max(0, $days - 7);
+            $laundry->calculated_storage_fee = $extraDays * $feePerDay;
+            
+            return $laundry;
+        });
+
         // Calculate stats for this branch
         $stats = $this->getBranchStats($staff->branch_id);
 
-        // Pass both laundries, stats, and currentBranch to the view
-        return view('staff.unclaimed.index', compact('laundries', 'stats', 'currentBranch'));
+        // Get disposal threshold
+        $disposalThreshold = config('unclaimed.disposal_threshold_days', 30);
+
+        // Pass laundries, stats, currentBranch, and disposalThreshold to the view
+        return view('staff.unclaimed.index', compact('laundries', 'stats', 'currentBranch', 'disposalThreshold'));
     }
 
     /**
@@ -374,6 +399,58 @@ class UnclaimedController extends Controller
     }
 
     /**
+     * Mark laundry as disposed (30+ days)
+     */
+    public function markDisposed(Request $request, $id)
+    {
+        $staff = Auth::user();
+
+        if (!$staff || !$staff->branch_id) {
+            return back()->with('error', 'Your account is not assigned to a branch.');
+        }
+
+        $laundry = Laundry::where('branch_id', $staff->branch_id)
+            ->where('status', 'ready')
+            ->findOrFail($id);
+
+        $daysUnclaimed = $this->getDaysUnclaimed($laundry);
+        $disposalThreshold = config('unclaimed.disposal_threshold_days', 30);
+
+        // Check if eligible for disposal
+        if ($daysUnclaimed < $disposalThreshold) {
+            return back()->with('error', "Cannot dispose. Laundry must be unclaimed for at least {$disposalThreshold} days.");
+        }
+
+        // Update to disposed status
+        $laundry->update([
+            'status' => 'disposed',
+            'disposed_at' => now(),
+            'disposed_by' => $staff->id,
+        ]);
+
+        // Log activity
+        $laundry->statusHistories()->create([
+            'status' => 'disposed',
+            'changed_by' => $staff->id,
+            'notes' => "Laundry disposed after {$daysUnclaimed} days unclaimed",
+        ]);
+
+        // Notify admin
+        AdminNotification::create([
+            'type' => 'laundry_disposed',
+            'title' => 'Laundry Disposed',
+            'message' => "Laundry #{$laundry->tracking_number} disposed after {$daysUnclaimed} days - ₱" . number_format($laundry->total_amount, 2) . " lost revenue",
+            'icon' => 'trash',
+            'color' => 'danger',
+            'link' => route('admin.laundries.show', $laundry->id),
+            'branch_id' => $laundry->branch_id,
+        ]);
+
+        return redirect()->route('staff.unclaimed.index')
+            ->with('warning', 'Laundry marked as disposed.');
+    }
+
+    /**
      * Call customer (log the attempt)
      */
     public function logCallAttempt(Request $request, $id)
@@ -450,7 +527,7 @@ class UnclaimedController extends Controller
 
         // Reminders sent today
         $remindersSentToday = Notification::where('type', 'unclaimed_reminder')
-            ->where('laundries_id', 'in', function($query) use ($branchId) {
+            ->whereIn('laundries_id', function($query) use ($branchId) {
                 $query->select('id')->from('laundries')->where('branch_id', $branchId);
             })
             ->whereDate('created_at', today())

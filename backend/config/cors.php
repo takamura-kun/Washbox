@@ -19,7 +19,17 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],  // ✅ Allow all origins (for development)
+    'allowed_origins' => [
+        'http://localhost:3000',           // React/Next.js development
+        'http://localhost:8080',           // Vue development
+        'http://localhost:19006',          // Expo development
+        'http://192.168.1.9:8000',         // Local network testing
+        'exp://192.168.1.9:8081',          // Expo mobile app
+        // Add your production domains here:
+        // 'https://washbox.com',
+        // 'https://admin.washbox.com',
+        // 'https://api.washbox.com',
+    ],
 
     'allowed_origins_patterns' => [],
 

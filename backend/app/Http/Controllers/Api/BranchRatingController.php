@@ -19,9 +19,23 @@ class BranchRatingController extends Controller
     {
         try {
             $branches = Branch::where('is_active', true)
-                ->select('id', 'name', 'code', 'address', 'phone')
+                ->withCount(['ratings as ratings_count'])
+                ->withAvg('ratings as average_rating', 'rating')
                 ->orderBy('name')
-                ->get();
+                ->get(['id', 'name', 'code', 'address', 'phone', 'city'])
+                ->map(function ($branch) {
+                    return [
+                        'id' => $branch->id,
+                        'name' => $branch->name,
+                        'code' => $branch->code,
+                        'address' => $branch->address,
+                        'phone' => $branch->phone,
+                        'city' => $branch->city,
+                        'full_name' => $branch->full_name,
+                        'average_rating' => $branch->average_rating ? round($branch->average_rating, 1) : null,
+                        'ratings_count' => $branch->ratings_count ?? 0,
+                    ];
+                });
 
             return response()->json([
                 'success' => true,

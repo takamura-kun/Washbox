@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { Platform } from 'react-native';
+import { setupNotificationListeners } from '../utils/notification';
 
 // Import web CSS only on web platform
 if (Platform.OS === 'web') {
@@ -22,17 +23,28 @@ function RootLayoutNav() {
     if (!isReady) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inWelcome = segments[0] === 'welcome';
 
-    if (!hasToken && !inAuthGroup) {
-      // Force unauthenticated users to login
-      router.replace('/(auth)/login');
-    } else if (hasToken && inAuthGroup) {
-      // Redirect authenticated users away from login/register
+    if (!hasToken && !inAuthGroup && !inWelcome) {
+      // Force unauthenticated users to welcome page
+      router.replace('/welcome');
+    } else if (hasToken && (inAuthGroup || inWelcome)) {
+      // Redirect authenticated users away from login/register/welcome
       router.replace('/(tabs)');
     }
     
     SplashScreen.hideAsync();
   }, [hasToken, isReady, segments]);
+
+  // Setup notification listeners when authenticated
+  useEffect(() => {
+    if (!hasToken || !isReady) return;
+    
+    console.log('[FCM] Setting up notification listeners');
+    const cleanup = setupNotificationListeners(router);
+    
+    return cleanup;
+  }, [hasToken, isReady, router]);
 
   if (!isReady) return null;
 
@@ -44,6 +56,9 @@ function RootLayoutNav() {
       },
       animation: 'fade',
     }}>
+      {/* Welcome Screen - Landing page before auth */}
+      <Stack.Screen name="welcome" />
+      
       {/* Auth Group - Login/Register */}
       <Stack.Screen name="(auth)" />
       
@@ -107,6 +122,60 @@ function RootLayoutNav() {
       {/* Ratings - matches app/ratings/index.js */}
       <Stack.Screen 
         name="ratings/index" 
+        options={{
+          presentation: 'card',
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Payment Methods - matches app/payment-methods.js */}
+      <Stack.Screen 
+        name="payment-methods" 
+        options={{
+          presentation: 'card',
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Saved Addresses - matches app/saved-addresses.js */}
+      <Stack.Screen 
+        name="saved-addresses" 
+        options={{
+          presentation: 'card',
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Privacy & Security - matches app/privacy-security.js */}
+      <Stack.Screen 
+        name="privacy-security" 
+        options={{
+          presentation: 'card',
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Network Diagnostic - matches app/network-diagnostic.js */}
+      <Stack.Screen 
+        name="network-diagnostic" 
+        options={{
+          presentation: 'card',
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Feature Integrations - matches app/feature-integrations.js */}
+      <Stack.Screen 
+        name="feature-integrations" 
+        options={{
+          presentation: 'card',
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Pickup Tracking - matches app/pickup-tracking.js */}
+      <Stack.Screen 
+        name="pickup-tracking" 
         options={{
           presentation: 'card',
           animation: 'slide_from_right',

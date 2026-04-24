@@ -456,6 +456,16 @@ public function ratings()
     return $this->hasMany(CustomerRating::class);
 }
 
+public function paymentProofs()
+{
+    return $this->hasMany(PaymentProof::class);
+}
+
+public function latestPaymentProof()
+{
+    return $this->hasOne(PaymentProof::class)->latest();
+}
+
  /**
      * Record that a reminder was sent for this laundry
      */

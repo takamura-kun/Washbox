@@ -104,7 +104,7 @@ export default function LaundryConfirmScreen() {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.trackButton}
-            onPress={() => router.push('/(tabs)')}
+            onPress={() => router.push('/(tabs)/laundry')}
           >
             <LinearGradient
               colors={['#0EA5E9', '#0284C7']}

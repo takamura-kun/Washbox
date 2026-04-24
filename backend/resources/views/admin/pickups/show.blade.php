@@ -2,6 +2,202 @@
 
 @section('page-title', 'Pickup Request #' . $pickup->id)
 
+@push('styles')
+<style>
+:root {
+    --pickup-primary: #3b82f6;
+    --pickup-success: #10b981;
+    --pickup-warning: #f59e0b;
+    --pickup-danger: #ef4444;
+    --pickup-info: #06b6d4;
+}
+
+.container-fluid {
+    background: var(--bg-color);
+    padding: 2rem 1.5rem;
+}
+
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    color: var(--text-primary);
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.card-header {
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 16px 16px 0 0 !important;
+    padding: 1.25rem 1.5rem;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-body p {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+.card-body strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.btn {
+    border-radius: 10px;
+    padding: 0.625rem 1.25rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-sm {
+    padding: 0.375rem 0.875rem;
+    font-size: 0.875rem;
+}
+
+.alert {
+    border-radius: 12px;
+    border: none;
+    padding: 1rem 1.25rem;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    color: var(--text-primary);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-color);
+    padding: 1.25rem 1.5rem;
+}
+
+.form-control, .form-select {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.625rem 1rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    background: var(--bg-color);
+    border-color: var(--pickup-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    color: var(--text-primary);
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+/* Timeline Styling */
+.list-unstyled li {
+    padding: 0.75rem 0;
+    border-left: 3px solid var(--border-color);
+    padding-left: 1.5rem;
+    margin-left: 0.5rem;
+    position: relative;
+}
+
+.list-unstyled li i.bi-circle-fill {
+    position: absolute;
+    left: -0.6rem;
+    background: var(--card-bg);
+    padding: 0.25rem;
+}
+
+/* Status Badge Colors */
+.bg-warning {
+    background-color: var(--pickup-warning) !important;
+    color: #000 !important;
+}
+
+.bg-info {
+    background-color: var(--pickup-info) !important;
+}
+
+.bg-primary {
+    background-color: var(--pickup-primary) !important;
+}
+
+.bg-success {
+    background-color: var(--pickup-success) !important;
+}
+
+.bg-danger {
+    background-color: var(--pickup-danger) !important;
+}
+
+.bg-secondary {
+    background-color: #6b7280 !important;
+}
+
+/* Image Styling */
+img.img-fluid {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Header Styling */
+h1, h3, h5, h6 {
+    color: var(--text-primary);
+}
+
+.h3 {
+    font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     {{-- Header --}}
@@ -108,6 +304,77 @@
                 </div>
             </div>
 
+            {{-- Pickup Proof Photo --}}
+            @if(in_array($pickup->status, ['en_route', 'picked_up']))
+                <div class="card mb-4">
+                    <div class="card-header {{ $pickup->pickup_proof_photo ? 'bg-success' : 'bg-warning' }} text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-camera"></i> 
+                            {{ $pickup->pickup_proof_photo ? 'Staff Proof Photo' : 'Upload Staff Proof Photo' }}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @if($pickup->pickup_proof_photo)
+                            <img src="{{ asset('storage/pickup-proofs/' . $pickup->pickup_proof_photo) }}" 
+                                 alt="Pickup Proof" 
+                                 class="img-fluid rounded mb-3" 
+                                 style="max-height: 400px; width: 100%; object-fit: cover;">
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-clock"></i> 
+                                Uploaded {{ $pickup->proof_uploaded_at->diffForHumans() }}
+                            </p>
+                        @else
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle"></i> 
+                                Please upload a photo of the laundry when it arrives at the shop.
+                            </div>
+                            <form action="{{ route('admin.pickups.upload-proof', $pickup->id) }}" 
+                                  method="POST" 
+                                  enctype="multipart/form-data" 
+                                  id="proofUploadForm">
+                                @csrf
+                                <div class="mb-3">
+                                    <input type="file" 
+                                           name="proof_photo" 
+                                           id="proof_photo" 
+                                           class="form-control" 
+                                           accept="image/jpeg,image/png,image/jpg" 
+                                           required>
+                                    <small class="text-muted">Max 5MB, JPEG/PNG only</small>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-upload"></i> Upload Proof Photo
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            {{-- Customer Proof Photo --}}
+            @if($pickup->customer_proof_photo)
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-image"></i> Customer Proof Photo
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <img src="{{ asset('storage/customer-pickup-proofs/' . $pickup->customer_proof_photo) }}" 
+                             alt="Customer Proof" 
+                             class="img-fluid rounded mb-3" 
+                             style="max-height: 400px; width: 100%; object-fit: cover;">
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-clock"></i> 
+                            Uploaded by customer {{ $pickup->customer_proof_uploaded_at ? $pickup->customer_proof_uploaded_at->diffForHumans() : 'at request time' }}
+                        </p>
+                        <small class="text-muted d-block mt-2">
+                            <i class="bi bi-info-circle"></i> This photo was uploaded by the customer when requesting pickup to verify their laundry items.
+                        </small>
+                    </div>
+                </div>
+            @endif
+
             {{-- Timeline --}}
             <div class="card mb-4">
                 <div class="card-header bg-secondary text-white">
@@ -189,13 +456,22 @@
                     @endif
 
                     @if($pickup->canMarkPickedUp())
-                        <form action="{{ route('admin.pickups.picked-up', $pickup->id) }}" method="POST" class="mb-2">
-                            @csrf
-                            @method('PUT')
-                            <button type="submit" class="btn btn-success w-100">
+                        @if($pickup->pickup_proof_photo)
+                            <form action="{{ route('admin.pickups.picked-up', $pickup->id) }}" method="POST" class="mb-2">
+                                @csrf
+                                @method('PUT')
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-box-seam"></i> Mark as Picked Up
+                                </button>
+                            </form>
+                        @else
+                            <button type="button" class="btn btn-secondary w-100 mb-2" disabled title="Upload proof photo first">
                                 <i class="bi bi-box-seam"></i> Mark as Picked Up
                             </button>
-                        </form>
+                            <small class="text-muted d-block mb-2">
+                                <i class="bi bi-exclamation-circle"></i> Upload proof photo first
+                            </small>
+                        @endif
                     @endif
 
                     @if($pickup->canBeCancelled())

@@ -52,7 +52,8 @@ use Illuminate\Support\Facades\Route;
 // ============================================================================
 
 Route::get('/', function () {
-    return view('welcome');
+    // Redirect to admin login instead of showing welcome page
+    return redirect()->route('admin.login');
 })->name('welcome');
 
 // ============================================================================
@@ -66,11 +67,6 @@ Route::middleware('guest')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/forgot-password', [AdminLoginController::class, 'sendResetLinkEmail'])->name('forgot-password.email');
 });
 
-// Add this line BEFORE the existing analytics route
-Route::get('analytics/refresh', [AnalyticsController::class, 'refresh'])->name('admin.analytics.refresh');
-
-// Your existing route (already there)
-Route::get('analytics', [AnalyticsController::class, 'index'])->name('admin.analytics');
 // ============================================================================
 // ADMIN AUTHENTICATED ROUTES
 // ============================================================================
@@ -80,6 +76,9 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->name('admin.')->g
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/stats', [DashboardController::class, 'getStats'])->name('dashboard.stats');
+    
+    // Pickup API for route optimization
+    Route::post('/pickups/by-ids', [App\Http\Controllers\Api\PickupController::class, 'getByIds'])->name('pickups.by-ids');
 
 
     // Logout
@@ -89,6 +88,12 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->name('admin.')->g
     // ANALYTICS
     // ========================================================================
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
+    Route::get('/analytics/refresh', [AnalyticsController::class, 'refresh'])->name('analytics.refresh');
+    
+    // Analytics API endpoints for dashboard JavaScript
+    Route::get('/api/analytics/historical', [AnalyticsController::class, 'historical'])->name('api.analytics.historical');
+    Route::get('/api/analytics/customer-behavior', [AnalyticsController::class, 'customerBehavior'])->name('api.analytics.customer-behavior');
+    Route::get('/api/analytics/realtime', [AnalyticsController::class, 'realtime'])->name('api.analytics.realtime');
 
     // ========================================================================
     // PROMOTIONS (FIXED ROUTE NAME)
@@ -236,6 +241,7 @@ Route::get('service-types/by-category/{category}', [ServiceTypeController::class
         // Actions
         Route::put('/{id}/accept', [PickupRequestController::class, 'accept'])->name('accept');
         Route::put('/{id}/en-route', [PickupRequestController::class, 'markEnRoute'])->name('en-route');
+        Route::post('/{id}/upload-proof', [PickupRequestController::class, 'uploadProof'])->name('upload-proof');
         Route::put('/{id}/picked-up', [PickupRequestController::class, 'markPickedUp'])->name('picked-up');
         Route::put('/{id}/cancel', [PickupRequestController::class, 'cancel'])->name('cancel');
 
@@ -265,6 +271,7 @@ Route::get('service-types/by-category/{category}', [ServiceTypeController::class
 Route::prefix('reports')->name('reports.')->group(function () {
     Route::get('/', [ReportController::class, 'index'])->name('index');
     Route::get('/revenue', [ReportController::class, 'revenue'])->name('revenue');
+    Route::get('/profitability', [ReportController::class, 'profitability'])->name('profitability');
     Route::get('/laundries', [ReportController::class, 'laundries'])->name('laundries');
     Route::get('/customers', [ReportController::class, 'customers'])->name('customers');
     Route::get('/branches', [ReportController::class, 'branches'])->name('branches');
@@ -272,6 +279,17 @@ Route::prefix('reports')->name('reports.')->group(function () {
     Route::get('/branch-ratings/export', [ReportController::class, 'exportBranchRatings'])->name('branch-ratings.export');
     Route::post('/export', [ReportController::class, 'export'])->name('export');
 });
+    // ========================================================================
+    // PAYMENT VERIFICATION
+    // ========================================================================
+    Route::prefix('payments')->name('payments.')->group(function () {
+        Route::get('/verification', [App\Http\Controllers\Admin\PaymentVerificationController::class, 'index'])->name('verification.index');
+        Route::get('/verification/{paymentProof}', [App\Http\Controllers\Admin\PaymentVerificationController::class, 'show'])->name('verification.show');
+        Route::post('/verification/{paymentProof}/approve', [App\Http\Controllers\Admin\PaymentVerificationController::class, 'approve'])->name('verification.approve');
+        Route::post('/verification/{paymentProof}/reject', [App\Http\Controllers\Admin\PaymentVerificationController::class, 'reject'])->name('verification.reject');
+        Route::post('/verification/bulk-approve', [App\Http\Controllers\Admin\PaymentVerificationController::class, 'bulkApprove'])->name('verification.bulk-approve');
+    });
+
     // ========================================================================
     // RECEIPTS
     // ========================================================================
@@ -295,6 +313,7 @@ Route::prefix('reports')->name('reports.')->group(function () {
         Route::post('/backup', [SettingsController::class, 'backup'])->name('backup');
         Route::get('/download-backup/{filename}', [SettingsController::class, 'downloadBackup'])->name('download-backup');
         Route::post('/notifications', [SettingsController::class, 'updateNotifications'])->name('notifications');
+        Route::post('/apply-hours-to-branches', [SettingsController::class, 'applyHoursToBranches'])->name('apply-hours-to-branches');
     });
 
     // ========================================================================
@@ -365,15 +384,31 @@ Route::middleware(['auth:sanctum', 'staff'])->prefix('staff')->name('staff.')->g
         Route::post('/{pickup}/status', [App\Http\Controllers\Staff\PickupRequestController::class, 'updateStatus'])->name('update-status');
         Route::post('/{pickup}/accept', [App\Http\Controllers\Staff\PickupRequestController::class, 'accept'])->name('accept');
         Route::post('/{pickup}/en-route', [App\Http\Controllers\Staff\PickupRequestController::class, 'markEnRoute'])->name('en-route');
+        Route::post('/{pickup}/upload-proof', [App\Http\Controllers\Staff\PickupRequestController::class, 'uploadProof'])->name('upload-proof');
         Route::post('/{pickup}/picked-up', [App\Http\Controllers\Staff\PickupRequestController::class, 'markPickedUp'])->name('picked-up');
         Route::post('/{pickup}/cancel', [App\Http\Controllers\Staff\PickupRequestController::class, 'cancel'])->name('cancel');
 
         // GPS Location tracking
         Route::post('/{pickup}/update-location', [App\Http\Controllers\Staff\PickupRequestController::class, 'updateLocation'])->name('update-location');
+        
+        // Multi-pickup navigation
+        Route::post('/start-multi-navigation', [App\Http\Controllers\Staff\PickupRequestController::class, 'startMultiNavigation'])->name('start-multi-navigation');
+        Route::post('/{pickup}/start-navigation', [App\Http\Controllers\Staff\PickupRequestController::class, 'startNavigation'])->name('start-navigation');
 
         // Routing & Navigation for Staff (similar to admin logistics)
         Route::get('/{pickup}/route', [App\Http\Controllers\Staff\PickupRequestController::class, 'getRoute'])->name('route');
         Route::post('/{pickup}/start-navigation', [App\Http\Controllers\Staff\PickupRequestController::class, 'startNavigation'])->name('start-navigation');
+    });
+
+    // ========================================================================
+    // PAYMENT VERIFICATION
+    // ========================================================================
+    Route::prefix('payments')->name('payments.')->group(function () {
+        Route::get('/verification', [App\Http\Controllers\Staff\PaymentVerificationController::class, 'index'])->name('verification.index');
+        Route::get('/verification/{paymentProof}', [App\Http\Controllers\Staff\PaymentVerificationController::class, 'show'])->name('verification.show');
+        Route::post('/verification/{paymentProof}/approve', [App\Http\Controllers\Staff\PaymentVerificationController::class, 'approve'])->name('verification.approve');
+        Route::post('/verification/{paymentProof}/reject', [App\Http\Controllers\Staff\PaymentVerificationController::class, 'reject'])->name('verification.reject');
+        Route::post('/verification/bulk-approve', [App\Http\Controllers\Staff\PaymentVerificationController::class, 'bulkApprove'])->name('verification.bulk-approve');
     });
 
     // ========================================================================
@@ -387,6 +422,7 @@ Route::middleware(['auth:sanctum', 'staff'])->prefix('staff')->name('staff.')->g
         Route::get('/{laundry}', [App\Http\Controllers\Staff\UnclaimedController::class, 'show'])->name('show');
         Route::post('/{laundry}/send-reminder', [App\Http\Controllers\Staff\UnclaimedController::class, 'sendReminder'])->name('send-reminder');
         Route::post('/{laundry}/mark-claimed', [App\Http\Controllers\Staff\UnclaimedController::class, 'markClaimed'])->name('mark-claimed');
+        Route::post('/{laundry}/mark-disposed', [App\Http\Controllers\Staff\UnclaimedController::class, 'markDisposed'])->name('mark-disposed');
         Route::post('/{laundry}/log-call', [App\Http\Controllers\Staff\UnclaimedController::class, 'logCallAttempt'])->name('log-call');
         Route::post('/bulk-reminders', [App\Http\Controllers\Staff\UnclaimedController::class, 'sendBulkReminders'])->name('bulk-reminders');
     });
@@ -421,6 +457,14 @@ Route::middleware(['auth:sanctum', 'staff'])->prefix('staff')->name('staff.')->g
     Route::prefix('branches')->name('branches.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\BranchController::class, 'index'])->name('index');
         Route::get('/{branch}', [App\Http\Controllers\Admin\BranchController::class, 'show'])->name('show');
+    });
+
+    // ========================================================================
+    // RATINGS (Staff View - Branch Specific)
+    // ========================================================================
+    Route::prefix('ratings')->name('ratings.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Staff\RatingController::class, 'index'])->name('index');
+        Route::get('/{rating}', [App\Http\Controllers\Staff\RatingController::class, 'show'])->name('show');
     });
 
     // ========================================================================
@@ -463,9 +507,10 @@ Route::middleware(['auth:sanctum', 'staff'])->prefix('staff')->name('staff.')->g
     // ========================================================================
     // PROFILE MANAGEMENT
     // ========================================================================
+
     Route::get('/profile', [App\Http\Controllers\Staff\SettingsController::class, 'profile'])->name('profile');
-    Route::post('/profile', [App\Http\Controllers\Staff\SettingsController::class, 'updateProfile'])->name('profile.update');
-    Route::post('/profile/password', [App\Http\Controllers\Staff\SettingsController::class, 'updatePassword'])->name('profile.password');
+Route::post('/profile', [App\Http\Controllers\Staff\SettingsController::class, 'updateProfile'])->name('profile.update');
+Route::post('/profile/password', [App\Http\Controllers\Staff\SettingsController::class, 'updatePassword'])->name('profile.password');
 
     // ========================================================================
     // NOTIFICATIONS (Staff)

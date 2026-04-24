@@ -21,14 +21,14 @@
             {{-- Left Column - Main Form --}}
             <div class="col-lg-8">
                 {{-- Personal Information --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--border-color) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-person-circle me-2" style="color: #3D3B6B;"></i>
                             Personal Information
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important;">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
@@ -79,14 +79,14 @@
                 </div>
 
                 {{-- Employment Details --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--border-color) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-briefcase me-2" style="color: #3D3B6B;"></i>
                             Employment Details
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important;">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Assigned Branch <span class="text-danger">*</span></label>
@@ -133,14 +133,14 @@
                 </div>
 
                 {{-- Emergency Contact --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--border-color) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-telephone-plus me-2" style="color: #3D3B6B;"></i>
                             Emergency Contact
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important;">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Contact Name</label>
@@ -164,14 +164,14 @@
                 </div>
 
                 {{-- Account Credentials --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--border-color) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-shield-lock me-2" style="color: #3D3B6B;"></i>
                             Account Credentials
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important;">
                         <div class="alert alert-info border-0 mb-3">
                             <i class="bi bi-info-circle me-2"></i>
                             Staff member will use these credentials to log in to their account.
@@ -210,14 +210,14 @@
             <div class="col-lg-4">
                 <div class="sticky-top" style="top: 20px;">
                     {{-- Photo Upload --}}
-                    <div class="card border-0 shadow-sm rounded-4 mb-3">
-                        <div class="card-header bg-white border-bottom py-3">
-                            <h6 class="mb-0 fw-bold text-dark">
+                    <div class="card border-0 shadow-sm rounded-4 mb-3" style="background-color: var(--card-bg) !important;">
+                        <div class="card-header border-bottom py-3" style="background-color: var(--border-color) !important; color: var(--text-primary) !important;">
+                            <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                                 <i class="bi bi-camera me-2" style="color: #3D3B6B;"></i>
                                 Profile Photo
                             </h6>
                         </div>
-                        <div class="card-body p-4 text-center">
+                        <div class="card-body p-4 text-center" style="background-color: var(--card-bg) !important;">
                             <div class="mb-3">
                                 <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center"
                                     id="photoPreview"
@@ -234,12 +234,12 @@
                     </div>
 
                     {{-- Quick Tips --}}
-                    <div class="card border-0 shadow-sm rounded-4">
-                        <div class="card-body p-4">
-                            <h6 class="fw-bold mb-3">
+                    <div class="card border-0 shadow-sm rounded-4" style="background-color: var(--card-bg) !important;">
+                        <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                            <h6 class="fw-bold mb-3" style="color: var(--text-primary) !important;">
                                 <i class="bi bi-lightbulb text-warning me-2"></i>Quick Tips
                             </h6>
-                            <ul class="small text-muted mb-0 ps-3">
+                            <ul class="small mb-0 ps-3" style="color: var(--text-secondary) !important;">
                                 <li class="mb-2">Use a clear profile photo for easy identification</li>
                                 <li class="mb-2">Double-check email address for login credentials</li>
                                 <li class="mb-2">Assign to the correct branch from the start</li>

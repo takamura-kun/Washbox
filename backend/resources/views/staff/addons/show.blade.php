@@ -25,12 +25,17 @@
             {{-- Add-on Card --}}
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-body p-4 text-center">
-                    {{-- Icon/Placeholder --}}
+                    {{-- Image/Icon --}}
                     <div class="mb-3">
-                        <div class="rounded-3 mx-auto d-flex align-items-center justify-content-center"
-                            style="width: 150px; height: 150px; background: linear-gradient(135deg, {{ $addon->is_active ? '#10B981' : '#6B7280' }} 0%, {{ $addon->is_active ? '#34D399' : '#9CA3AF' }} 100%);">
-                            <i class="bi bi-plus-circle text-white" style="font-size: 4rem;"></i>
-                        </div>
+                        @if($addon->image)
+                            <img src="{{ asset('storage/addons/' . $addon->image) }}"
+                                class="rounded-3 mx-auto d-block" style="width: 100%; max-width: 300px; height: 200px; object-fit: cover;">
+                        @else
+                            <div class="rounded-3 mx-auto d-flex align-items-center justify-content-center"
+                                style="width: 150px; height: 150px; background: linear-gradient(135deg, {{ $addon->is_active ? '#10B981' : '#6B7280' }} 0%, {{ $addon->is_active ? '#34D399' : '#9CA3AF' }} 100%);">
+                                <i class="bi bi-plus-circle text-white" style="font-size: 4rem;"></i>
+                            </div>
+                        @endif
                     </div>
 
                     {{-- Name & Slug --}}

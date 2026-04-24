@@ -2,6 +2,54 @@
 
 @section('page-title', 'Pickup Request #' . $pickup->id)
 
+@push('styles')
+<style>
+.container-fluid {
+    background: var(--bg-color);
+    color: var(--text-primary);
+}
+
+.card {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.card-header {
+    border-bottom-color: var(--border-color);
+}
+
+.text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.modal-header {
+    border-bottom-color: var(--border-color);
+}
+
+.modal-footer {
+    border-top-color: var(--border-color);
+}
+
+.form-control {
+    background: var(--bg-color);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.form-control:focus {
+    background: var(--bg-color);
+    border-color: var(--primary-color);
+    color: var(--text-primary);
+}
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     {{-- Header --}}
@@ -181,19 +229,100 @@
                 </div>
             </div>
 
-            {{-- GPS Location (if en_route or picked_up) --}}
-            @if($pickup->status == 'en_route' && $pickup->current_latitude && $pickup->current_longitude)
+            {{-- Pickup Proof Photo --}}
+            @if(in_array($pickup->status, ['en_route', 'picked_up']))
                 <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-pin-map"></i> Current Location</h5>
+                    <div class="card-header {{ $pickup->pickup_proof_photo ? 'bg-success' : 'bg-warning' }} text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-camera"></i> 
+                            {{ $pickup->pickup_proof_photo ? 'Staff Proof Photo' : 'Upload Staff Proof Photo' }}
+                        </h5>
                     </div>
                     <div class="card-body">
-                        <p>Last updated: {{ $pickup->location_updated_at->diffForHumans() }}</p>
-                        <a href="https://www.google.com/maps?q={{ $pickup->current_latitude }},{{ $pickup->current_longitude }}"
-                           target="_blank"
-                           class="btn btn-primary">
-                            <i class="bi bi-geo-alt"></i> View Current Location
-                        </a>
+                        @if($pickup->pickup_proof_photo)
+                            <img src="{{ asset('storage/pickup-proofs/' . $pickup->pickup_proof_photo) }}" 
+                                 alt="Pickup Proof" 
+                                 class="img-fluid rounded mb-3" 
+                                 style="max-height: 400px; width: 100%; object-fit: cover;">
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-clock"></i> 
+                                Uploaded {{ $pickup->proof_uploaded_at->diffForHumans() }}
+                            </p>
+                        @else
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle"></i> 
+                                Please upload a photo of the laundry when it arrives at the shop.
+                            </div>
+                            <form action="{{ route('staff.pickups.upload-proof', $pickup->id) }}" 
+                                  method="POST" 
+                                  enctype="multipart/form-data" 
+                                  id="proofUploadForm">
+                                @csrf
+                                <div class="mb-3">
+                                    <input type="file" 
+                                           name="proof_photo" 
+                                           id="proof_photo" 
+                                           class="form-control" 
+                                           accept="image/jpeg,image/png,image/jpg" 
+                                           required>
+                                    <small class="text-muted">Max 5MB, JPEG/PNG only</small>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-upload"></i> Upload Proof Photo
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            {{-- Customer Proof Photo --}}
+            @if($pickup->customer_proof_photo)
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-image"></i> Customer Proof Photo
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <img src="{{ asset('storage/customer-pickup-proofs/' . $pickup->customer_proof_photo) }}" 
+                             alt="Customer Proof" 
+                             class="img-fluid rounded mb-3" 
+                             style="max-height: 400px; width: 100%; object-fit: cover;">
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-clock"></i> 
+                            Uploaded by customer {{ $pickup->customer_proof_uploaded_at ? $pickup->customer_proof_uploaded_at->diffForHumans() : 'at request time' }}
+                        </p>
+                        <small class="text-muted d-block mt-2">
+                            <i class="bi bi-info-circle"></i> This photo was uploaded by the customer when requesting pickup to verify their laundry items.
+                        </small>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Real-time Location Tracking (staff) --}}
+            @if($pickup->status == 'en_route')
+                <div class="card mb-4" id="realtimeLocationCard">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Real-time Location Tracking</h5>
+                    </div>
+                    <div class="card-body">
+                        <p id="locationStatus" class="mb-2">
+                            @if($pickup->staff_latitude && $pickup->staff_longitude)
+                                Last location update: {{ $pickup->location_updated_at->diffForHumans() }}
+                            @else
+                                Tracking is inactive. Click "Start Tracking" to share your location with the system.
+                            @endif
+                        </p>
+
+                        <div class="d-grid gap-2 mb-3">
+                            <button id="startTrackingBtn" class="btn btn-success">Start Tracking</button>
+                            <button id="stopTrackingBtn" class="btn btn-outline-danger" style="display:none;">Stop Tracking</button>
+                        </div>
+
+                        <div id="map" style="height: 300px;"></div>
+
+                        <p class="mt-3"><small class="text-muted" id="lastUpdatedText"></small></p>
                     </div>
                 </div>
             @endif
@@ -227,12 +356,21 @@
                     @endif
 
                     @if($pickup->status == 'en_route' && $pickup->assigned_to == auth()->id())
-                        <form action="{{ route('staff.pickups.picked-up', $pickup->id) }}" method="POST" class="mb-2">
-                            @csrf
-                            <button type="submit" class="btn btn-success w-100">
+                        @if($pickup->pickup_proof_photo)
+                            <form action="{{ route('staff.pickups.picked-up', $pickup->id) }}" method="POST" class="mb-2">
+                                @csrf
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-box-seam"></i> Mark as Picked Up
+                                </button>
+                            </form>
+                        @else
+                            <button type="button" class="btn btn-secondary w-100 mb-2" disabled title="Upload proof photo first">
                                 <i class="bi bi-box-seam"></i> Mark as Picked Up
                             </button>
-                        </form>
+                            <small class="text-muted d-block mb-2">
+                                <i class="bi bi-exclamation-circle"></i> Upload proof photo first
+                            </small>
+                        @endif
 
                         {{-- GPS Update Button --}}
                         <button type="button" class="btn btn-outline-primary w-100 mb-2" onclick="updateGPSLocation()">
@@ -246,7 +384,7 @@
                         </button>
                     @endif
 
-                    @if($pickup->status == 'picked_up' && !$pickup->order_id)
+                    @if($pickup->status == 'picked_up' && !$pickup->laundries_id)
                         <hr>
                         <a href="{{ route('staff.laundries.create', ['pickup_id' => $pickup->id]) }}" class="btn btn-outline-primary w-100">
                             <i class="bi bi-plus-circle"></i> Create Laundry from Pickup
@@ -286,14 +424,14 @@
             @endif
 
             {{-- Linked Laundry --}}
-            @if($pickup->order_id)
+            @if($pickup->laundries_id)
                 <div class="card mb-4">
                     <div class="card-header bg-warning">
                         <h6 class="mb-0">Linked Laundry</h6>
                     </div>
                     <div class="card-body">
-                        <p><strong>Laundry #{{ $pickup->order_id }}</strong></p>
-                        <a href="{{ route('staff.laundries.show', $pickup->order_id) }}" class="btn btn-sm btn-outline-primary">
+                        <p><strong>Laundry #{{ $pickup->laundries_id }}</strong></p>
+                        <a href="{{ route('staff.laundries.show', $pickup->laundries_id) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-box-arrow-up-right"></i> View Laundry
                         </a>
                     </div>
@@ -336,64 +474,149 @@
 
 @push('scripts')
 <script>
-// GPS Location Update Function
-function updateGPSLocation() {
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            fetch("{{ route('staff.pickups.update-location', $pickup->id) }}", {
+(function() {
+    const updateUrl = "{{ route('staff.pickups.update-location', $pickup->id) }}";
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const startBtn = document.getElementById('startTrackingBtn');
+    const stopBtn = document.getElementById('stopTrackingBtn');
+    const statusEl = document.getElementById('locationStatus');
+    const lastUpdatedEl = document.getElementById('lastUpdatedText');
+
+    const pickupLat = {{ $pickup->latitude ?? 'null' }};
+    const pickupLng = {{ $pickup->longitude ?? 'null' }};
+
+    let watchId = null;
+    let map = null;
+    let currentMarker = null;
+    let pickupMarker = null;
+
+    function setStatus(message, isError = false) {
+        statusEl.textContent = message;
+        statusEl.classList.toggle('text-danger', isError);
+        statusEl.classList.toggle('text-muted', !isError);
+    }
+
+    function setLastUpdated(timestamp) {
+        if (!timestamp) {
+            lastUpdatedEl.textContent = '';
+            return;
+        }
+        const d = new Date(timestamp);
+        lastUpdatedEl.textContent = 'Last update: ' + d.toLocaleString();
+    }
+
+    function initMap() {
+        if (!window.L) return;
+
+        map = L.map('map', { zoomControl: true }).setView([pickupLat || 0, pickupLng || 0], pickupLat && pickupLng ? 14 : 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        if (pickupLat && pickupLng) {
+            pickupMarker = L.marker([pickupLat, pickupLng], { title: 'Pickup Location' })
+                .addTo(map)
+                .bindPopup('Pickup Location');
+        }
+    }
+
+    function updateCurrentMarker(lat, lng) {
+        if (!map) return;
+        if (!currentMarker) {
+            currentMarker = L.circleMarker([lat, lng], {
+                radius: 8,
+                color: '#198754',
+                fillColor: '#198754',
+                fillOpacity: 0.7
+            }).addTo(map);
+        } else {
+            currentMarker.setLatLng([lat, lng]);
+        }
+        if (!pickupLat || !pickupLng) {
+            map.setView([lat, lng], 16);
+        } else {
+            const bounds = L.latLngBounds([[lat, lng], [pickupLat, pickupLng]]);
+            map.fitBounds(bounds.pad(0.3));
+        }
+    }
+
+    async function sendLocation(lat, lng) {
+        try {
+            const res = await fetch(updateUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    'X-CSRF-TOKEN': csrfToken
                 },
-                body: JSON.stringify({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Location updated successfully!');
-                    window.location.reload();
-                } else {
-                    alert('Failed to update location. Please try again.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to update location. Please try again.');
+                body: JSON.stringify({ latitude: lat, longitude: lng })
             });
-        }, function(error) {
-            let message = 'Unable to get your location. ';
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    message += 'Please enable location services.';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    message += 'Location information is unavailable.';
-                    break;
-                case error.TIMEOUT:
-                    message += 'Location request timed out.';
-                    break;
-                default:
-                    message += 'Please try again.';
-            }
-            alert(message);
-        });
-    } else {
-        alert('Geolocation is not supported by your browser.');
-    }
-}
+            const json = await res.json();
 
-// Auto-refresh if status is en_route (for live tracking)
-@if($pickup->status == 'en_route' && $pickup->assigned_to == auth()->id())
-    setInterval(function() {
-        if (document.visibilityState === 'visible') {
-            // Auto-update GPS every 2 minutes
-            updateGPSLocation();
+            if (!json.success) {
+                setStatus('Failed to send location: ' + (json.message || 'unknown error'), true);
+            } else {
+                setStatus('Location updated successfully.');
+                setLastUpdated(new Date().toISOString());
+            }
+        } catch (err) {
+            console.error('Location update failed', err);
+            setStatus('Unable to send location. Check your connection.', true);
         }
-    }, 120000); // 2 minutes
-@endif
+    }
+
+    function startTracking() {
+        if (!navigator.geolocation) {
+            setStatus('Geolocation not supported by your browser.', true);
+            return;
+        }
+
+        startBtn.disabled = true;
+        stopBtn.style.display = 'inline-block';
+
+        watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                updateCurrentMarker(latitude, longitude);
+                sendLocation(latitude, longitude);
+            },
+            (err) => {
+                console.warn('Geolocation error', err);
+                const msg = err.code === err.PERMISSION_DENIED
+                    ? 'Location permission denied.'
+                    : err.code === err.POSITION_UNAVAILABLE
+                        ? 'Location unavailable.'
+                        : 'Timeout obtaining location.';
+                setStatus(msg, true);
+            },
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+        );
+
+        setStatus('Tracking started. Sharing your location...', false);
+    }
+
+    function stopTracking() {
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+        startBtn.disabled = false;
+        stopBtn.style.display = 'none';
+        setStatus('Tracking paused. Click "Start Tracking" to resume.');
+    }
+
+    startBtn.addEventListener('click', startTracking);
+    stopBtn.addEventListener('click', stopTracking);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            // stop tracking when tab is hidden to save battery
+            stopTracking();
+        }
+    });
+
+    initMap();
+})();
 </script>
 @endpush

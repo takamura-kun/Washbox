@@ -101,12 +101,25 @@ export default function MenuScreen() {
   const [servicesLoading, setServicesLoading] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState(null);
 
+  // Branches state
+  const [branches, setBranches] = useState([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
+  const [branchesExpanded, setBranchesExpanded] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
   // Animations
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
 
   useEffect(() => {
     fetchMenuData();
+    
+    // Update time every minute to refresh open/closed status
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    
+    return () => clearInterval(timeInterval);
   }, []);
 
   useEffect(() => {
@@ -134,6 +147,7 @@ export default function MenuScreen() {
         fetchCustomerProfile(),
         fetchCustomerStats(),
         fetchServices(),
+        fetchBranches(),
       ]);
     } catch (error) {
       console.error('Error fetching menu data:', error);
@@ -145,6 +159,7 @@ export default function MenuScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchMenuData();
+    setCurrentTime(new Date()); // Force time update on refresh
     setRefreshing(false);
   };
 
@@ -289,6 +304,41 @@ export default function MenuScreen() {
       setServicesLoading(false);
     }
   };
+
+  // ─── Fetch branches ─────────────────────────────────────────────────────
+  const fetchBranches = async () => {
+    try {
+      setBranchesLoading(true);
+      const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
+
+      // Clear cache first to ensure fresh data
+      await AsyncStorage.removeItem('cached_branches');
+
+      const response = await fetch(`${API_BASE_URL}/v1/branches?t=${Date.now()}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const branchList = data.data?.branches ?? data.data ?? [];
+        setBranches(branchList);
+        await AsyncStorage.setItem('cached_branches', JSON.stringify(branchList));
+      } else {
+        const cached = await AsyncStorage.getItem('cached_branches');
+        if (cached) setBranches(JSON.parse(cached));
+      }
+    } catch (error) {
+      console.log('Branches fetch error:', error);
+      const cached = await AsyncStorage.getItem('cached_branches');
+      if (cached) setBranches(JSON.parse(cached));
+    } finally {
+      setBranchesLoading(false);
+    }
+  };
   // ──────────────────────────────────────────────────────────────────────────
 
   const performLogout = async () => {
@@ -341,13 +391,60 @@ export default function MenuScreen() {
     })}`;
   };
 
+  const formatTo12Hour = (time24) => {
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
   const formatServicePrice = (service) => {
     const price = service.price_per_load ?? service.price ?? 0;
     const isSpecial = service.service_type === 'special_item';
     return `₱${parseFloat(price).toLocaleString('en-PH', { minimumFractionDigits: 0 })}/${isSpecial ? 'piece' : 'load'}`;
   };
 
-  // Menu items - ADDED Rate Branch item
+  const formatOperatingHours = (hours) => {
+    if (!hours || typeof hours !== 'object') return 'Hours not available';
+    
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const todayHours = hours[today];
+    
+    if (todayHours && todayHours.open && todayHours.close) {
+      const openTime = formatTo12Hour(todayHours.open);
+      const closeTime = formatTo12Hour(todayHours.close);
+      return `Today: ${openTime} - ${closeTime}`;
+    }
+    
+    return 'Hours not available';
+  };
+
+  const isCurrentlyOpen = (operatingHours) => {
+    if (!operatingHours || typeof operatingHours !== 'object') return false;
+    
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const todayHours = operatingHours[today];
+    
+    if (!todayHours || todayHours.status !== 'open') return false;
+    
+    try {
+      const now = new Date();
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      
+      const [openHour, openMin] = todayHours.open.split(':').map(Number);
+      const [closeHour, closeMin] = todayHours.close.split(':').map(Number);
+      
+      const openMinutes = openHour * 60 + openMin;
+      const closeMinutes = closeHour * 60 + closeMin;
+      
+      return currentTime >= openMinutes && currentTime <= closeMinutes;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // Menu items
   const primaryMenuItems = [
     {
       icon: 'person-outline',
@@ -356,7 +453,6 @@ export default function MenuScreen() {
       color: COLORS.primary,
       action: () => router.push('/profile/edit'),
     },
-    // NEW: Rate Branch menu item
     {
       icon: 'business-outline',
       label: 'Rate a Branch',
@@ -393,14 +489,14 @@ export default function MenuScreen() {
       label: 'Payment Methods',
       subtitle: 'Manage payment options',
       color: COLORS.cyan,
-      action: () => Alert.alert('Coming Soon', 'Payment methods will be available soon!'),
+      action: () => router.push('/payment-methods'),
     },
     {
       icon: 'location-outline',
       label: 'Saved Addresses',
       subtitle: 'Manage delivery locations',
       color: COLORS.primaryLight,
-      action: () => Alert.alert('Coming Soon', 'Saved addresses will be available soon!'),
+      action: () => router.push('/saved-addresses'),
     },
   ];
 
@@ -410,7 +506,7 @@ export default function MenuScreen() {
       label: 'Privacy & Security',
       subtitle: 'Password & account security',
       color: COLORS.secondary,
-      action: () => Alert.alert('Coming Soon', 'Privacy settings will be available soon!'),
+      action: () => router.push('/privacy-security'),
     },
     {
       icon: 'help-circle-outline',
@@ -424,7 +520,11 @@ export default function MenuScreen() {
         Alert.alert(
           `${name} Support`,
           `📞 ${phone}\n✉️ ${email}`,
-          [{ text: 'OK' }]
+          [
+            { text: 'Network Diagnostic', onPress: () => router.push('/network-diagnostic') },
+            { text: 'Feature Integrations', onPress: () => router.push('/feature-integrations') },
+            { text: 'OK' }
+          ]
         );
       },
     },
@@ -550,6 +650,8 @@ export default function MenuScreen() {
       </View>
     );
   };
+
+
 
   const hasServices = Object.keys(services).length > 0;
 
@@ -678,6 +780,82 @@ export default function MenuScreen() {
           </View>
           {/* ══════════════════════════════ */}
 
+          {/* Branches Section */}
+          <View style={styles.menuSection}>
+            <View style={styles.branchesCard}>
+              <TouchableOpacity
+                style={styles.branchesHeader}
+                activeOpacity={0.75}
+                onPress={() => {
+                  setBranchesExpanded(!branchesExpanded);
+                  setCurrentTime(new Date()); // Update time when expanding
+                }}
+              >
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  style={styles.branchesIcon}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name="business" size={20} color="#fff" />
+                </LinearGradient>
+                <View style={styles.branchesMeta}>
+                  <Text style={styles.branchesLabel}>Our Branches</Text>
+                  <Text style={styles.branchesCount}>
+                    {branches.length} branch{branches.length !== 1 ? 'es' : ''}
+                  </Text>
+                </View>
+                {branchesLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                ) : (
+                  <Ionicons
+                    name={branchesExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color={COLORS.textMuted}
+                  />
+                )}
+              </TouchableOpacity>
+
+              {branchesExpanded && branches.length > 0 && (
+                <View style={styles.branchesList}>
+                  <View style={styles.branchesListDivider} />
+                  {branches.map((branch, index) => (
+                    <React.Fragment key={branch.id ?? index}>
+                      <View style={styles.branchRow}>
+                        <View style={styles.branchRowIcon}>
+                          <Ionicons name="location" size={14} color={COLORS.primary} />
+                        </View>
+                        <View style={styles.branchRowInfo}>
+                          <Text style={styles.branchRowName}>{branch.name}</Text>
+                          <Text style={styles.branchRowAddress}>{branch.address}</Text>
+                          <Text style={styles.branchRowHours}>
+                            {formatOperatingHours(branch.operating_hours)}
+                          </Text>
+                        </View>
+                        <View style={[styles.branchRowStatus, { 
+                          backgroundColor: isCurrentlyOpen(branch.operating_hours) ? COLORS.success + '20' : COLORS.textMuted + '20' 
+                        }]}>
+                          <Text style={[styles.branchRowStatusText, { 
+                            color: isCurrentlyOpen(branch.operating_hours) ? COLORS.success : COLORS.textMuted 
+                          }]}>
+                            {isCurrentlyOpen(branch.operating_hours) ? 'Open' : 'Closed'}
+                          </Text>
+                        </View>
+                      </View>
+                      {index < branches.length - 1 && <View style={styles.branchRowDivider} />}
+                    </React.Fragment>
+                  ))}
+                </View>
+              )}
+
+              {branchesExpanded && branches.length === 0 && (
+                <View style={styles.branchesListEmpty}>
+                  <Text style={styles.branchesListEmptyText}>No branches available</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
           {/* Secondary Menu */}
           <View style={styles.menuSection}>
             <Text style={styles.sectionTitle}>More</Text>
@@ -786,54 +964,80 @@ const styles = StyleSheet.create({
   // Profile Card
   profileCard: {
     backgroundColor: COLORS.cardDark,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 24,
     borderWidth: 1,
     borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.1)',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   avatarText: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '900',
     color: COLORS.textPrimary,
-    letterSpacing: 1,
+    letterSpacing: 1.2,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   profileInfo: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 20,
+    justifyContent: 'center',
   },
   profileName: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: COLORS.textPrimary,
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: -0.3,
   },
   profileEmail: {
-    fontSize: 13,
+    fontSize: 14,
     color: COLORS.textSecondary,
+    fontWeight: '500',
   },
   profileNotificationBadge: {
-    marginLeft: 8,
+    marginLeft: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   miniStatsRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 14,
-    padding: 14,
+    backgroundColor: 'rgba(14,165,233,0.08)',
+    borderRadius: 18,
+    padding: 18,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(14,165,233,0.15)',
   },
   miniStat: {
     flex: 1,
@@ -841,26 +1045,27 @@ const styles = StyleSheet.create({
   },
   miniStatDivider: {
     width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    height: 36,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   miniStatValue: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: COLORS.textPrimary,
-    marginBottom: 2,
+    marginBottom: 4,
+    letterSpacing: -0.2,
   },
   miniStatLabel: {
-    fontSize: 10,
+    fontSize: 11,
     color: COLORS.textSecondary,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   miniRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
 
   // Sections
@@ -1058,5 +1263,108 @@ const styles = StyleSheet.create({
   appInfoText: {
     fontSize: 11,
     color: COLORS.textMuted,
+  },
+
+  // ─── Branches ───────────────────────────────────────────────────────────
+  branchesCard: {
+    backgroundColor: COLORS.cardDark,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  branchesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 14,
+  },
+  branchesIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  branchesMeta: {
+    flex: 1,
+  },
+  branchesLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  branchesCount: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  branchesList: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  branchesListDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginBottom: 4,
+  },
+  branchesListEmpty: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    alignItems: 'center',
+  },
+  branchesListEmptyText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontStyle: 'italic',
+  },
+  branchRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    gap: 12,
+  },
+  branchRowIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  branchRowInfo: {
+    flex: 1,
+  },
+  branchRowName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  branchRowAddress: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  branchRowHours: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  branchRowStatus: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 2,
+  },
+  branchRowStatusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  branchRowDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginLeft: 44,
   },
 });

@@ -56,6 +56,13 @@ class Promotion extends Model
         // Usage
         'usage_count',
         'max_usage',
+
+        // ROI Tracking
+        'marketing_cost',
+        'total_revenue',
+        'total_discounts',
+        'roi_percentage',
+        'roi_last_calculated',
     ];
 
     protected $casts = [
@@ -72,6 +79,11 @@ class Promotion extends Model
         'discount_value' => 'decimal:2',
         'usage_count' => 'integer',
         'max_usage' => 'integer',
+        'marketing_cost' => 'decimal:2',
+        'total_revenue' => 'decimal:2',
+        'total_discounts' => 'decimal:2',
+        'roi_percentage' => 'decimal:2',
+        'roi_last_calculated' => 'datetime',
     ];
 
     // ========================================================================
@@ -198,10 +210,15 @@ class Promotion extends Model
     /**
      * Check if promotion is applicable to laundry data
      */
-    public function isApplicableTo(array $laundryData): bool
+    public function isApplicableTo($laundryData): bool
     {
         if (!$this->is_valid) {
             return false;
+        }
+
+        // Convert object to array if needed
+        if (is_object($laundryData)) {
+            $laundryData = (array) $laundryData;
         }
 
         // Check branch
@@ -380,6 +397,37 @@ class Promotion extends Model
     }
 
     /**
+     * Calculate discount value for a given subtotal and weight
+     */
+    public function calculateDiscountValue(float $subtotal, ?float $weight = null): float
+    {
+        if ($this->discount_type === 'percentage') {
+            return ($subtotal * $this->discount_value) / 100;
+        }
+        
+        if ($this->discount_type === 'fixed') {
+            return $this->discount_value;
+        }
+        
+        return 0;
+    }
+
+    /**
+     * Compute override total for per-load pricing
+     */
+    public function computeOverrideTotal(float $weight): array
+    {
+        // Assuming 8kg per load as standard
+        $loads = max(1, ceil($weight / 8));
+        $overrideTotal = $loads * $this->display_price;
+        
+        return [
+            'loads' => $loads,
+            'override_total' => $overrideTotal,
+        ];
+    }
+
+    /**
      * Get formatted price for display in dropdown
      */
     public function getFormattedPriceAttribute(): string
@@ -397,5 +445,102 @@ class Promotion extends Model
         }
 
         return 'Special Offer';
+    }
+
+    /**
+     * Get banner image URL attribute
+     */
+    public function getBannerImageUrlAttribute(): ?string
+    {
+        if (!$this->banner_image) {
+            return null;
+        }
+        
+        return asset('storage/' . $this->banner_image);
+    }
+
+    // ========================================================================
+    // ROI CALCULATION METHODS
+    // ========================================================================
+
+    /**
+     * Calculate and update ROI based on actual usage
+     */
+    public function calculateROI(): void
+    {
+        // Get actual revenue and discounts from laundries that used this promotion
+        $stats = $this->laundries()
+            ->selectRaw('SUM(final_amount) as revenue, SUM(promotion_discount) as discounts')
+            ->first();
+
+        $this->total_revenue = $stats->revenue ?? 0;
+        $this->total_discounts = $stats->discounts ?? 0;
+
+        // Calculate ROI: (Revenue - Marketing Cost - Discounts) / Marketing Cost * 100
+        if ($this->marketing_cost > 0) {
+            $netProfit = $this->total_revenue - $this->marketing_cost - $this->total_discounts;
+            $this->roi_percentage = ($netProfit / $this->marketing_cost) * 100;
+        } else {
+            $this->roi_percentage = null;
+        }
+
+        $this->roi_last_calculated = now();
+        $this->save();
+    }
+
+    /**
+     * Get ROI status for display
+     */
+    public function getROIStatus(): array
+    {
+        if ($this->roi_percentage === null) {
+            return [
+                'status' => 'not_calculated',
+                'color' => 'secondary',
+                'text' => 'Not Calculated'
+            ];
+        }
+
+        if ($this->roi_percentage >= 100) {
+            return [
+                'status' => 'excellent',
+                'color' => 'success',
+                'text' => 'Excellent ROI'
+            ];
+        }
+
+        if ($this->roi_percentage >= 50) {
+            return [
+                'status' => 'good',
+                'color' => 'info',
+                'text' => 'Good ROI'
+            ];
+        }
+
+        if ($this->roi_percentage >= 0) {
+            return [
+                'status' => 'break_even',
+                'color' => 'warning',
+                'text' => 'Break Even'
+            ];
+        }
+
+        return [
+            'status' => 'loss',
+            'color' => 'danger',
+            'text' => 'Loss'
+        ];
+    }
+
+    /**
+     * Get formatted ROI for display
+     */
+    public function getFormattedROI(): string
+    {
+        if ($this->roi_percentage === null) {
+            return 'N/A';
+        }
+
+        return number_format($this->roi_percentage, 1) . '%';
     }
 }

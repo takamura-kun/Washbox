@@ -10,7 +10,7 @@
             <a href="{{ route('admin.unclaimed.index') }}" class="text-decoration-none text-muted small">
                 <i class="bi bi-arrow-left me-1"></i> Back to Unclaimed List
             </a>
-            <h3 class="fw-bold mt-2 mb-1">Order #{{ $laundry->tracking_number }}</h3>
+            <h3 class="fw-bold mt-2 mb-1">Laundry #{{ $laundry->tracking_number }}</h3>
             <div class="d-flex align-items-center gap-2 flex-wrap">
                 @php
                     $days = $laundry->days_unclaimed ?? 0;
@@ -88,10 +88,10 @@
     <div class="row g-4">
         {{-- Left Column --}}
         <div class="col-lg-8">
-            {{-- Order Details --}}
+            {{-- Laundry Details --}}
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white py-3">
-                    <h5 class="mb-0"><i class="bi bi-box me-2"></i>Order Details</h5>
+                    <h5 class="mb-0"><i class="bi bi-box me-2"></i>Laundry Details</h5>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
@@ -137,7 +137,7 @@
                                     </tr>
                                 @endif
                                 <tr class="border-top">
-                                    <td class="fw-bold">Order Total</td>
+                                    <td class="fw-bold">Laundry Total</td>
                                     <td class="text-end fw-bold fs-5">₱{{ number_format($laundry->total_amount, 2) }}</td>
                                 </tr>
                             </table>
@@ -204,7 +204,7 @@
                         <a href="tel:{{ $laundry->customer->phone ?? '' }}" class="btn btn-success">
                             <i class="bi bi-telephone me-1"></i> Call Now
                         </a>
-                        <a href="sms:{{ $laundry->customer->phone ?? '' }}?body=Hi {{ $laundry->customer->name ?? 'Customer' }}, this is WashBox {{ $laundry->branch->name ?? '' }}. Your laundry (Order #{{ $laundry->tracking_number }}) has been ready for {{ $days }} days. Please pick it up soon. Thank you!"
+                        <a href="sms:{{ $laundry->customer->phone ?? '' }}?body=Hi {{ $laundry->customer->name ?? 'Customer' }}, this is WashBox {{ $laundry->branch->name ?? '' }}. Your laundry (Laundry #{{ $laundry->tracking_number }}) has been ready for {{ $days }} days. Please pick it up soon. Thank you!"
                            class="btn btn-outline-primary">
                             <i class="bi bi-chat-dots me-1"></i> Send SMS
                         </a>

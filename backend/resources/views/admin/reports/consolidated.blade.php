@@ -40,7 +40,7 @@
 </div>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ asset('assets/chart.js/chart.umd.min.js') }}"></script>
 <script>
     const ctx = document.getElementById('branchComparisonChart').getContext('2d');
     new Chart(ctx, {

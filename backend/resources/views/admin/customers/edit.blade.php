@@ -27,11 +27,11 @@
         <div class="row g-4">
             {{-- Left Column: Main Information --}}
             <div class="col-xl-8">
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white py-3 border-bottom">
-                        <h5 class="fw-bold mb-0 text-primary">Personal Details</h5>
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header py-3 border-bottom" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h5 class="fw-bold mb-0" style="color: var(--text-primary) !important;">Personal Details</h5>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
@@ -62,11 +62,11 @@
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-header bg-white py-3 border-bottom">
-                        <h5 class="fw-bold mb-0 text-primary">Service Preferences</h5>
+                <div class="card border-0 shadow-sm rounded-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header py-3 border-bottom" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h5 class="fw-bold mb-0" style="color: var(--text-primary) !important;">Service Preferences</h5>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row">
                             <div class="col-md-12">
                                 <label class="form-label fw-bold">Primary Branch</label>
@@ -87,8 +87,8 @@
 
             {{-- Right Column: Status & Metadata --}}
             <div class="col-xl-4">
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-body p-4">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="mb-4">
                             <label class="form-label fw-bold">Account Status</label>
                             <select name="is_active" class="form-select border-2 {{ $customer->is_active ? 'border-success' : 'border-danger' }}">
@@ -97,18 +97,18 @@
                             </select>
                         </div>
 
-                        <div class="bg-light p-3 rounded-3 mb-4">
+                        <div class="p-3 rounded-3 mb-4" style="background-color: var(--input-bg) !important;">
                             <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted small">Registered Via:</span>
+                                <span class="small" style="color: var(--text-secondary) !important;">Registered Via:</span>
                                 <span class="badge bg-info text-dark">{{ $customer->registration_type_label }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted small">Total Laundries:</span>
-                                <span class="fw-bold">{{ $customer->getTotalLaundriesCount() }}</span>
+                                <span class="small" style="color: var(--text-secondary) !important;">Total Laundries:</span>
+                                <span class="fw-bold" style="color: var(--text-primary) !important;">{{ $customer->getTotalLaundriesCount() }}</span>
                             </div>
                             <div class="d-flex justify-content-between">
-                                <span class="text-muted small">Customer Since:</span>
-                                <span class="fw-bold">{{ $customer->created_at->format('M Y') }}</span>
+                                <span class="small" style="color: var(--text-secondary) !important;">Customer Since:</span>
+                                <span class="fw-bold" style="color: var(--text-primary) !important;">{{ $customer->created_at->format('M Y') }}</span>
                             </div>
                         </div>
 
@@ -119,10 +119,10 @@
                 </div>
 
                 {{-- Admin Log Note (Optional) --}}
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-body p-4">
-                        <h6 class="fw-bold mb-2 small text-uppercase">Admin Note</h6>
-                        <p class="text-muted x-small mb-0">
+                <div class="card border-0 shadow-sm rounded-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="fw-bold mb-2 small text-uppercase" style="color: var(--text-primary) !important;">Admin Note</h6>
+                        <p class="x-small mb-0" style="color: var(--text-secondary) !important;">
                             Last modified: {{ $customer->updated_at->diffForHumans() }}
                         </p>
                     </div>

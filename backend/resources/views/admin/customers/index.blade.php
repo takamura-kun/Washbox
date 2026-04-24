@@ -4,6 +4,25 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('assets/css/customers.css') }}">
+    <style>
+        .customer-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .customer-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
+        }
+        /* Light mode */
+        [data-theme="light"] .customer-card {
+            background-color: #ffffff !important;
+            color: #111827 !important;
+        }
+        /* Dark mode */
+        [data-theme="dark"] .customer-card {
+            background-color: #1F2937 !important;
+            color: #F9FAFB !important;
+        }
+    </style>
 @endpush
 
 @section('content')
@@ -186,150 +205,122 @@
         @endif
     </div>
 
-    {{-- Customers Table --}}
-    <div class="table-card">
-        <div class="table-header">
-            <h6>
-                <i class="bi bi-people"></i> Customers List
-            </h6>
-            <span class="badge">{{ $customers->total() }} total customers</span>
-        </div>
-
-        <div class="table-responsive">
-            <table class="customers-table">
-                <thead>
-                    <tr>
-                        <th class="ps-4">Customer</th>
-                        <th>Contact</th>
-                        <th>Registration</th>
-                        <th>Branch</th>
-                        <th class="text-center">Laundries</th>
-                        <th>Total Spent</th>
-                        <th>Status</th>
-                        <th class="text-end pe-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($customers as $customer)
-                    <tr>
-                        <td class="ps-4">
-                            <div class="customer-info">
-                                @if($customer->profile_photo_url)
-                                    <div class="customer-avatar">
-                                        <img src="{{ $customer->profile_photo_url }}" alt="{{ $customer->name }}">
-                                    </div>
-                                @else
-                                    <div class="customer-avatar">
-                                        {{ strtoupper(substr($customer->name, 0, 1)) }}
-                                    </div>
-                                @endif
-                                <div class="customer-details">
-                                    <div class="customer-name">
-                                        {{ $customer->name }}
-                                    </div>
-                                    <span class="customer-id">#CUST-{{ str_pad($customer->id, 4, '0', STR_PAD_LEFT) }}</span>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="contact-info">
-                                <div class="contact-item">
-                                    <i class="bi bi-telephone"></i>
-                                    <span class="phone">{{ $customer->phone }}</span>
-                                </div>
-                                @if($customer->email)
-                                    <div class="contact-item">
-                                        <i class="bi bi-envelope"></i>
-                                        <span class="email">{{ Str::limit($customer->email, 20) }}</span>
-                                    </div>
-                                @endif
-                            </div>
-                        </td>
-                        <td>
-                            @if($customer->registration_type == 'walk_in')
-                                <span class="reg-badge walk-in">
-                                    <i class="bi bi-person"></i> Walk-in
-                                </span>
+    {{-- Customers Grid --}}
+    @if($customers->count() > 0)
+        <div class="row g-3">
+            @foreach($customers as $customer)
+            <div class="col-md-6 col-lg-4 col-xl-3">
+                <div class="card border-0 shadow-sm rounded-4 h-100 customer-card">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-start mb-3">
+                            @if($customer->profile_photo_url)
+                                <img src="{{ $customer->profile_photo_url }}" alt="{{ $customer->name }}" class="rounded-circle me-3" style="width: 56px; height: 56px; object-fit: cover;">
                             @else
-                                <span class="reg-badge mobile">
-                                    <i class="bi bi-phone"></i> Mobile App
-                                </span>
+                                <div class="rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px; background: linear-gradient(135deg, #2D2B5F, #FF5C35); color: white; font-weight: 700; font-size: 1.25rem;">
+                                    {{ strtoupper(substr($customer->name, 0, 1)) }}
+                                </div>
                             @endif
-                        </td>
-                        <td>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-bold text-truncate" style="font-size: 0.95rem;">{{ $customer->name }}</div>
+                                <small class="text-muted">#CUST-{{ str_pad($customer->id, 4, '0', STR_PAD_LEFT) }}</small>
+                                <div class="mt-1">
+                                    @if($customer->registration_type == 'walk_in')
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary" style="font-size: 0.7rem;">
+                                            <i class="bi bi-person"></i> Walk-in
+                                        </span>
+                                    @else
+                                        <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size: 0.7rem;">
+                                            <i class="bi bi-phone"></i> Mobile
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-telephone me-2 text-muted" style="font-size: 0.85rem;"></i>
+                                <small class="text-truncate">{{ $customer->phone }}</small>
+                            </div>
+                            @if($customer->email)
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-envelope me-2 text-muted" style="font-size: 0.85rem;"></i>
+                                    <small class="text-truncate">{{ Str::limit($customer->email, 25) }}</small>
+                                </div>
+                            @endif
                             @if($customer->preferredBranch)
-                                <span class="branch-badge">
-                                    <i class="bi bi-geo-alt"></i> {{ $customer->preferredBranch->name }}
-                                </span>
-                            @else
-                                <span class="text-muted small">—</span>
+                                <div class="d-flex align-items-center mt-1">
+                                    <i class="bi bi-geo-alt me-2 text-muted" style="font-size: 0.85rem;"></i>
+                                    <small class="text-truncate">{{ $customer->preferredBranch->name }}</small>
+                                </div>
                             @endif
-                        </td>
-                        <td class="text-center">
-                            <span class="stats-badge">
-                                {{ $customer->laundries_count ?? $customer->laundries()->count() }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="amount">₱{{ number_format($customer->getTotalSpent(), 2) }}</span>
-                        </td>
-                        <td>
-                            @if($customer->is_active)
-                                <span class="status-badge active">
-                                    <i class="bi bi-check-circle"></i> Active
-                                </span>
-                            @else
-                                <span class="status-badge inactive">
-                                    <i class="bi bi-x-circle"></i> Inactive
-                                </span>
-                            @endif
-                        </td>
-                        <td class="text-end pe-4">
-                            <div class="action-buttons">
-                                <a href="{{ route('admin.customers.show', $customer) }}" class="action-btn view" title="View Details">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                <a href="{{ route('admin.customers.edit', $customer) }}" class="action-btn edit" title="Edit Customer">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <div>
+                                <small class="text-muted d-block">Laundries</small>
+                                <strong style="font-size: 1.1rem;">{{ $customer->laundries_count ?? $customer->laundries()->count() }}</strong>
                             </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="8" class="p-0">
-                            <div class="empty-state">
-                                <i class="bi bi-people"></i>
-                                <h5>No customers found</h5>
-                                <p>No customers match your current filters. Try adjusting your search criteria.</p>
-                                @if(request()->anyFilled(['search', 'branch_id', 'status', 'registration_type']))
-                                    <a href="{{ route('admin.customers.index') }}" class="btn btn-outline-primary">
-                                        <i class="bi bi-arrow-counterclockwise me-1"></i> Clear all filters
-                                    </a>
+                            <div class="text-end">
+                                <small class="text-muted d-block">Total Spent</small>
+                                <strong class="text-success" style="font-size: 0.95rem;">₱{{ number_format($customer->getTotalSpent(), 0) }}</strong>
+                            </div>
+                            <div>
+                                @if($customer->is_active)
+                                    <span class="badge bg-success" style="font-size: 0.7rem;">
+                                        <i class="bi bi-check-circle"></i> Active
+                                    </span>
                                 @else
-                                    <a href="{{ route('admin.customers.create') }}" class="btn btn-primary">
-                                        <i class="bi bi-person-plus me-1"></i> Create First Customer
-                                    </a>
+                                    <span class="badge bg-danger" style="font-size: 0.7rem;">
+                                        <i class="bi bi-x-circle"></i> Inactive
+                                    </span>
                                 @endif
                             </div>
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                        </div>
+                        <div class="d-flex gap-2 mt-3">
+                            <a href="{{ route('admin.customers.show', $customer) }}" class="btn btn-sm btn-outline-primary flex-fill">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            <a href="{{ route('admin.customers.edit', $customer) }}" class="btn btn-sm btn-outline-secondary flex-fill">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endforeach
         </div>
-
+        
         {{-- Pagination --}}
         @if($customers->hasPages())
-            <div class="pagination-wrapper">
-                <div class="pagination-info">
-                    Showing {{ $customers->firstItem() }} to {{ $customers->lastItem() }} of {{ $customers->total() }} customers
-                </div>
-                <div>
-                    {{ $customers->links() }}
+            <div class="card border-0 shadow-sm rounded-4 mt-3">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            Showing {{ $customers->firstItem() }} to {{ $customers->lastItem() }} of {{ $customers->total() }} customers
+                        </small>
+                        {{ $customers->links() }}
+                    </div>
                 </div>
             </div>
         @endif
-    </div>
+    @else
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-5">
+                <div class="empty-state">
+                    <i class="bi bi-people"></i>
+                    <h5>No customers found</h5>
+                    <p>No customers match your current filters. Try adjusting your search criteria.</p>
+                    @if(request()->anyFilled(['search', 'branch_id', 'status', 'registration_type']))
+                        <a href="{{ route('admin.customers.index') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Clear all filters
+                        </a>
+                    @else
+                        <a href="{{ route('admin.customers.create') }}" class="btn btn-primary">
+                            <i class="bi bi-person-plus me-1"></i> Create First Customer
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
 @endsection

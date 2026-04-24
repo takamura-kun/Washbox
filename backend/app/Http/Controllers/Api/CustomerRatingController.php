@@ -114,10 +114,10 @@ class CustomerRatingController extends Controller
             ], 404);
         }
 
-        if (strtolower($laundry->status) !== 'completed') {
+        if (!in_array(strtolower($laundry->status), ['completed', 'ready', 'paid'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'You can only rate completed laundries.',
+                'message' => 'You can only rate completed, ready, or paid laundries.',
             ], 422);
         }
 
@@ -196,7 +196,7 @@ class CustomerRatingController extends Controller
                 ->pluck('laundry_id');
 
             $unrated = Laundry::where('customer_id', $customer->id)
-                ->whereRaw('LOWER(status) = ?', ['completed'])
+                ->whereIn('status', ['completed', 'ready', 'paid']) // Include ready and paid status
                 ->whereNotIn('id', $ratedLaundryIds)
                 ->with(['branch:id,name', 'service:id,name'])
                 ->orderBy('updated_at', 'desc')
@@ -305,5 +305,104 @@ class CustomerRatingController extends Controller
         $rating->delete();
 
         return response()->json(['success' => true, 'message' => 'Rating deleted successfully.']);
+    }
+
+    /**
+     * POST /v1/customer/branch-ratings
+     * Rate a branch directly (not tied to a specific laundry)
+     */
+    public function storeBranchRating(Request $request)
+    {
+        $customer = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'branch_id' => 'required|exists:branches,id',
+            'rating'    => 'required|integer|min:1|max:5',
+            'comment'   => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        // Check if customer has already rated this branch (branch rating only, not laundry rating)
+        $existingBranchRating = CustomerRating::where('branch_id', $request->branch_id)
+            ->where('customer_id', $customer->id)
+            ->whereNull('laundry_id') // Only check branch ratings, not laundry ratings
+            ->first();
+
+        if ($existingBranchRating) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You have already rated this branch.',
+            ], 409);
+        }
+
+        $rating = CustomerRating::create([
+            'laundry_id'  => null, // Branch rating, not tied to specific laundry
+            'customer_id' => $customer->id,
+            'branch_id'   => $request->branch_id,
+            'rating'      => $request->rating,
+            'comment'     => $request->comment,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Branch rating submitted successfully.',
+            'data'    => [
+                'rating' => [
+                    'id'         => $rating->id,
+                    'rating'     => $rating->rating,
+                    'comment'    => $rating->comment,
+                    'created_at' => $rating->created_at->toIso8601String(),
+                ],
+            ],
+        ], 201);
+    }
+
+    /**
+     * GET /v1/ratings/public
+     * Get all public ratings/feedbacks (no auth required)
+     */
+    public function publicRatings(Request $request)
+    {
+        try {
+            $limit = $request->query('limit', 10);
+            
+            $ratings = CustomerRating::with([
+                'customer:id,name',
+                'branch:id,name',
+            ])
+                ->whereNotNull('comment')
+                ->where('rating', '>=', 4)
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get()
+                ->map(function ($rating) {
+                    return [
+                        'id'         => $rating->id,
+                        'customer'   => $rating->customer?->name ?? 'Anonymous',
+                        'branch'     => $rating->branch?->name ?? 'WashBox',
+                        'rating'     => $rating->rating,
+                        'comment'    => $rating->comment,
+                        'created_at' => $rating->created_at->toIso8601String(),
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data'    => ['ratings' => $ratings],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching public ratings: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch ratings.',
+            ], 500);
+        }
     }
 }

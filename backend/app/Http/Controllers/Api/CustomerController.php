@@ -164,6 +164,16 @@ class CustomerController extends Controller
                 ->whereIn('status', ['paid', 'completed'])
                 ->sum('total_amount');
 
+            // Get pending laundries (in progress)
+            $pendingLaundries = Laundry::where('customer_id', $customer->id)
+                ->whereIn('status', ['received', 'processing', 'ready'])
+                ->count();
+
+            // Get active pickups
+            $activePickups = PickupRequest::where('customer_id', $customer->id)
+                ->whereIn('status', ['pending', 'accepted', 'en_route'])
+                ->count();
+
             // Calculate average rating (if you have reviews system)
             // For now, use a default rating
             $rating = 5.0;
@@ -174,6 +184,8 @@ class CustomerController extends Controller
                     'stats' => [
                         'totalLaundries' => (int) $totalLaundries,
                         'totalSpent' => (float) ($totalSpent ?? 0),
+                        'pendingLaundries' => (int) $pendingLaundries,
+                        'activePickups' => (int) $activePickups,
                         'rating' => (float) $rating,
                     ],
                 ]

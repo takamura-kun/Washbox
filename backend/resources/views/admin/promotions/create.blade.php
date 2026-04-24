@@ -23,14 +23,14 @@
             {{-- Left Column - Main Form --}}
             <div class="col-lg-8">
                 {{-- Basic Information --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-info-circle me-2" style="color: #3D3B6B;"></i>
                             Basic Information
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row">
                             <div class="col-12 mb-3">
                                 <label class="form-label fw-semibold">Promotion Name <span class="text-danger">*</span></label>
@@ -80,14 +80,14 @@
                 </div>
 
                 {{-- Schedule & Targeting --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-calendar-check me-2" style="color: #3D3B6B;"></i>
                             Schedule & Target
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Start Date <span class="text-danger">*</span></label>
@@ -137,6 +137,13 @@
                             </div>
 
                             <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Marketing Cost (₱)</label>
+                                <input type="number" name="marketing_cost" class="form-control"
+                                    min="0" step="0.01" placeholder="0" value="{{ old('marketing_cost', 0) }}">
+                                <small class="text-muted">Total cost to run this promotion (for ROI calculation)</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Status</label>
                                 <select name="is_active" class="form-select">
                                     <option value="1" {{ old('is_active', '1') == '1' ? 'selected' : '' }}>Active</option>
@@ -148,14 +155,14 @@
                 </div>
 
                 {{-- Banner Image (Optional) --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-image me-2" style="color: #3D3B6B;"></i>
                             Banner Image (Optional)
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Upload Banner</label>
                             <input type="file" name="banner_image" id="banner_image"
@@ -175,14 +182,14 @@
                 </div>
 
                 {{-- Advanced Options (Optional) --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-sliders me-2" style="color: #3D3B6B;"></i>
                             Advanced Options
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Display Laundry</label>
@@ -219,13 +226,13 @@
             {{-- Right Column - Preview Card --}}
             <div class="col-lg-4">
                 <div class="sticky-top" style="top: 20px;">
-                    <div class="card border-0 shadow-sm rounded-4">
-                        <div class="card-header text-white py-3" style="background: #3D3B6B;">
+                    <div class="card border-0 shadow-sm rounded-4" style="background-color: var(--card-bg) !important;">
+                        <div class="card-header text-white py-3" style="background: #3D3B6B !important;">
                             <h6 class="mb-0 fw-bold">
                                 <i class="bi bi-eye me-2"></i>Preview
                             </h6>
                         </div>
-                        <div class="card-body p-0">
+                        <div class="card-body p-0" style="background-color: var(--card-bg) !important;">
                             {{-- Preview Display --}}
                             <div class="p-4 text-center" style="background: linear-gradient(135deg, #3D3B6B 0%, #2D2850 100%); min-height: 200px;">
                                 <div class="text-white">
@@ -236,50 +243,50 @@
                             </div>
 
                             {{-- Preview Details --}}
-                            <div class="p-4">
+                            <div class="p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                                 <div class="mb-3">
-                                    <small class="text-muted text-uppercase fw-semibold d-block mb-1">Promo Code</small>
-                                    <div class="bg-light p-2 rounded text-center">
+                                    <small class="text-uppercase fw-semibold d-block mb-1" style="color: var(--text-secondary) !important;">Promo Code</small>
+                                    <div class="p-2 rounded text-center" style="background-color: var(--input-bg) !important;">
                                         <code id="preview-code" class="text-primary fw-bold">----</code>
                                     </div>
                                 </div>
 
                                 <div class="mb-3">
-                                    <small class="text-muted text-uppercase fw-semibold d-block mb-1">Valid Period</small>
-                                    <div class="text-dark">
+                                    <small class="text-uppercase fw-semibold d-block mb-1" style="color: var(--text-secondary) !important;">Valid Period</small>
+                                    <div style="color: var(--text-primary) !important;">
                                         <i class="bi bi-calendar-event me-2"></i>
                                         <span id="preview-dates">Select dates</span>
                                     </div>
                                 </div>
 
                                 <div class="mb-3">
-                                    <small class="text-muted text-uppercase fw-semibold d-block mb-1">Branch</small>
-                                    <div class="text-dark">
+                                    <small class="text-uppercase fw-semibold d-block mb-1" style="color: var(--text-secondary) !important;">Branch</small>
+                                    <div style="color: var(--text-primary) !important;">
                                         <i class="bi bi-shop me-2"></i>
                                         <span id="preview-branch">All Branches</span>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <small class="text-muted text-uppercase fw-semibold d-block mb-1">Status</small>
+                                    <small class="text-uppercase fw-semibold d-block mb-1" style="color: var(--text-secondary) !important;">Status</small>
                                     <span id="preview-status" class="badge bg-success">Active</span>
                                 </div>
                             </div>
                         </div>
-                        <div class="card-footer bg-light text-center py-3">
-                            <small class="text-muted">
+                        <div class="card-footer text-center py-3" style="background-color: var(--card-bg) !important; border-top: 1px solid var(--border-color) !important;">
+                            <small style="color: var(--text-secondary) !important;">
                                 <i class="bi bi-info-circle"></i> Preview updates as you type
                             </small>
                         </div>
                     </div>
 
                     {{-- Help Card --}}
-                    <div class="card border-0 shadow-sm rounded-4 mt-3">
-                        <div class="card-body p-4">
-                            <h6 class="fw-bold mb-3">
+                    <div class="card border-0 shadow-sm rounded-4 mt-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                            <h6 class="fw-bold mb-3" style="color: var(--text-primary) !important;">
                                 <i class="bi bi-lightbulb text-warning me-2"></i>Tips
                             </h6>
-                            <ul class="small text-muted mb-0 ps-3">
+                            <ul class="small mb-0 ps-3" style="color: var(--text-secondary) !important;">
                                 <li class="mb-2">Leave promo code empty for auto-apply discounts</li>
                                 <li class="mb-2">Set minimum amount to encourage larger laundry</li>
                                 <li class="mb-2">Use display laundry to prioritize promotions</li>

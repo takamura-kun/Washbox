@@ -39,15 +39,28 @@ class AddOnController extends Controller
                 'slug' => 'required|string|max:255|unique:add_ons,slug',
                 'description' => 'nullable|string',
                 'price' => 'required|numeric|min:0',
-                'is_active' => 'sometimes|boolean'
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             ]);
+            
+            $validated['is_active'] = filter_var($request->input('is_active', true), FILTER_VALIDATE_BOOLEAN);
+
+            $imagePath = null;
+            if ($request->hasFile('image')) {
+                $imagePath = $request->file('image')->storeAs(
+                    'addons',
+                    time() . '_' . $request->file('image')->getClientOriginalName(),
+                    'public'
+                );
+                $imagePath = basename($imagePath);
+            }
 
             $addon = AddOn::create([
                 'name' => $validated['name'],
                 'slug' => $validated['slug'],
                 'description' => $validated['description'] ?? null,
                 'price' => $validated['price'],
-                'is_active' => $validated['is_active'] ?? true
+                'is_active' => $validated['is_active'],
+                'image' => $imagePath,
             ]);
 
             if ($request->wantsJson()) {
@@ -113,8 +126,22 @@ class AddOnController extends Controller
                 'slug' => 'required|string|max:255|unique:add_ons,slug,' . $addon->id,
                 'description' => 'nullable|string',
                 'price' => 'required|numeric|min:0',
-                'is_active' => 'sometimes|boolean'
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             ]);
+            
+            $validated['is_active'] = filter_var($request->input('is_active', $addon->is_active), FILTER_VALIDATE_BOOLEAN);
+
+            if ($request->hasFile('image')) {
+                if ($addon->image) {
+                    \Storage::disk('public')->delete('addons/' . $addon->image);
+                }
+                $imagePath = $request->file('image')->storeAs(
+                    'addons',
+                    time() . '_' . $request->file('image')->getClientOriginalName(),
+                    'public'
+                );
+                $validated['image'] = basename($imagePath);
+            }
 
             $addon->update($validated);
 
@@ -169,6 +196,10 @@ class AddOnController extends Controller
                     ], 422);
                 }
                 return redirect()->back()->with('error', 'Cannot delete add-on that is used in existing laundries.');
+            }
+
+            if ($addon->image) {
+                \Storage::disk('public')->delete('addons/' . $addon->image);
             }
 
             $addon->delete();

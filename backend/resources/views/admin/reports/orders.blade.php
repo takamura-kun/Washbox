@@ -107,20 +107,20 @@
                                             {{ $laundry->tracking_number }}
                                         </a>
                                     </td>
-                                    <td>{{ $order->customer->name ?? 'N/A' }}</td>
-                                    <td>{{ $order->branch->name ?? 'N/A' }}</td>
+                                    <td>{{ $laundry->customer->name ?? 'N/A' }}</td>
+                                    <td>{{ $laundry->branch->name ?? 'N/A' }}</td>
                                     <td>
-                                        <span class="badge bg-{{ $order->status === 'completed' ? 'success' : 'warning' }}">
-                                            {{ ucfirst($order->status) }}
+                                        <span class="badge bg-{{ $laundry->status === 'completed' ? 'success' : 'warning' }}">
+                                            {{ ucfirst($laundry->status) }}
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : 'danger' }}">
-                                            {{ ucfirst($order->payment_status) }}
+                                        <span class="badge bg-{{ $laundry->payment_status === 'paid' ? 'success' : 'danger' }}">
+                                            {{ ucfirst($laundry->payment_status) }}
                                         </span>
                                     </td>
-                                    <td class="text-end">₱{{ number_format($order->total_amount, 2) }}</td>
-                                    <td>{{ $order->created_at->format('M d, Y') }}</td>
+                                    <td class="text-end">₱{{ number_format($laundry->total_amount, 2) }}</td>
+                                    <td>{{ $laundry->created_at->format('M d, Y') }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

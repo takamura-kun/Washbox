@@ -61,12 +61,17 @@ const getWebLocation = () => {
         });
       },
       (error) => {
-        reject(error);
+        const messages = {
+          1: 'Location permission denied',
+          2: 'Location unavailable',
+          3: 'Location request timed out',
+        };
+        reject(new Error(messages[error.code] || 'Geolocation error'));
       },
       {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 30000,
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 60000,
       }
     );
   });
@@ -139,9 +144,9 @@ const ABBREVIATIONS = {
 };
 
 const DUMAGUETE_LANDMARKS = {
-  'locsin':           'Doctor V. Locsin Street, Dumaguete City',
-  'dr v locsin':      'Doctor V. Locsin Street, Dumaguete City',
-  'dr locsin':        'Doctor V. Locsin Street, Dumaguete City',
+  'locsin':           'Doctor V. Locsin Street, Dumaguete City, Negros Oriental, Philippines',
+  'dr v locsin':      'Doctor V. Locsin Street, Dumaguete City, Negros Oriental, Philippines',
+  'dr locsin':        'Doctor V. Locsin Street, Dumaguete City, Negros Oriental, Philippines',
   'silliman':         'Silliman Avenue, Dumaguete City',
   'silliman ave':     'Silliman Avenue, Dumaguete City',
   'perdices':         'Perdices Street, Dumaguete City',

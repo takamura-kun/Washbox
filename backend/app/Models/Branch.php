@@ -30,6 +30,9 @@ class Branch extends Model
         'longitude',         // NEW: For map integration
         'operating_hours',   // JSON field
         'photo_url',
+        'gcash_qr_image',    // NEW: GCash QR code image
+        'gcash_account_name', // NEW: GCash account name
+        'gcash_account_number', // NEW: GCash account number
         'is_active',
     ];
 
@@ -276,7 +279,7 @@ class Branch extends Model
         }
 
         $now = now();
-        $dayOfWeek = $now->format('l'); // Monday, Tuesday, etc.
+        $dayOfWeek = strtolower($now->format('l')); // monday, tuesday, etc. (lowercase)
 
         if (!isset($this->operating_hours[$dayOfWeek])) {
             return false; // No hours defined for today
@@ -295,12 +298,14 @@ class Branch extends Model
         }
 
         try {
-            $openTime = Carbon::parse($hours['open']);
-            $closeTime = Carbon::parse($hours['close']);
+            $currentTime = $now->format('H:i');
+            $openTime = $hours['open'];
+            $closeTime = $hours['close'];
 
-            return $now->between($openTime, $closeTime);
+            // Simple time comparison - if current time is between open and close
+            return $currentTime >= $openTime && $currentTime < $closeTime;
         } catch (\Exception $e) {
-            return true; // If parsing fails, assume open
+            return false; // If parsing fails, assume closed for safety
         }
     }
 
@@ -316,7 +321,7 @@ class Branch extends Model
             return null;
         }
 
-        $day = now()->format('l'); // Monday, Tuesday, etc.
+        $day = strtolower(now()->format('l')); // monday, tuesday, etc. (lowercase)
 
         return $this->operating_hours[$day] ?? null;
     }
@@ -339,10 +344,40 @@ class Branch extends Model
         }
 
         if (is_array($hours) && isset($hours['open']) && isset($hours['close'])) {
-            return "{$hours['open']} - {$hours['close']}";
+            try {
+                $openTime = \Carbon\Carbon::createFromFormat('H:i', $hours['open'])->format('g A');
+                $closeTime = \Carbon\Carbon::createFromFormat('H:i', $hours['close'])->format('g A');
+                return "{$openTime} - {$closeTime}";
+            } catch (\Exception $e) {
+                return "{$hours['open']} - {$hours['close']}";
+            }
         }
 
         return 'Hours not available';
+    }
+
+    /**
+     * Debug method to check operating hours logic
+     *
+     * @return array
+     */
+    public function debugOperatingHours()
+    {
+        $now = now();
+        $dayOfWeek = strtolower($now->format('l'));
+        $currentTime = $now->format('H:i');
+        $hours = $this->getTodayHours();
+        
+        return [
+            'current_day' => $dayOfWeek,
+            'current_time' => $currentTime,
+            'operating_hours' => $this->operating_hours,
+            'today_hours' => $hours,
+            'is_open' => $this->isOpen(),
+            'has_hours' => !empty($hours),
+            'is_array' => is_array($hours),
+            'has_open_close' => is_array($hours) && isset($hours['open']) && isset($hours['close']),
+        ];
     }
 
     /**

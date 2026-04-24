@@ -27,9 +27,9 @@
             {{-- Left Column - Main Form --}}
             <div class="col-lg-8">
                 {{-- Personal Information --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important;">
+                    <div class="card-header bg-white border-bottom py-3" style="background-color: var(--card-bg) !important;">
+                        <h6 class="mb-0 fw-bold text-dark" style="color: var(--text-primary) !important;">
                             <i class="bi bi-person-circle me-2" style="color: #3D3B6B;"></i>
                             Personal Information
                         </h6>
@@ -85,9 +85,9 @@
                 </div>
 
                 {{-- Employment Details --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important;">
+                    <div class="card-header bg-white border-bottom py-3" style="background-color: var(--card-bg) !important;">
+                        <h6 class="mb-0 fw-bold text-dark" style="color: var(--text-primary) !important;">
                             <i class="bi bi-briefcase me-2" style="color: #3D3B6B;"></i>
                             Employment Details
                         </h6>
@@ -140,9 +140,9 @@
                 </div>
 
                 {{-- Emergency Contact --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important;">
+                    <div class="card-header bg-white border-bottom py-3" style="background-color: var(--card-bg) !important;">
+                        <h6 class="mb-0 fw-bold text-dark" style="color: var(--text-primary) !important;">
                             <i class="bi bi-telephone-plus me-2" style="color: #3D3B6B;"></i>
                             Emergency Contact
                         </h6>
@@ -192,9 +192,9 @@
             <div class="col-lg-4">
                 <div class="sticky-top" style="top: 20px;">
                     {{-- Current Photo --}}
-                    <div class="card border-0 shadow-sm rounded-4 mb-3">
-                        <div class="card-header bg-white border-bottom py-3">
-                            <h6 class="mb-0 fw-bold text-dark">
+                    <div class="card border-0 shadow-sm rounded-4 mb-3" style="background-color: var(--card-bg) !important;">
+                        <div class="card-header bg-white border-bottom py-3" style="background-color: var(--card-bg) !important;">
+                            <h6 class="mb-0 fw-bold text-dark" style="color: var(--text-primary) !important;">
                                 <i class="bi bi-camera me-2" style="color: #3D3B6B;"></i>
                                 Profile Photo
                             </h6>
@@ -221,7 +221,7 @@
                     </div>
 
                     {{-- Reset Password Card --}}
-                    <div class="card border-0 shadow-sm rounded-4 mb-3">
+                    <div class="card border-0 shadow-sm rounded-4 mb-3" style="background-color: var(--card-bg) !important;">
                         <div class="card-body p-4">
                             <h6 class="fw-bold mb-3">
                                 <i class="bi bi-shield-lock text-warning me-2"></i>Reset Password
@@ -234,7 +234,7 @@
                     </div>
 
                     {{-- Quick Stats --}}
-                    <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card border-0 shadow-sm rounded-4" style="background-color: var(--card-bg) !important;">
                         <div class="card-body p-4">
                             <h6 class="fw-bold mb-3">
                                 <i class="bi bi-graph-up text-info me-2"></i>Quick Stats
@@ -264,9 +264,9 @@
 {{-- Reset Password Modal --}}
 <div class="modal fade" id="resetPasswordModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content border-0 shadow rounded-4">
+        <div class="modal-content border-0 shadow rounded-4" style="background-color: var(--card-bg) !important;">
             <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold">Reset Password</h5>
+                <h5 class="modal-title fw-bold" style="color: var(--text-primary) !important;">Reset Password</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="{{ route('admin.staff.reset-password', $staff) }}" method="POST">
@@ -277,11 +277,11 @@
                         This will reset {{ $staff->name }}'s password. They will need to use the new password to log in.
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">New Password</label>
+                        <label class="form-label fw-semibold" style="color: var(--text-primary) !important;">New Password</label>
                         <input type="password" name="password" class="form-control" placeholder="Minimum 8 characters" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Confirm New Password</label>
+                        <label class="form-label fw-semibold" style="color: var(--text-primary) !important;">Confirm New Password</label>
                         <input type="password" name="password_confirmation" class="form-control" placeholder="Re-enter password" required>
                     </div>
                 </div>

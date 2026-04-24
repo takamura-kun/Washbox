@@ -29,6 +29,8 @@ class ServiceController extends Controller
     public function store(Request $request)
     {
         try {
+            $request->merge(['is_active' => $request->has('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : true]);
+
             $rules = [
                 'name'            => 'required|string|max:255',
                 'description'     => 'nullable|string',
@@ -123,7 +125,21 @@ class ServiceController extends Controller
     // Show a single service
     public function show(Service $service)
     {
-        return view('admin.services.show', compact('service'));
+        $stats = [
+            'total_laundries' => $service->laundries()->count(),
+            'completed_laundries' => $service->laundries()->where('status', 'completed')->count(),
+            'total_revenue' => $service->laundries()->where('status', 'completed')->sum('total_amount'),
+            'total_weight' => $service->laundries()->sum('weight'),
+            'avg_laundry_value' => $service->laundries()->where('status', 'completed')->avg('total_amount') ?? 0,
+        ];
+
+        $recent_laundries = $service->laundries()
+            ->with(['customer', 'branch'])
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return view('admin.services.show', compact('service', 'stats', 'recent_laundries'));
     }
 
     // =========================================================================
@@ -148,6 +164,8 @@ class ServiceController extends Controller
     // Update a service
     public function update(Request $request, Service $service)
     {
+        $request->merge(['is_active' => $request->has('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : true]);
+
         $rules = [
             'name'            => 'required|string|max:255',
             'description'     => 'nullable|string',

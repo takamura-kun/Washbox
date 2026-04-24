@@ -1,7 +1,7 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Analytics')
-@section('page-title', 'Analytics')
+@section('page-title', 'ANALYTICS')
 
 @section('content')
 <div class="analytics-root">
@@ -30,7 +30,7 @@
     </div>
 
     {{-- ── KPI Row ──────────────────────────────────────────────── --}}
-    <div class="row g-3 mb-4">
+    <div class="row g-2 mb-3">
         {{-- Revenue --}}
         <div class="col-xl-3 col-md-6">
             <div class="an-kpi-card an-kpi-revenue">
@@ -46,7 +46,7 @@
                 </div>
                 <div class="an-kpi-label">Total Revenue</div>
                 <div id="kpi-rev-value" class="an-kpi-value">₱{{ number_format($revenueAnalytics['total'], 0) }}</div>
-                <div id="kpi-rev-sub" class="an-kpi-sub">Avg ₱{{ number_format($revenueAnalytics['average_laundry_value'], 0) }} / order</div>
+                <div id="kpi-rev-sub" class="an-kpi-sub">Avg ₱{{ number_format($revenueAnalytics['average_laundry_value'], 0) }} / laundry</div>
                 <div class="an-sparkline-wrap">
                     <canvas id="sparkRevenue" height="40"></canvas>
                 </div>
@@ -86,7 +86,7 @@
                 </div>
                 <div class="an-kpi-label">Total Customers</div>
                 <div id="kpi-cust-value" class="an-kpi-value">{{ number_format($customerAnalytics['total']) }}</div>
-                <div id="kpi-cust-sub" class="an-kpi-sub">{{ $customerAnalytics['avg_laundries_per_customer'] }} avg orders / customer</div>
+                <div id="kpi-cust-sub" class="an-kpi-sub">{{ $customerAnalytics['avg_laundries_per_customer'] }} avg laundries / customer</div>
                 <div class="an-sparkline-wrap">
                     <canvas id="sparkCustomers" height="40"></canvas>
                 </div>
@@ -146,7 +146,7 @@
             {{-- OVERVIEW TAB                                   --}}
             {{-- ══════════════════════════════════════════════ --}}
             <div class="tab-pane fade show active" id="anOverview" role="tabpanel">
-                <div class="row g-4">
+                <div class="row g-3">
 
                     {{-- Revenue Area Chart --}}
                     <div class="col-lg-8">
@@ -169,7 +169,7 @@
                         <div class="an-chart-card h-100">
                             <div class="an-chart-header">
                                 <div>
-                                    <h6 class="mb-0 fw-800 text-slate-800">Order Status</h6>
+                                    <h6 class="mb-0 fw-800 text-slate-800">Laundry Status</h6>
                                     <small class="text-muted">Breakdown by current state</small>
                                 </div>
                                 <div class="an-chart-badge purple">Doughnut</div>
@@ -251,7 +251,7 @@
                                 </div>
                                 <div>
                                     <div class="an-metric-val">{{ $customerAnalytics['avg_laundries_per_customer'] }}</div>
-                                    <div class="an-metric-lbl">Orders / Customer</div>
+                                    <div class="an-metric-lbl">Laundries / Customer</div>
                                 </div>
                             </div>
                             <div class="an-metric-divider"></div>
@@ -273,7 +273,7 @@
                                 </div>
                                 <div>
                                     <div class="an-metric-val">₱{{ number_format($revenueAnalytics['average_laundry_value'], 0) }}</div>
-                                    <div class="an-metric-lbl">Avg Order Value</div>
+                                    <div class="an-metric-lbl">Avg Laundry Value</div>
                                 </div>
                             </div>
                         </div>
@@ -286,7 +286,7 @@
             {{-- BRANCHES TAB                                   --}}
             {{-- ══════════════════════════════════════════════ --}}
             <div class="tab-pane fade" id="anBranches" role="tabpanel">
-                <div class="row g-4">
+                <div class="row g-3">
 
                     {{-- Grouped Bar --}}
                     <div class="col-lg-8">
@@ -361,7 +361,7 @@
                                             </div>
                                             <div class="text-end">
                                                 <span class="fw-800" style="color:{{ $bc }};">₱{{ number_format($branch['revenue'], 0) }}</span>
-                                                <span class="text-muted ms-2" style="font-size:.75rem;">{{ $branch['laundries'] }} orders</span>
+                                                <span class="text-muted ms-2" style="font-size:.75rem;">{{ $branch['laundries'] }} laundries</span>
                                             </div>
                                         </div>
                                         <div class="an-branch-bar-track">
@@ -380,7 +380,7 @@
             {{-- SERVICES TAB                                   --}}
             {{-- ══════════════════════════════════════════════ --}}
             <div class="tab-pane fade" id="anServices" role="tabpanel">
-                <div class="row g-4">
+                <div class="row g-3">
 
                     {{-- Funnel (horizontal sorted bar) --}}
                     <div class="col-lg-7">
@@ -388,7 +388,7 @@
                             <div class="an-chart-header">
                                 <div>
                                     <h6 class="mb-0 fw-800 text-slate-800">Service Popularity Funnel</h6>
-                                    <small class="text-muted">Orders per service (descending)</small>
+                                    <small class="text-muted">Laundries per service (descending)</small>
                                 </div>
                                 <div class="an-chart-badge orange">Funnel</div>
                             </div>
@@ -465,7 +465,7 @@
             {{-- CUSTOMERS TAB                                  --}}
             {{-- ══════════════════════════════════════════════ --}}
             <div class="tab-pane fade" id="anCustomers" role="tabpanel">
-                <div class="row g-4">
+                <div class="row g-3">
 
                     {{-- Customer Growth Area --}}
                     <div class="col-lg-8">
@@ -532,7 +532,7 @@
                                         <div class="an-lb-avatar">{{ strtoupper(substr($cust->name, 0, 1)) }}</div>
                                         <div class="an-lb-info">
                                             <div class="an-lb-name">{{ $cust->name }}</div>
-                                            <div class="an-lb-sub">{{ $cust->laundries_count ?? 0 }} orders</div>
+                                            <div class="an-lb-sub">{{ $cust->laundries_count ?? 0 }} laundries</div>
                                         </div>
                                         <div class="an-lb-value">₱{{ number_format($cust->laundries_sum_total_amount ?? 0, 0) }}</div>
                                     </div>
@@ -549,7 +549,7 @@
             {{-- PROMOTIONS TAB                                 --}}
             {{-- ══════════════════════════════════════════════ --}}
             <div class="tab-pane fade" id="anPromotions" role="tabpanel">
-                <div class="row g-4">
+                <div class="row g-3">
 
                     {{-- Promotion usage bar --}}
                     <div class="col-lg-7">
@@ -709,9 +709,9 @@
 .an-page-header {
     background: white;
     border: 1px solid var(--slate-100);
-    border-radius: 20px;
-    padding: 1.25rem 1.5rem;
-    margin-bottom: 1.5rem;
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
     box-shadow: 0 1px 6px rgba(0,0,0,0.04);
 }
 .an-date-btn {
@@ -733,9 +733,9 @@
 
 /* ── KPI Cards ── */
 .an-kpi-card {
-    border-radius: 20px; padding: 1.4rem;
+    border-radius: 16px; padding: 1rem;
     position: relative; overflow: hidden;
-    min-height: 175px;
+    min-height: 150px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     transition: transform .25s ease, box-shadow .25s ease;
 }
@@ -782,7 +782,7 @@
 .an-tab-nav-card {
     background: white;
     border: 1px solid var(--slate-100);
-    border-radius: 20px;
+    border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 2px 12px rgba(0,0,0,0.05);
 }
@@ -804,13 +804,13 @@
 }
 .an-tab-btn:hover { color: #2563eb; background: #eff6ff; }
 .an-tab-btn.active { color: #2563eb; background: #eff6ff; border-bottom-color: #2563eb; }
-.an-tab-content { padding: 1.5rem; }
+.an-tab-content { padding: 1rem; }
 
 /* ── Chart Cards ── */
 .an-chart-card {
     background: white;
     border: 1px solid var(--slate-100);
-    border-radius: 18px;
+    border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     transition: box-shadow .2s ease;
@@ -818,9 +818,9 @@
 .an-chart-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.09); }
 .an-chart-header {
     display: flex; align-items: flex-start; justify-content: space-between;
-    padding: 1.1rem 1.25rem .75rem; border-bottom: 1px solid var(--slate-100);
+    padding: .9rem 1rem .6rem; border-bottom: 1px solid var(--slate-100);
 }
-.an-chart-body { padding: 1.1rem 1.25rem; }
+.an-chart-body { padding: .9rem 1rem; }
 .an-chart-badge {
     display: inline-flex; align-items: center;
     border-radius: 50px; padding: 3px 11px;
@@ -971,10 +971,10 @@
 [data-theme="dark"] .an-metrics-strip { background: #1e293b; border-color: #334155; }
 [data-theme="dark"] .an-tab-nav  { border-color: #334155; }
 [data-theme="dark"] .an-tab-btn  { color: #94a3b8; }
-[data-theme="dark"] .an-tab-btn:hover, [data-theme="dark"] .an-tab-btn.active { background: rgba(37,99,235,.15); }
+[data-theme="dark"] .an-tab-btn:hover, [data-theme="dark"] .an-tab-btn.active { background: rgba(37,99,235,.15); color: #e2e8f0; }
 [data-theme="dark"] .an-chart-header { border-color: #334155; }
-[data-theme="dark"] .an-table th { color: #64748b; }
-[data-theme="dark"] .an-table td { border-color: #334155; }
+[data-theme="dark"] .an-table th { color: #94a3b8; }
+[data-theme="dark"] .an-table td { border-color: #334155; color: #e2e8f0; }
 [data-theme="dark"] .an-table tr:hover td { background: #253348; }
 [data-theme="dark"] .an-table-rank, [data-theme="dark"] .an-lb-rank { background: #334155; color: #94a3b8; }
 [data-theme="dark"] .an-branch-bar-track, [data-theme="dark"] .an-table-bar-track { background: #334155; }
@@ -983,9 +983,33 @@
 [data-theme="dark"] .an-stat-pill.green  { background: rgba(16,185,129,.1); }
 [data-theme="dark"] .an-stat-pill.amber  { background: rgba(245,158,11,.1); }
 [data-theme="dark"] .an-metrics-strip   { background: #1e293b; }
-[data-theme="dark"] .an-usage-badge     { background: rgba(37,99,235,.15); }
+[data-theme="dark"] .an-usage-badge     { background: rgba(37,99,235,.15); color: #93c5fd; }
 [data-theme="dark"] .an-date-btn        { background: #1e293b; border-color: #334155; color: #f1f5f9; }
 [data-theme="dark"] .an-type-badge, [data-theme="dark"] .an-status-inactive { background: #334155; color: #94a3b8; }
+
+/* ── Dark Mode Text Improvements ── */
+[data-theme="dark"] .fw-800,
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 { color: #f1f5f9 !important; }
+[data-theme="dark"] .text-muted,
+[data-theme="dark"] small.text-muted { color: #94a3b8 !important; }
+[data-theme="dark"] .an-kpi-label { color: rgba(255,255,255,0.9) !important; }
+[data-theme="dark"] .an-metric-val { color: #f1f5f9 !important; }
+[data-theme="dark"] .an-metric-lbl { color: #94a3b8 !important; }
+[data-theme="dark"] .an-stat-num { color: #f1f5f9 !important; }
+[data-theme="dark"] .an-stat-lbl { color: #94a3b8 !important; }
+[data-theme="dark"] .an-lb-name { color: #f1f5f9 !important; }
+[data-theme="dark"] .an-lb-sub { color: #94a3b8 !important; }
+[data-theme="dark"] .fw-700 { color: #e2e8f0 !important; }
+[data-theme="dark"] .an-branch-row .fw-700 { color: #f1f5f9 !important; }
+[data-theme="dark"] .an-branch-row .text-muted { color: #94a3b8 !important; }
+[data-theme="dark"] .modal-content { background: #1e293b; color: #f1f5f9; }
+[data-theme="dark"] .modal-header { background: linear-gradient(135deg,#1e3a8a,#2563eb); }
+[data-theme="dark"] .form-label { color: #94a3b8 !important; }
+[data-theme="dark"] .form-control { background: #334155; border-color: #475569; color: #f1f5f9; }
+[data-theme="dark"] .form-control:focus { background: #334155; border-color: #2563eb; color: #f1f5f9; }
 
 @media (max-width: 768px) {
     .an-metrics-strip { gap: 1rem; }
@@ -996,7 +1020,7 @@
 @endpush
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ asset('assets/chart.js/chart.umd.min.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -1151,7 +1175,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const offsets = [];
         let running = 0;
         sorted.forEach((b, i) => {
-            offsets.push(running);
+            offsets.push(running)
             running += b.rev;
         });
         new Chart(waterfallCtx, {
@@ -1210,7 +1234,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 labels: branchNames.length ? branchNames : branchLbls,
                 datasets: [
                     { label: 'Revenue (₱)', data: branchRev, backgroundColor: 'rgba(59,130,246,0.85)', borderRadius: 6, yAxisID: 'yRev' },
-                    { label: 'Orders', data: branchOrds, backgroundColor: 'rgba(139,92,246,0.85)', borderRadius: 6, yAxisID: 'yOrd' }
+                    { label: 'Laundries', data: branchOrds, backgroundColor: 'rgba(139,92,246,0.85)', borderRadius: 6, yAxisID: 'yOrd' }
                 ]
             },
             options: {
@@ -1218,7 +1242,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 plugins: {
                     legend: { labels: { color: t.legend, usePointStyle: true, font: { size: 11 } } },
                     tooltip: { ...tooltipDefaults(), callbacks: {
-                        label: ctx => ctx.datasetIndex === 0 ? ` Revenue: ₱${ctx.raw.toLocaleString()}` : ` Orders: ${ctx.raw}`
+                        label: ctx => ctx.datasetIndex === 0 ? ` Revenue: ₱${ctx.raw.toLocaleString()}` : ` Laundries: ${ctx.raw}`
                     }}
                 },
                 scales: {
@@ -1238,7 +1262,7 @@ document.addEventListener('DOMContentLoaded', function () {
         new Chart(bRadarCtx, {
             type: 'radar',
             data: {
-                labels: ['Revenue', 'Orders', 'Avg Value', 'Share', 'Volume'],
+                labels: ['Revenue', 'Laundries', 'Avg Value', 'Share', 'Volume'],
                 datasets: (branchNames.length ? branchNames : branchLbls).map((name, i) => ({
                     label: name,
                     data: [
@@ -1301,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data: {
                 labels: sortIdx.map(s => svcLbls[s.i] || ''),
                 datasets: [{
-                    label: 'Orders',
+                    label: 'Laundries',
                     data: sortIdx.map(s => s.v),
                     backgroundColor: sortIdx.map((_,i) => COLORS[i % COLORS.length]),
                     borderRadius: 8
@@ -1312,7 +1336,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 responsive: true, maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    tooltip: { ...tooltipDefaults(), callbacks: { label: ctx => ` ${ctx.raw} orders` } }
+                    tooltip: { ...tooltipDefaults(), callbacks: { label: ctx => ` ${ctx.raw} laundries` } }
                 },
                 scales: {
                     x: { ...axisDefaults(), beginAtZero: true },
@@ -1539,7 +1563,7 @@ async function pollAnalytics() {
         flipUpdate(document.getElementById('kpi-rev-value'),
             '₱' + Number(d.revenue.total).toLocaleString('en-PH', { maximumFractionDigits: 0 }));
         flipUpdate(document.getElementById('kpi-rev-sub'),
-            'Avg ₱' + Number(d.revenue.average_laundry_value).toLocaleString('en-PH', { maximumFractionDigits: 0 }) + ' / order');
+            'Avg ₱' + Number(d.revenue.average_laundry_value).toLocaleString('en-PH', { maximumFractionDigits: 0 }) + ' / laundry');
 
         const gBadge = document.getElementById('kpi-rev-growth');
         if (gBadge) {
@@ -1562,7 +1586,7 @@ async function pollAnalytics() {
         flipUpdate(document.getElementById('kpi-cust-value'),
             Number(d.customer.total).toLocaleString());
         flipUpdate(document.getElementById('kpi-cust-sub'),
-            d.customer.avg_laundries_per_customer + ' avg orders / customer');
+            d.customer.avg_laundries_per_customer + ' avg laundries / customer');
         const cNew = document.getElementById('kpi-cust-new');
         if (cNew) cNew.innerHTML = `<i class="bi bi-plus"></i>${Number(d.customer.new).toLocaleString()}`;
 

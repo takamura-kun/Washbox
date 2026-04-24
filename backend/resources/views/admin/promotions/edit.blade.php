@@ -27,11 +27,11 @@
         <div class="row g-4">
             {{-- Left Column: Form Fields --}}
             <div class="col-xl-8">
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white py-3 border-bottom">
-                        <h5 class="fw-bold mb-0 text-primary">General Information</h5>
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header py-3 border-bottom" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h5 class="fw-bold mb-0" style="color: var(--text-primary) !important;">General Information</h5>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-label fw-bold">Banner Image</label>
@@ -93,13 +93,13 @@
 
             {{-- Right Column: Preview & Status --}}
             <div class="col-xl-4">
-                <div class="card border-0 shadow-sm rounded-4 mb-4 sticky-top" style="top: 20px;">
-                    <div class="card-header bg-dark text-white py-3 rounded-top-4">
+                <div class="card border-0 shadow-sm rounded-4 mb-4 sticky-top" style="top: 20px; background-color: var(--card-bg) !important;">
+                    <div class="card-header text-white py-3 rounded-top-4" style="background: #1F2937 !important;">
                         <h6 class="mb-0 fw-bold text-center"><i class="bi bi-phone me-2"></i>Live App Preview</h6>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-0" style="background-color: var(--card-bg) !important;">
                         {{-- Mockup Screen --}}
-                        <div class="bg-light p-3">
+                        <div class="p-3" style="background-color: var(--input-bg) !important;">
                             <div class="border rounded-3 bg-white shadow-sm overflow-hidden mx-auto" style="max-width: 280px;">
                                 <img id="prev-img" src="{{ $promotion->banner_image ? asset('storage/'.$promotion->banner_image) : 'https://via.placeholder.com/600x300?text=Banner' }}"
                                      class="w-100" style="height: 140px; object-fit: cover;">
@@ -119,11 +119,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="p-4 border-top">
+                        <div class="p-4 border-top" style="background-color: var(--card-bg) !important;">
                             <button type="submit" class="btn btn-success w-100 py-2 fw-bold shadow-sm">
                                 <i class="bi bi-check-circle me-2"></i> Save Changes
                             </button>
-                            <p class="text-center text-muted small mt-3 mb-0">Updates will be visible immediately to customers in the selected branch.</p>
+                            <p class="text-center small mt-3 mb-0" style="color: var(--text-secondary) !important;">Updates will be visible immediately to customers in the selected branch.</p>
                         </div>
                     </div>
                 </div>

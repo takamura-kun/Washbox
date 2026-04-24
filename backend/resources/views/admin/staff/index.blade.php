@@ -17,68 +17,68 @@
     {{-- Stats Overview --}}
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-primary border-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="bg-primary bg-opacity-10 p-3 rounded-3">
-                            <i class="bi bi-people fs-3 text-primary"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-primary border-4" style="background-color: var(--card-bg) !important;">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="bg-primary bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-people fs-5 text-primary"></i>
                         </div>
                     </div>
-                    <h6 class="text-muted mb-2">Total Staff</h6>
-                    <h2 class="fw-bold mb-0">{{ $stats['total'] }}</h2>
-                    <small class="text-muted">All employees</small>
+                    <h6 class="text-muted mb-1" style="color: var(--text-secondary) !important; font-size: 0.75rem;">Total Staff</h6>
+                    <h3 class="fw-bold mb-0" style="color: var(--text-primary) !important; font-size: 1.5rem;">{{ $stats['total'] }}</h3>
+                    <small class="text-muted" style="color: var(--text-secondary) !important; font-size: 0.7rem;">All employees</small>
                 </div>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-success border-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="bg-success bg-opacity-10 p-3 rounded-3">
-                            <i class="bi bi-check-circle fs-3 text-success"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-success border-4" style="background-color: var(--card-bg) !important;">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="bg-success bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-check-circle fs-5 text-success"></i>
                         </div>
                     </div>
-                    <h6 class="text-muted mb-2">Active Staff</h6>
-                    <h2 class="fw-bold mb-0">{{ $stats['active'] }}</h2>
-                    <small class="text-success fw-semibold">{{ $stats['total'] > 0 ? round(($stats['active']/$stats['total'])*100) : 0 }}% active</small>
+                    <h6 class="text-muted mb-1" style="color: var(--text-secondary) !important; font-size: 0.75rem;">Active Staff</h6>
+                    <h3 class="fw-bold mb-0" style="color: var(--text-primary) !important; font-size: 1.5rem;">{{ $stats['active'] }}</h3>
+                    <small class="text-success fw-semibold" style="font-size: 0.7rem;">{{ $stats['total'] > 0 ? round(($stats['active']/$stats['total'])*100) : 0 }}% active</small>
                 </div>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-secondary border-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="bg-secondary bg-opacity-10 p-3 rounded-3">
-                            <i class="bi bi-pause-circle fs-3 text-secondary"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-secondary border-4" style="background-color: var(--card-bg) !important;">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="bg-secondary bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-pause-circle fs-5 text-secondary"></i>
                         </div>
                     </div>
-                    <h6 class="text-muted mb-2">Inactive Staff</h6>
-                    <h2 class="fw-bold mb-0">{{ $stats['inactive'] }}</h2>
-                    <small class="text-muted">Not working</small>
+                    <h6 class="text-muted mb-1" style="color: var(--text-secondary) !important; font-size: 0.75rem;">Inactive Staff</h6>
+                    <h3 class="fw-bold mb-0" style="color: var(--text-primary) !important; font-size: 1.5rem;">{{ $stats['inactive'] }}</h3>
+                    <small class="text-muted" style="color: var(--text-secondary) !important; font-size: 0.7rem;">Not working</small>
                 </div>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-info border-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="bg-info bg-opacity-10 p-3 rounded-3">
-                            <i class="bi bi-box-seam fs-3 text-info"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-info border-4" style="background-color: var(--card-bg) !important;">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="bg-info bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-box-seam fs-5 text-info"></i>
                         </div>
                     </div>
-                    <h6 class="text-muted mb-2">Total Laundries</h6>
-                    <h2 class="fw-bold mb-0">{{ number_format($stats['total_laundries']) }}</h2>
-                    <small class="text-muted">Handled by staff</small>
+                    <h6 class="text-muted mb-1" style="color: var(--text-secondary) !important; font-size: 0.75rem;">Total Laundries</h6>
+                    <h3 class="fw-bold mb-0" style="color: var(--text-primary) !important; font-size: 1.5rem;">{{ number_format($stats['total_laundries']) }}</h3>
+                    <small class="text-muted" style="color: var(--text-secondary) !important; font-size: 0.7rem;">Handled by staff</small>
                 </div>
             </div>
         </div>
     </div>
 
     {{-- Filters --}}
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important;">
         <div class="card-body p-3">
             <form method="GET" class="row g-2 align-items-center">
                 <div class="col-md-3">
@@ -115,7 +115,7 @@
                     </select>
                 </div>
                 <div class="col-md-2 text-end">
-                    <a href="{{ route('admin.staff.index') }}" class="btn btn-sm btn-light border text-secondary w-100">
+                    <a href="{{ route('admin.staff.index') }}" class="btn btn-sm btn-light border text-secondary w-100" style="background-color: var(--bg-color) !important; border-color: var(--border-color) !important; color: var(--text-secondary) !important;">
                         Clear Filters
                     </a>
                 </div>
@@ -124,12 +124,12 @@
     </div>
 
     {{-- Staff Cards --}}
-    <div class="row g-4 mb-4">
+    <div class="row g-4 mb-4" style="background-color: transparent !important;">
         @forelse($staff as $member)
         <div class="col-lg-3 col-md-4 col-sm-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 staff-card">
+            <div class="card border-0 shadow-sm rounded-4 h-100 staff-card" style="background-color: var(--card-bg) !important;">
                 {{-- Photo --}}
-                <div class="position-relative text-center pt-4">
+                <div class="position-relative text-center pt-4" style="background-color: var(--card-bg) !important;">
                     @if($member->profile_photo_path)
                         <img src="{{ asset('storage/' . $member->profile_photo_path) }}"
                             class="rounded-circle border border-3"
@@ -150,9 +150,9 @@
                 </div>
 
                 {{-- Info --}}
-                <div class="card-body p-4 text-center">
-                    <h6 class="fw-bold mb-1">{{ $member->name }}</h6>
-                    <p class="text-muted small mb-2">{{ $member->position ?? 'Staff Member' }}</p>
+                <div class="card-body p-4 text-center" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <h6 class="fw-bold mb-1" style="color: var(--text-primary) !important;">{{ $member->name }}</h6>
+                    <p class="text-muted small mb-2" style="color: var(--text-secondary) !important;">{{ $member->position ?? 'Staff Member' }}</p>
 
                     @if($member->branch)
                         <span class="badge bg-light text-dark border mb-3">
@@ -164,12 +164,12 @@
                     <div class="text-start mb-3 pb-3 border-bottom">
                         <div class="d-flex align-items-center text-muted small mb-1">
                             <i class="bi bi-envelope me-2" style="color: #3D3B6B;"></i>
-                            <span class="text-truncate">{{ Str::limit($member->email, 25) }}</span>
+                            <span class="text-truncate" style="color: var(--text-secondary) !important;">{{ Str::limit($member->email, 25) }}</span>
                         </div>
                         @if($member->phone)
                         <div class="d-flex align-items-center text-muted small">
                             <i class="bi bi-telephone me-2" style="color: #3D3B6B;"></i>
-                            <span>{{ $member->phone }}</span>
+                            <span style="color: var(--text-secondary) !important;">{{ $member->phone }}</span>
                         </div>
                         @endif
                     </div>
@@ -177,13 +177,13 @@
                     {{-- Stats --}}
                     <div class="row g-2 mb-3">
                         <div class="col-6">
-                            <div class="bg-light rounded p-2">
-                                <div class="fw-bold text-dark">{{ $member->laundries_count }}</div>
-                                <small class="text-muted">Laundries</small>
+                            <div class="staff-stats-box rounded p-2">
+                                <div class="fw-bold">{{ $member->laundries_count }}</div>
+                                <small>Laundries</small>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="bg-light rounded p-2">
+                            <div class="staff-stats-box rounded p-2">
                                 <div class="fw-bold text-primary">
                                     @if($member->hire_date)
                                         {{ \Carbon\Carbon::parse($member->hire_date)->diffInMonths(now()) }}m
@@ -191,7 +191,7 @@
                                         N/A
                                     @endif
                                 </div>
-                                <small class="text-muted">Tenure</small>
+                                <small>Tenure</small>
                             </div>
                         </div>
                     </div>
@@ -212,11 +212,11 @@
         </div>
         @empty
         <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-5 text-center">
+            <div class="card border-0 shadow-sm rounded-4" style="background-color: var(--card-bg) !important;">
+                <div class="card-body p-5 text-center" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                     <i class="bi bi-people" style="font-size: 4rem; opacity: 0.2;"></i>
-                    <h5 class="fw-bold mt-3">No Staff Members Found</h5>
-                    <p class="text-muted mb-3">Start by adding your first staff member</p>
+                    <h5 class="fw-bold mt-3" style="color: var(--text-primary) !important;">No Staff Members Found</h5>
+                    <p class="text-muted mb-3" style="color: var(--text-secondary) !important;">Start by adding your first staff member</p>
                     <a href="{{ route('admin.staff.create') }}" class="btn btn-primary" style="background: #3D3B6B; border: none;">
                         <i class="bi bi-person-plus me-2"></i>Add Staff Member
                     </a>
@@ -238,6 +238,8 @@
 <style>
     .staff-card {
         transition: transform 0.2s, box-shadow 0.2s;
+        background-color: var(--card-bg) !important;
+        border-color: var(--border-color) !important;
     }
 
     .staff-card:hover {
@@ -245,8 +247,42 @@
         box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
     }
 
-    .bg-light:hover {
-        background-color: #E5E7EB !important;
+    [data-theme="dark"] .staff-card:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.4) !important;
+    }
+
+    .staff-stats-box {
+        background-color: var(--bg-color) !important;
+        border: 1px solid var(--border-color) !important;
+    }
+
+    .staff-stats-box .fw-bold {
+        color: var(--text-primary) !important;
+    }
+
+    .staff-stats-box small {
+        color: var(--text-secondary) !important;
+    }
+    
+    /* Dark mode support */
+    [data-theme="dark"] .staff-card .fw-bold,
+    [data-theme="dark"] .staff-card h6 {
+        color: var(--text-primary) !important;
+    }
+
+    [data-theme="dark"] .staff-card .text-muted,
+    [data-theme="dark"] .staff-card small {
+        color: var(--text-secondary) !important;
+    }
+
+    [data-theme="dark"] .staff-card .text-truncate {
+        color: var(--text-secondary) !important;
+    }
+
+    [data-theme="dark"] .badge.bg-light {
+        background-color: var(--border-color) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border-color) !important;
     }
 </style>
 @endpush

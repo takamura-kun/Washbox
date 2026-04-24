@@ -24,13 +24,13 @@
             {{-- Left Column - Form --}}
             <div class="col-lg-7">
                 {{-- Basic Information --}}
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold" style="color: #3D3B6B;">
+                <div class="card border-0 shadow-sm mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-info-circle"></i> Basic Information
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Promotion Name (Internal)</label>
@@ -76,13 +76,13 @@
                 </div>
 
                 {{-- Features Section --}}
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold" style="color: #3D3B6B;">
+                <div class="card border-0 shadow-sm mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-star"></i> Promotion Features
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Free Services / Features</label>
                             <div id="features-container">
@@ -116,13 +116,13 @@
                 </div>
 
                 {{-- Schedule & Target --}}
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold" style="color: #3D3B6B;">
+                <div class="card border-0 shadow-sm mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-calendar-check"></i> Schedule & Target
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Start Date</label>
@@ -165,13 +165,13 @@
                 </div>
 
                 {{-- Design Options --}}
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold" style="color: #3D3B6B;">
+                <div class="card border-0 shadow-sm mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-palette"></i> Design Options
                         </h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Color Theme</label>
                             <div class="d-flex gap-2">
@@ -225,13 +225,13 @@
             {{-- Right Column - Live Preview --}}
             <div class="col-lg-5">
                 <div class="sticky-top" style="top: 20px;">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-dark text-white py-3">
+                    <div class="card border-0 shadow-sm" style="background-color: var(--card-bg) !important;">
+                        <div class="card-header py-3" style="background-color: #1F2937 !important; color: white !important;">
                             <h6 class="mb-0 fw-bold">
                                 <i class="bi bi-eye"></i> Live Poster Preview
                             </h6>
                         </div>
-                        <div class="card-body p-0">
+                        <div class="card-body p-0" style="background-color: var(--card-bg) !important;">
                             {{-- Poster Preview Canvas --}}
                             <div id="poster-preview" class="position-relative"
                                 style="width: 100%; aspect-ratio: 1/1; background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%); overflow: hidden;">
@@ -299,8 +299,8 @@
                             </div>
 
                             {{-- Preview Info --}}
-                            <div class="p-3 bg-light border-top">
-                                <small class="text-muted">
+                            <div class="p-3 border-top" style="background-color: var(--card-bg) !important; color: var(--text-secondary) !important;">
+                                <small style="color: var(--text-secondary) !important;">
                                     <i class="bi bi-info-circle"></i> This preview shows how your poster will look.
                                     Adjust the form fields above to see real-time updates.
                                 </small>

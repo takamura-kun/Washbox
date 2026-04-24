@@ -1,0 +1,304 @@
+/* =====================================================================
+   staff-unclaimed.css - Staff Unclaimed Laundry Management Styles
+   Staff-specific styling for unclaimed laundry management
+   ===================================================================== */
+
+/* Import base unclaimed styles */
+@import url('./unclaimed.css');
+
+/* ============================================ */
+/* STAFF-SPECIFIC OVERRIDES */
+/* ============================================ */
+
+/* Page Header Styling */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.page-header h4 {
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* Stats Grid Layout */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.stat-icon-wrapper.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #F59E0B;
+}
+
+.stat-icon-wrapper.danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+}
+
+.stat-icon-wrapper.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10B981;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-trend {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Urgency Card */
+.urgency-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.urgency-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+}
+
+.urgency-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+}
+
+.urgency-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+}
+
+.urgency-item.active {
+    border-color: var(--primary-color);
+    background: rgba(45, 43, 95, 0.05);
+}
+
+.urgency-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.urgency-badge.critical {
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+}
+
+.urgency-badge.urgent {
+    background: rgba(245, 158, 11, 0.1);
+    color: #F59E0B;
+}
+
+.urgency-badge.warning {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3B82F6;
+}
+
+.urgency-badge.pending {
+    background: rgba(108, 117, 125, 0.1);
+    color: #6C757D;
+}
+
+.urgency-badge.all {
+    background: rgba(45, 43, 95, 0.1);
+    color: var(--primary-color);
+}
+
+.urgency-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.urgency-desc {
+    font-size: 0.625rem;
+    color: var(--text-secondary);
+}
+
+/* Filter Card */
+.filter-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.filter-input,
+.filter-select {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(45, 43, 95, 0.1);
+    outline: none;
+}
+
+.filter-btn {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: none;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.filter-btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.filter-btn-primary:hover {
+    background: #3D3B7F;
+    transform: translateY(-1px);
+}
+
+.filter-btn-clear {
+    background: var(--border-color);
+    color: var(--text-secondary);
+}
+
+.filter-btn-clear:hover {
+    background: #cbd5e1;
+    color: var(--text-primary);
+}
+
+/* Responsive Design for Staff Panel */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .urgency-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .filter-card .row > div {
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .urgency-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .urgency-item {
+        padding: 0.75rem;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .filter-card {
+        padding: 1rem;
+    }
+}

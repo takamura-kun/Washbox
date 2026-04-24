@@ -4,6 +4,25 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('assets/css/pickups.css') }}">
+    <style>
+        .pickup-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .pickup-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
+        }
+        /* Light mode */
+        [data-theme="light"] .pickup-card {
+            background-color: #ffffff !important;
+            color: #111827 !important;
+        }
+        /* Dark mode */
+        [data-theme="dark"] .pickup-card {
+            background-color: #1F2937 !important;
+            color: #F9FAFB !important;
+        }
+    </style>
 @endpush
 
 @section('content')
@@ -24,39 +43,39 @@
     @endif
 
     {{-- ── Stat Cards ─────────────────────────────────────────── --}}
-    <div class="pk-stats-grid">
-        <div class="pk-stat-card">
+    <div class="pk-stats-grid" style="background-color: transparent !important;">
+        <div class="pk-stat-card" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
             <div class="pk-stat-icon warning"><i class="bi bi-clock-history"></i></div>
             <div>
-                <div class="pk-stat-label">Pending</div>
-                <div class="pk-stat-value">{{ $stats['pending'] ?? 0 }}</div>
+                <div class="pk-stat-label" style="color: var(--text-secondary) !important;">Pending</div>
+                <div class="pk-stat-value" style="color: var(--text-primary) !important;">{{ $stats['pending'] ?? 0 }}</div>
             </div>
         </div>
-        <div class="pk-stat-card">
+        <div class="pk-stat-card" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
             <div class="pk-stat-icon info"><i class="bi bi-check-circle"></i></div>
             <div>
-                <div class="pk-stat-label">Accepted</div>
-                <div class="pk-stat-value">{{ $stats['accepted'] ?? 0 }}</div>
+                <div class="pk-stat-label" style="color: var(--text-secondary) !important;">Accepted</div>
+                <div class="pk-stat-value" style="color: var(--text-primary) !important;">{{ $stats['accepted'] ?? 0 }}</div>
             </div>
         </div>
-        <div class="pk-stat-card">
+        <div class="pk-stat-card" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
             <div class="pk-stat-icon primary"><i class="bi bi-truck"></i></div>
             <div>
-                <div class="pk-stat-label">En Route</div>
-                <div class="pk-stat-value">{{ $stats['en_route'] ?? 0 }}</div>
+                <div class="pk-stat-label" style="color: var(--text-secondary) !important;">En Route</div>
+                <div class="pk-stat-value" style="color: var(--text-primary) !important;">{{ $stats['en_route'] ?? 0 }}</div>
             </div>
         </div>
-        <div class="pk-stat-card">
+        <div class="pk-stat-card" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
             <div class="pk-stat-icon success"><i class="bi bi-box-seam"></i></div>
             <div>
-                <div class="pk-stat-label">Picked Up</div>
-                <div class="pk-stat-value">{{ $stats['picked_up'] ?? 0 }}</div>
+                <div class="pk-stat-label" style="color: var(--text-secondary) !important;">Picked Up</div>
+                <div class="pk-stat-value" style="color: var(--text-primary) !important;">{{ $stats['picked_up'] ?? 0 }}</div>
             </div>
         </div>
     </div>
 
     {{-- ── Filters ─────────────────────────────────────────────── --}}
-    <div class="pk-filter-card">
+    <div class="pk-filter-card" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
         <form method="GET" action="{{ route('staff.pickups.index') }}" class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label class="form-label">Status</label>
@@ -90,196 +109,154 @@
         </form>
     </div>
 
-    {{-- ── Table ────────────────────────────────────────────────── --}}
-    <div class="pk-table-card">
-        @if($pickups->count() > 0)
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Customer</th>
-                        <th>Pickup Address</th>
-                        <th>Preferred Date</th>
-                        <th>Status</th>
-                        <th>Assigned</th>
-                        <th>Created</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($pickups as $pickup)
-                    @php
-                        $hasLaundry   = $pickup->laundry !== null;
-                        $isMyPickup   = $pickup->assigned_to === auth()->id();
-                        $adminAccepted = $pickup->isAccepted() && $pickup->assignedStaff && !$isMyPickup;
-                    @endphp
-                    <tr>
-                        <td><span class="pk-id">#{{ $pickup->id }}</span></td>
-
-                        <td>
-                            <div class="pk-customer-name">{{ $pickup->customer->name }}</div>
-                            @if($pickup->phone_number ?? $pickup->contact_phone ?? null)
-                                <div class="pk-customer-phone">
-                                    <i class="bi bi-telephone me-1"></i>{{ $pickup->phone_number ?? $pickup->contact_phone }}
-                                </div>
-                            @endif
-                        </td>
-
-                        <td>
-                            <div class="pk-address">{{ Str::limit($pickup->pickup_address, 40) }}</div>
-                            @if($pickup->latitude && $pickup->longitude)
-                                <a href="{{ $pickup->map_url }}" target="_blank"
-                                   class="pk-landmark text-decoration-none">
-                                    <i class="bi bi-geo-alt me-1"></i>Map
-                                </a>
-                            @endif
-                        </td>
-
-                        <td>
-                            <div style="font-weight:600;font-size:.82rem;">
-                                {{ \Carbon\Carbon::parse($pickup->preferred_date)->format('M d, Y') }}
+    {{-- ── Pickup Cards Grid ────────────────────────────────────────────────── --}}
+    @if($pickups->count() > 0)
+        <div class="row g-3" style="background-color: transparent !important;">
+            @foreach($pickups as $pickup)
+            @php
+                $hasLaundry = $pickup->laundry !== null;
+                $isMyPickup = $pickup->assigned_to === auth()->id();
+                $adminAccepted = $pickup->isAccepted() && $pickup->assignedStaff && !$isMyPickup;
+                $statusColors = [
+                    'pending' => 'warning',
+                    'accepted' => 'info',
+                    'en_route' => 'primary',
+                    'picked_up' => 'success',
+                    'cancelled' => 'danger',
+                ];
+                $color = $statusColors[$pickup->status] ?? 'secondary';
+            @endphp
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 pickup-card" style="background-color: var(--card-bg) !important;">
+                    <div class="card-body p-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <span class="pk-id">#{{ $pickup->id }}</span>
+                                @if($hasLaundry)
+                                    <div class="pk-laundry-done mt-1">
+                                        <i class="bi bi-check2-all"></i> Laundry Created
+                                    </div>
+                                @endif
                             </div>
-                            @if($pickup->preferred_time ?? $pickup->preferred_time_slot ?? null)
-                                <div class="pk-timestamp">
-                                    {{ $pickup->preferred_time
-                                        ? date('g:i A', strtotime($pickup->preferred_time))
-                                        : ($pickup->preferred_time_slot ?? '') }}
-                                </div>
-                            @endif
-                        </td>
-
-                        <td>
-                            <span class="pk-badge {{ $pickup->status }}">
-                                @if($pickup->status==='pending')   <i class="bi bi-clock"></i>
-                                @elseif($pickup->status==='accepted')  <i class="bi bi-check-circle"></i>
-                                @elseif($pickup->status==='en_route')  <i class="bi bi-truck"></i>
+                            <span class="badge bg-{{ $color }}">
+                                @if($pickup->status==='pending') <i class="bi bi-clock"></i>
+                                @elseif($pickup->status==='accepted') <i class="bi bi-check-circle"></i>
+                                @elseif($pickup->status==='en_route') <i class="bi bi-truck"></i>
                                 @elseif($pickup->status==='picked_up') <i class="bi bi-box-seam"></i>
                                 @elseif($pickup->status==='cancelled') <i class="bi bi-x-circle"></i>
                                 @endif
                                 {{ ucfirst(str_replace('_',' ',$pickup->status)) }}
                             </span>
-
-                            {{-- Laundry created indicator --}}
-                            @if($hasLaundry)
-                                <div class="pk-laundry-done mt-1">
-                                    <i class="bi bi-check2-all"></i> Laundry Created
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-person-circle me-2 text-muted"></i>
+                                <div>
+                                    <div class="pk-customer-name">{{ $pickup->customer->name }}</div>
+                                    @if($pickup->phone_number ?? $pickup->contact_phone ?? null)
+                                        <small class="text-muted">{{ $pickup->phone_number ?? $pickup->contact_phone }}</small>
+                                    @endif
                                 </div>
-                            @endif
-                        </td>
-
-                        <td>
-                            @if($pickup->assignedStaff)
-                                <div style="font-size:.8rem;font-weight:600;">
-                                    {{ $isMyPickup ? 'You' : $pickup->assignedStaff->name }}
-                                </div>
-                                {{--
-                                    Show an "Admin Accepted" badge when the pickup
-                                    was accepted/assigned by an admin user, so staff
-                                    knows it didn't come in blank.
-                                --}}
-                                @if($adminAccepted)
-                                    <div class="pk-admin-badge">
-                                        <i class="bi bi-shield-check"></i> Admin Assigned
-                                    </div>
-                                @elseif($isMyPickup)
-                                    <div class="pk-admin-badge" style="background:rgba(34,197,94,0.10);color:#15803d;">
-                                        <i class="bi bi-person-check"></i> Assigned to You
-                                    </div>
-                                @endif
-                            @else
-                                <span class="pk-timestamp">Unassigned</span>
-                            @endif
-                        </td>
-
-                        <td>
-                            <div class="pk-timestamp" title="{{ $pickup->created_at->format('Y-m-d H:i:s') }}">
-                                {{ $pickup->created_at->diffForHumans() }}
                             </div>
-                        </td>
-
-                        <td>
-                            <div class="pk-actions">
-
-                                {{-- View --}}
-                                <a href="{{ route('staff.pickups.show', $pickup->id) }}"
-                                   class="pk-btn pk-btn-view" title="View">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-
-                                {{-- Accept (pending only) --}}
-                                @if($pickup->status === 'pending')
-                                    <form action="{{ route('staff.pickups.accept', $pickup->id) }}"
-                                          method="POST" class="d-inline"
-                                          onsubmit="return confirm('Accept this pickup request?')">
-                                        @csrf
-                                        <button type="submit" class="pk-btn pk-btn-accept">
-                                            <i class="bi bi-check-circle"></i> Accept
-                                        </button>
-                                    </form>
-                                @endif
-
-                                {{-- En Route (accepted + assigned to me) --}}
-                                @if($pickup->status === 'accepted' && $isMyPickup)
-                                    <form action="{{ route('staff.pickups.en-route', $pickup->id) }}"
-                                          method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="pk-btn pk-btn-enroute">
-                                            <i class="bi bi-truck"></i> En Route
-                                        </button>
-                                    </form>
-                                @endif
-
-                                {{-- Picked Up (en_route + assigned to me) --}}
-                                @if($pickup->status === 'en_route' && $isMyPickup)
-                                    <form action="{{ route('staff.pickups.picked-up', $pickup->id) }}"
-                                          method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="pk-btn pk-btn-pickedup">
-                                            <i class="bi bi-box-seam"></i> Picked Up
-                                        </button>
-                                    </form>
-                                @endif
-
-                                {{--
-                                    Create Laundry / View Laundry
-                                    BUG FIX: the original check was `!$pickup->laundries_id`
-                                    which is a typo — always null, always true.
-                                    Now uses the eager-loaded `laundry` relationship.
-                                    - Show "Create Laundry" only if picked_up AND no laundry yet
-                                    - Show "View Laundry" once a laundry record exists
-                                --}}
-                                @if($pickup->status === 'picked_up')
-                                    @if(!$hasLaundry)
-                                        <a href="{{ route('staff.laundries.create', ['pickup_id' => $pickup->id]) }}"
-                                           class="pk-btn pk-btn-create">
-                                            <i class="bi bi-plus-circle"></i> Create Laundry
-                                        </a>
-                                    @else
-                                        <a href="{{ route('staff.laundries.show', $pickup->laundry->id) }}"
-                                           class="pk-btn pk-btn-view-laundry">
-                                            <i class="bi bi-box-seam"></i> View Laundry
+                            <div class="d-flex align-items-start mb-2">
+                                <i class="bi bi-geo-alt me-2 text-muted mt-1"></i>
+                                <div class="flex-grow-1">
+                                    <div class="pk-address">{{ Str::limit($pickup->pickup_address, 50) }}</div>
+                                    @if($pickup->latitude && $pickup->longitude)
+                                        <a href="{{ $pickup->map_url }}" target="_blank" class="small text-decoration-none">
+                                            <i class="bi bi-map me-1"></i>View Map
                                         </a>
                                     @endif
-                                @endif
-
+                                </div>
                             </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-event me-2 text-muted"></i>
+                                <div>
+                                    <span style="font-weight:600;font-size:.82rem;">{{ \Carbon\Carbon::parse($pickup->preferred_date)->format('M d, Y') }}</span>
+                                    @if($pickup->preferred_time ?? $pickup->preferred_time_slot ?? null)
+                                        <small class="text-muted ms-1">
+                                            {{ $pickup->preferred_time ? date('g:i A', strtotime($pickup->preferred_time)) : ($pickup->preferred_time_slot ?? '') }}
+                                        </small>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <div>
+                                @if($pickup->assignedStaff)
+                                    <small class="text-muted">Assigned to</small>
+                                    <div style="font-size:.8rem;font-weight:600;">{{ $isMyPickup ? 'You' : $pickup->assignedStaff->name }}</div>
+                                    @if($adminAccepted)
+                                        <small class="badge bg-info bg-opacity-10 text-info"><i class="bi bi-shield-check"></i> Admin</small>
+                                    @elseif($isMyPickup)
+                                        <small class="badge bg-success bg-opacity-10 text-success"><i class="bi bi-person-check"></i> You</small>
+                                    @endif
+                                @else
+                                    <small class="text-muted">Unassigned</small>
+                                @endif
+                                <small class="text-muted d-block">{{ $pickup->created_at->diffForHumans() }}</small>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 mt-3">
+                            <a href="{{ route('staff.pickups.show', $pickup->id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            @if($pickup->status === 'pending')
+                                <form action="{{ route('staff.pickups.accept', $pickup->id) }}" method="POST" class="flex-fill" onsubmit="return confirm('Accept this pickup request?')">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-success w-100">
+                                        <i class="bi bi-check-circle"></i> Accept
+                                    </button>
+                                </form>
+                            @endif
+                            @if($pickup->status === 'accepted' && $isMyPickup)
+                                <form action="{{ route('staff.pickups.en-route', $pickup->id) }}" method="POST" class="flex-fill">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                                        <i class="bi bi-truck"></i> En Route
+                                    </button>
+                                </form>
+                            @endif
+                            @if($pickup->status === 'en_route' && $isMyPickup)
+                                <form action="{{ route('staff.pickups.picked-up', $pickup->id) }}" method="POST" class="flex-fill">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-success w-100">
+                                        <i class="bi bi-box-seam"></i> Picked Up
+                                    </button>
+                                </form>
+                            @endif
+                            @if($pickup->status === 'picked_up')
+                                @if(!$hasLaundry)
+                                    <a href="{{ route('staff.laundries.create', ['pickup_id' => $pickup->id]) }}" class="btn btn-sm btn-success flex-fill">
+                                        <i class="bi bi-plus-circle"></i> Create Laundry
+                                    </a>
+                                @else
+                                    <a href="{{ route('staff.laundries.show', $pickup->laundry->id) }}" class="btn btn-sm btn-info flex-fill">
+                                        <i class="bi bi-box-seam"></i> View Laundry
+                                    </a>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endforeach
         </div>
-        <div class="p-3">
-            {{ $pickups->appends(request()->query())->links() }}
+        <div class="card border-0 shadow-sm rounded-4 mt-3" style="background-color: var(--card-bg) !important;">
+            <div class="card-body p-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                {{ $pickups->appends(request()->query())->links() }}
+            </div>
         </div>
-        @else
-        <div class="pk-empty">
-            <div><i class="bi bi-inbox"></i></div>
-            <p>No pickup requests found</p>
+    @else
+        <div class="card border-0 shadow-sm rounded-4" style="background-color: var(--card-bg) !important;">
+            <div class="card-body p-5" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                <div class="pk-empty">
+                    <div><i class="bi bi-inbox"></i></div>
+                    <p>No pickup requests found</p>
+                </div>
+            </div>
         </div>
-        @endif
-    </div>
+    @endif
 
 </div>
 @endsection

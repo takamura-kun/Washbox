@@ -139,18 +139,18 @@ class LaundryObserver
                     'is_read' => false,
                 ]);
 
-                // 🔔 NOTIFY ADMIN: Laundry ready
+                // 🔔 NOTIFY ADMIN: Laundry ready - needs delivery assignment
                 AdminNotification::create([
                     'type' => 'laundry_ready',
-                    'title' => 'Laundry Ready for Pickup',
-                    'message' => "Laundry #{$laundry->tracking_number} is ready for customer pickup",
+                    'title' => 'Laundry Ready - Assign Delivery',
+                    'message' => "Laundry #{$laundry->tracking_number} is ready. Please assign staff for delivery.",
                     'icon' => 'bag-check',
-                    'color' => 'info',
+                    'color' => 'warning',
                     'link' => route('admin.laundries.show', $laundry->id),
                     'branch_id' => $laundry->branch_id,
                 ]);
 
-                // 🔔 NOTIFY STAFF IN BRANCH: Laundry ready
+                // 🔔 NOTIFY STAFF IN BRANCH: Laundry ready for delivery
                 if ($laundry->branch_id) {
                     $staffUsers = User::where('branch_id', $laundry->branch_id)
                         ->where('role', 'staff')
@@ -161,15 +161,16 @@ class LaundryObserver
                         StaffNotification::create([
                             'user_id' => $staff->id,
                             'type' => 'laundry_ready',
-                            'title' => 'Laundry Ready for Pickup',
-                            'message' => "Laundry #{$laundry->tracking_number} is ready for customer pickup",
-                            'icon' => 'bag-check',
-                            'color' => 'info',
+                            'title' => 'Laundry Ready for Delivery',
+                            'message' => "Laundry #{$laundry->tracking_number} is ready. Please prepare for delivery to {$laundry->customer->name}.",
+                            'icon' => 'truck',
+                            'color' => 'warning',
                             'link' => route('staff.laundries.show', $laundry->id),
                             'data' => [
                                 'laundries_id' => $laundry->id,
                                 'tracking_number' => $laundry->tracking_number,
                                 'customer_name' => $laundry->customer->name,
+                                'delivery_address' => $laundry->delivery_address,
                             ],
                             'branch_id' => $laundry->branch_id,
                         ]);

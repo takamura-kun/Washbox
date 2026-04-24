@@ -1,0 +1,439 @@
+/* ============================================
+   RESPONSIVE DESIGN ENHANCEMENTS
+   ============================================ */
+
+/* Base responsive utilities */
+* {
+    box-sizing: border-box;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Container adjustments */
+.container-xl {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+/* ============================================
+   MOBILE FIRST (< 576px)
+   ============================================ */
+@media (max-width: 575.98px) {
+    /* Typography */
+    h1 { font-size: 1.75rem !important; }
+    h2 { font-size: 1.5rem !important; }
+    h3 { font-size: 1.25rem !important; }
+    h4 { font-size: 1.1rem !important; }
+    h5 { font-size: 1rem !important; }
+
+    /* Dashboard header */
+    .dashboard-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .dashboard-header .col-lg-8,
+    .dashboard-header .col-lg-4 {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    /* Stats cards */
+    .stat-card {
+        margin-bottom: 1rem;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.5rem !important;
+    }
+
+    /* Buttons */
+    .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-group .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Tables */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table {
+        font-size: 0.875rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.5rem;
+        white-space: nowrap;
+    }
+
+    /* Hide less important columns on mobile */
+    .table .d-none-mobile {
+        display: none !important;
+    }
+
+    /* Cards */
+    .card {
+        margin-bottom: 1rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    /* Modals */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .modal-content {
+        border-radius: 0.5rem;
+    }
+
+    /* Forms */
+    .form-control,
+    .form-select {
+        font-size: 1rem;
+    }
+
+    /* Navigation tabs */
+    .nav-pills {
+        flex-wrap: wrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .nav-pills .nav-link {
+        margin-bottom: 0.5rem;
+        text-align: center;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Tab content visibility fix */
+    .tab-content {
+        min-height: 400px;
+        display: block !important;
+        width: 100%;
+    }
+
+    .tab-pane {
+        display: none;
+        width: 100%;
+    }
+
+    .tab-pane.active,
+    .tab-pane.show {
+        display: block !important;
+    }
+    
+    .tab-pane.active.show {
+        display: block !important;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Map container */
+    #logistics-map,
+    #modal-map {
+        height: 300px !important;
+        min-height: 300px;
+    }
+
+    /* Route details panel */
+    #routeDetailsPanel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 50vh;
+        overflow-y: auto;
+        z-index: 1040;
+        border-radius: 1rem 1rem 0 0;
+    }
+
+    /* Charts */
+    canvas {
+        max-height: 250px !important;
+    }
+
+    /* Pickup list */
+    .pickup-item {
+        padding: 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    /* Action buttons in lists */
+    .action-buttons {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .action-buttons .btn {
+        width: 100%;
+    }
+
+    /* Sidebar (if exists) */
+    .sidebar {
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: -100%;
+        height: 100vh;
+        transition: left 0.3s ease;
+        z-index: 1050;
+    }
+
+    .sidebar.show {
+        left: 0;
+    }
+
+    /* Floating action button */
+    .fab {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        z-index: 1030;
+    }
+}
+
+/* ============================================
+   TABLET (576px - 767.98px)
+   ============================================ */
+@media (min-width: 576px) and (max-width: 767.98px) {
+    .container-xl {
+        max-width: 540px;
+    }
+
+    /* Stats cards - 2 columns */
+    .stat-card {
+        flex: 0 0 calc(50% - 0.5rem);
+    }
+
+    /* Tables */
+    .table {
+        font-size: 0.9rem;
+    }
+
+    /* Map */
+    #logistics-map,
+    #modal-map {
+        height: 400px !important;
+    }
+
+    /* Charts */
+    canvas {
+        max-height: 300px !important;
+    }
+}
+
+/* ============================================
+   TABLET LANDSCAPE (768px - 991.98px)
+   ============================================ */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .container-xl {
+        max-width: 720px;
+    }
+
+    /* Stats cards - 3 columns */
+    .stat-card {
+        flex: 0 0 calc(33.333% - 0.67rem);
+    }
+
+    /* Map */
+    #logistics-map,
+    #modal-map {
+        height: 500px !important;
+    }
+}
+
+/* ============================================
+   DESKTOP (992px - 1199.98px)
+   ============================================ */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .container-xl {
+        max-width: 960px;
+    }
+
+    /* Stats cards - 4 columns */
+    .stat-card {
+        flex: 0 0 calc(25% - 0.75rem);
+    }
+}
+
+/* ============================================
+   LARGE DESKTOP (>= 1200px)
+   ============================================ */
+@media (min-width: 1200px) {
+    .container-xl {
+        max-width: 1140px;
+    }
+}
+
+/* ============================================
+   EXTRA LARGE DESKTOP (>= 1400px)
+   ============================================ */
+@media (min-width: 1400px) {
+    .container-xl {
+        max-width: 1320px;
+    }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .sidebar,
+    .navbar,
+    .btn,
+    .fab {
+        display: none !important;
+    }
+
+    .container-xl {
+        max-width: 100%;
+    }
+
+    .card {
+        page-break-inside: avoid;
+    }
+}
+
+/* ============================================
+   TOUCH DEVICE OPTIMIZATIONS
+   ============================================ */
+@media (hover: none) and (pointer: coarse) {
+    /* Larger touch targets */
+    .btn,
+    .nav-link,
+    a {
+        min-height: 44px;
+        min-width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Remove hover effects on touch devices */
+    .btn:hover,
+    .nav-link:hover {
+        transform: none;
+    }
+
+    /* Better scrolling */
+    .table-responsive,
+    .overflow-auto {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* ============================================
+   LANDSCAPE ORIENTATION
+   ============================================ */
+@media (orientation: landscape) and (max-height: 500px) {
+    /* Reduce header height in landscape */
+    .dashboard-header {
+        padding: 0.5rem 0;
+    }
+
+    /* Adjust map height */
+    #logistics-map,
+    #modal-map {
+        height: 250px !important;
+    }
+
+    /* Compact modals */
+    .modal-dialog {
+        max-height: 90vh;
+    }
+
+    .modal-body {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+}
+
+/* ============================================
+   ACCESSIBILITY ENHANCEMENTS
+   ============================================ */
+
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+/* Skip to main content link */
+.skip-to-main {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #0d6efd;
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    z-index: 9999;
+}
+
+.skip-to-main:focus {
+    top: 0;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .btn {
+        border: 2px solid currentColor;
+    }
+
+    .card {
+        border: 2px solid #000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bs-body-bg: #1a1a1a;
+        --bs-body-color: #e0e0e0;
+        --bs-card-bg: #2a2a2a;
+    }
+
+    .card {
+        background-color: var(--bs-card-bg);
+        color: var(--bs-body-color);
+    }
+
+    .table {
+        color: var(--bs-body-color);
+    }
+}

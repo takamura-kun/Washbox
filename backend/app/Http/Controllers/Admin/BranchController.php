@@ -58,8 +58,9 @@ class BranchController extends Controller
         // Calculate network-wide statistics
         $total_laundries = Laundry::count();
         $total_revenue = Laundry::sum('total_amount');
+        $total_staff = $branches->sum('active_staff');
 
-        return view('admin.branches.index', compact('branches', 'total_laundries', 'total_revenue'));
+        return view('admin.branches.index', compact('branches', 'total_laundries', 'total_revenue', 'total_staff'));
     }
 
     /**
@@ -89,6 +90,9 @@ class BranchController extends Controller
             'longitude' => 'nullable|numeric',
             'operating_hours' => 'nullable|string|max:500',
             'is_active' => 'nullable|boolean',
+            'gcash_account_name' => 'nullable|string|max:255',
+            'gcash_account_number' => 'nullable|string|max:20',
+            'gcash_qr_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         // Set is_active (default to true if not provided)
@@ -97,6 +101,14 @@ class BranchController extends Controller
         // Auto-geocode if coordinates not provided by map picker
         if (empty($validated['latitude']) || empty($validated['longitude'])) {
             $validated = $this->autoGeocode($validated);
+        }
+
+        // Handle GCash QR image upload
+        if ($request->hasFile('gcash_qr_image')) {
+            $file = $request->file('gcash_qr_image');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('gcash-qr', $filename, 'public');
+            $validated['gcash_qr_image'] = $filename;
         }
 
         Branch::create($validated);
@@ -174,16 +186,53 @@ class BranchController extends Controller
             'manager' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
-            'operating_hours' => 'nullable|string|max:500',
             'is_active' => 'nullable|boolean',
+            'hours' => 'nullable|array',
+            'hours.*.open' => 'nullable|string',
+            'hours.*.close' => 'nullable|string',
+            'hours.*.enabled' => 'nullable|boolean',
+            'gcash_account_name' => 'nullable|string|max:255',
+            'gcash_account_number' => 'nullable|string|max:20',
+            'gcash_qr_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         // Update is_active status
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
+        // Process operating hours
+        if ($request->has('hours')) {
+            $operatingHours = [];
+            foreach ($request->hours as $day => $hours) {
+                if (isset($hours['enabled'])) {
+                    $operatingHours[$day] = [
+                        'open' => $hours['open'] ?? '07:00',
+                        'close' => $hours['close'] ?? '20:00',
+                        'status' => 'open'
+                    ];
+                } else {
+                    $operatingHours[$day] = 'closed';
+                }
+            }
+            $validated['operating_hours'] = $operatingHours;
+        }
+
         // Auto-geocode if coordinates were cleared or never set
         if (empty($validated['latitude']) || empty($validated['longitude'])) {
             $validated = $this->autoGeocode($validated);
+        }
+
+        // Handle GCash QR image upload
+        if ($request->hasFile('gcash_qr_image')) {
+            // Delete old image if exists
+            if ($branch->gcash_qr_image) {
+                Storage::disk('public')->delete('gcash-qr/' . $branch->gcash_qr_image);
+            }
+            
+            // Store new image
+            $file = $request->file('gcash_qr_image');
+            $filename = time() . '_' . $branch->id . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('gcash-qr', $filename, 'public');
+            $validated['gcash_qr_image'] = $filename;
         }
 
         $branch->update($validated);

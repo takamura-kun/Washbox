@@ -10,7 +10,7 @@
 
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import { API_BASE_URL } from '../constants/config';
 
 // ─────────────────────────────────────────────────────────────
@@ -31,7 +31,8 @@ if (!isExpoGo) {
     // Configure foreground notification appearance
     Notifications.setNotificationHandler({
         handleNotification: async () => ({
-            shouldShowAlert: true,
+            shouldShowBanner: true,
+            shouldShowList: true,
             shouldPlaySound: true,
             shouldSetBadge: true,
         }),
@@ -63,12 +64,40 @@ export async function registerForPushNotifications(authToken) {
     // Android needs a notification channel
     if (Platform.OS === 'android') {
         try {
+            // Default channel
             await Notifications.setNotificationChannelAsync('washbox-default', {
                 name: 'WashBox Notifications',
                 importance: Notifications.AndroidImportance.MAX,
                 vibrationPattern: [0, 250, 250, 250],
                 lightColor: '#0EA5E9',
-                sound: true,
+                sound: 'default',
+            });
+
+            // Order updates channel
+            await Notifications.setNotificationChannelAsync('washbox-orders', {
+                name: 'Order Updates',
+                importance: Notifications.AndroidImportance.HIGH,
+                vibrationPattern: [0, 300, 200, 300],
+                lightColor: '#10B981',
+                sound: 'order_update',
+            });
+
+            // Pickup notifications channel
+            await Notifications.setNotificationChannelAsync('washbox-pickup', {
+                name: 'Pickup Notifications',
+                importance: Notifications.AndroidImportance.HIGH,
+                vibrationPattern: [0, 500, 100, 500],
+                lightColor: '#F59E0B',
+                sound: 'pickup_alert',
+            });
+
+            // Promotional channel
+            await Notifications.setNotificationChannelAsync('washbox-promo', {
+                name: 'Promotions',
+                importance: Notifications.AndroidImportance.DEFAULT,
+                vibrationPattern: [0, 200, 100, 200],
+                lightColor: '#EC4899',
+                sound: 'promo_chime',
             });
         } catch (channelError) {
             console.warn('[FCM] Failed to set notification channel:', channelError);
@@ -172,6 +201,117 @@ export async function clearFcmTokenOnLogout(authToken) {
 }
 
 /**
+ * Enhanced notification navigation handler
+ * Routes users to appropriate screens based on notification data
+ */
+function handleNotificationNavigation(router, data) {
+    console.log('[FCM] Handling notification navigation:', data);
+    
+    // Handle both laundry_id and laundries_id for compatibility
+    const { type, laundry_id, laundries_id, pickup_id, promotion_id, branch_id } = data;
+    const actualLaundryId = laundry_id || laundries_id;
+    
+    // Small delay to ensure navigation is ready
+    setTimeout(() => {
+        try {
+            switch (type) {
+                // Laundry-related notifications
+                case 'laundry_received':
+                case 'laundry_ready':
+                case 'laundry_completed':
+                case 'laundry_cancelled':
+                case 'payment_pending':
+                case 'payment_received':
+                case 'payment_verification':
+                case 'payment_rejected':
+                    if (actualLaundryId) {
+                        console.log(`[FCM] Navigating to laundry details: /laundries/${actualLaundryId}`);
+                        router.push(`/laundries/${actualLaundryId}`);
+                    } else {
+                        console.log('[FCM] No laundry_id or laundries_id, going to laundry tab');
+                        router.push('/(tabs)/laundry');
+                    }
+                    break;
+                
+                // Pickup-related notifications
+                case 'pickup_submitted':
+                case 'pickup_accepted':
+                case 'pickup_en_route':
+                case 'pickup_completed':
+                case 'pickup_cancelled':
+                case 'delivery_scheduled':
+                case 'delivery_en_route':
+                case 'delivery_completed':
+                case 'delivery_failed':
+                case 'unclaimed_reminder':
+                    if (pickup_id) {
+                        console.log(`[FCM] Navigating to pickup tracking: /pickup-tracking?pickup_id=${pickup_id}`);
+                        router.push(`/pickup-tracking?pickup_id=${pickup_id}`);
+                    } else if (actualLaundryId) {
+                        console.log(`[FCM] No pickup_id, navigating to laundry: /laundries/${actualLaundryId}`);
+                        router.push(`/laundries/${actualLaundryId}`);
+                    } else {
+                        console.log('[FCM] No pickup_id or laundry_id, going to pickup tab');
+                        router.push('/(tabs)/pickup');
+                    }
+                    break;
+                
+                // Promotional notifications
+                case 'promotion':
+                case 'loyalty_reward':
+                case 'birthday_greeting':
+                    if (promotion_id) {
+                        console.log(`[FCM] Navigating to promotions: /promotions?highlight=${promotion_id}`);
+                        router.push(`/promotions?highlight=${promotion_id}`);
+                    } else {
+                        console.log('[FCM] No promotion_id, going to promotions');
+                        router.push('/promotions/index');
+                    }
+                    break;
+                
+                // System notifications
+                case 'system_maintenance':
+                case 'app_update':
+                case 'branch_closure':
+                case 'service_update':
+                case 'emergency_alert':
+                    console.log('[FCM] System notification, going to notifications screen');
+                    router.push('/notifications');
+                    break;
+                
+                // Feedback requests
+                case 'feedback_request':
+                    if (actualLaundryId) {
+                        console.log(`[FCM] Navigating to ratings: /ratings?laundry_id=${actualLaundryId}`);
+                        router.push(`/ratings?laundry_id=${actualLaundryId}`);
+                    } else {
+                        console.log('[FCM] No laundry_id, going to ratings');
+                        router.push('/ratings/index');
+                    }
+                    break;
+                
+                // Welcome notifications
+                case 'welcome':
+                    console.log('[FCM] Welcome notification, going to home');
+                    router.push('/(tabs)');
+                    break;
+                
+                // Default: go to notifications screen
+                default:
+                    console.log(`[FCM] Unknown notification type: ${type}, going to notifications`);
+                    router.push('/notifications');
+                    break;
+            }
+        } catch (error) {
+            console.error('[FCM] Navigation error:', error);
+            // Fallback to home screen
+            console.log('[FCM] Navigation failed, going to home screen');
+            router.push('/(tabs)');
+        }
+    }, 100);
+}
+
+/**
  * Set up listeners for notification tap events.
  * Call this once in your root _layout.js.
  *
@@ -189,19 +329,16 @@ export function setupNotificationListeners(router) {
     const tapSubscription = Notifications.addNotificationResponseReceivedListener(response => {
         const data = response.notification.request.content.data;
         console.log('[FCM] Notification tapped:', data);
-
-        if (data?.laundry_id) {
-            // Small delay to ensure navigation is ready
-            setTimeout(() => {
-                router.push(`/laundries/${data.laundry_id}`);
-            }, 100);
-        }
+        handleNotificationNavigation(router, data);
     });
 
     // Fired when notification arrives while app is OPEN
     const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
         const data = notification.request.content.data;
         console.log('[FCM] Notification received in foreground, type:', data?.type);
+        
+        // Optional: Show in-app notification or update badge
+        // You can add custom logic here for foreground notifications
     });
 
     return () => {

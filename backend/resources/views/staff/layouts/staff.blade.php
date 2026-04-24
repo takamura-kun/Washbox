@@ -21,7 +21,10 @@
 
     <!-- Unified Layout CSS -->
     <link rel="stylesheet" href="{{ asset('assets/css/layout.css') }}">
-
+    <!-- Staff Dashboard CSS -->
+    <link rel="stylesheet" href="{{ asset('assets/css/staff.css') }}">
+    <!-- Responsive Design CSS -->
+    <link rel="stylesheet" href="{{ asset('assets/css/responsive.css') }}">
     @stack('styles')
 </head>
 
@@ -174,6 +177,59 @@
     <script src="{{ asset('assets/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <!-- Unified Layout JS -->
     <script src="{{ asset('assets/js/layout.js') }}"></script>
+
+    <!-- Services Dropdown Toggle Script -->
+    <script>
+    function toggleServicesDropdown(element) {
+        const dropdown = document.getElementById('servicesDropdown');
+        const arrow = element.querySelector('.dropdown-arrow');
+
+        if (dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
+            arrow.classList.remove('rotated');
+        } else {
+            dropdown.classList.add('show');
+            arrow.classList.add('rotated');
+        }
+    }
+    </script>
+
+    <!-- Skip Links Fix Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Remove problematic skip link text that appears as visible content
+        function removeSkipLinkText() {
+            const walker = document.createTreeWalker(
+                document.body,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+
+            const textNodes = [];
+            let node;
+
+            while (node = walker.nextNode()) {
+                textNodes.push(node);
+            }
+
+            textNodes.forEach(function(textNode) {
+                const text = textNode.textContent;
+                if (text.includes('contentSkip to navigation') ||
+                    text.includes('Skip to search') ||
+                    text.includes('Skip to footer') ||
+                    text.match(/contentSkip.*navigationSkip.*searchSkip.*footer/)) {
+                    textNode.textContent = text.replace(/contentSkip.*?footer/g, '').trim();
+                }
+            });
+        }
+
+        // Run immediately and after a short delay
+        removeSkipLinkText();
+        setTimeout(removeSkipLinkText, 100);
+        setTimeout(removeSkipLinkText, 500);
+    });
+    </script>
 
     @stack('scripts')
 </body>

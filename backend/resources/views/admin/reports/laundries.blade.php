@@ -9,7 +9,7 @@
         <div class="d-flex justify-content-between align-items-end">
             <div>
                 <h1 class="mb-2 fw-bold text-dark" style="font-size: 2rem; letter-spacing: -0.5px;">Laundries Report</h1>
-                <p class="text-muted mb-0" style="font-size: 0.95rem;">Track orders, processing status, and order details</p>
+                <p class="text-muted mb-0" style="font-size: 0.95rem;">Track laundries, processing status, and laundry details</p>
             </div>
             <div class="d-flex gap-2">
                 <a href="{{ route('admin.reports.index') }}" class="btn btn-outline-secondary btn-sm">
@@ -44,7 +44,7 @@
                     </div>
                     <div class="d-flex align-items-center text-muted small">
                         <i class="bi bi-dash me-1"></i>
-                        <span>Total orders</span>
+                        <span>Total laundries</span>
                     </div>
                 </div>
             </div>
@@ -136,9 +136,9 @@
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-light border-0 p-4 d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-bold text-dark">
-                <i class="bi bi-table text-dark me-2"></i>Order Details
+                <i class="bi bi-table text-dark me-2"></i>Laundry Details
             </h6>
-            <span class="badge bg-light text-dark">{{ $laundries->total() }} orders</span>
+            <span class="badge bg-light text-dark">{{ $laundries->total() }} laundries</span>
         </div>
         <div class="card-body p-0">
             @if($laundries->count() > 0)

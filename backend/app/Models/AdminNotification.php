@@ -115,6 +115,12 @@ class AdminNotification extends Model
             'laundry_cancelled' => 'bi-x-circle',
             'unclaimed' => 'bi-exclamation-triangle',
             'new_customer' => 'bi-person-plus',
+            'daily_revenue' => 'bi-graph-up',
+            'low_cash_flow' => 'bi-currency-dollar',
+            'payment_overdue' => 'bi-exclamation-triangle',
+            'branch_performance' => 'bi-speedometer2',
+            'customer_churn' => 'bi-people',
+            'seasonal_trend' => 'bi-graph-up-arrow',
             'system' => 'bi-gear',
         ];
 
@@ -326,17 +332,87 @@ class AdminNotification extends Model
     }
 
     /**
-     * Create a system notification
+     * Financial Monitoring Notifications
      */
-    public static function notifySystem($title, $message, $link = null, $color = 'secondary')
+    public static function notifyDailyRevenue($revenue, $target, $percentage)
     {
         return self::create([
-            'type' => 'system',
-            'title' => $title,
-            'message' => $message,
-            'icon' => 'gear',
+            'type' => 'daily_revenue',
+            'title' => 'Daily Revenue Update',
+            'message' => "₱" . number_format($revenue, 2) . " earned ({$percentage}% of target)",
+            'icon' => 'graph-up',
+            'color' => $percentage >= 100 ? 'success' : 'warning',
+            'data' => ['revenue' => $revenue, 'target' => $target, 'percentage' => $percentage],
+        ]);
+    }
+
+    public static function notifyLowCashFlow($branch, $amount)
+    {
+        return self::create([
+            'type' => 'low_cash_flow',
+            'title' => 'Low Cash Alert',
+            'message' => "{$branch->name} cash below ₱" . number_format($amount, 2),
+            'icon' => 'currency-dollar',
+            'color' => 'danger',
+            'branch_id' => $branch->id,
+            'data' => ['branch_name' => $branch->name, 'amount' => $amount],
+        ]);
+    }
+
+    public static function notifyPaymentOverdue($count, $totalAmount)
+    {
+        return self::create([
+            'type' => 'payment_overdue',
+            'title' => 'Overdue Payments Alert',
+            'message' => "{$count} customers have overdue payments (₱" . number_format($totalAmount, 2) . ")",
+            'icon' => 'exclamation-triangle',
+            'color' => 'warning',
+            'data' => ['count' => $count, 'total_amount' => $totalAmount],
+        ]);
+    }
+
+    /**
+     * Business Insights Notifications
+     */
+    public static function notifyBranchPerformance($branch, $metric, $value, $target)
+    {
+        $percentage = round(($value / $target) * 100);
+        return self::create([
+            'type' => 'branch_performance',
+            'title' => 'Branch Performance Update',
+            'message' => "{$branch->name} {$metric}: {$percentage}% of target",
+            'icon' => 'speedometer2',
+            'color' => $percentage >= 100 ? 'success' : 'info',
+            'branch_id' => $branch->id,
+            'data' => ['metric' => $metric, 'value' => $value, 'target' => $target, 'percentage' => $percentage],
+        ]);
+    }
+
+    public static function notifyCustomerChurn($count, $days)
+    {
+        return self::create([
+            'type' => 'customer_churn',
+            'title' => 'Customer Retention Alert',
+            'message' => "{$count} customers haven't returned in {$days} days",
+            'icon' => 'people',
+            'color' => 'warning',
+            'data' => ['count' => $count, 'days' => $days],
+        ]);
+    }
+
+    public static function notifySeasonalTrend($metric, $change, $period)
+    {
+        $direction = $change > 0 ? 'up' : 'down';
+        $icon = $change > 0 ? 'trending-up' : 'trending-down';
+        $color = $change > 0 ? 'success' : 'info';
+        
+        return self::create([
+            'type' => 'seasonal_trend',
+            'title' => 'Business Trend Alert',
+            'message' => "{$metric} {$direction} " . abs($change) . "% this {$period}",
+            'icon' => $icon,
             'color' => $color,
-            'link' => $link,
+            'data' => ['metric' => $metric, 'change' => $change, 'period' => $period],
         ]);
     }
 

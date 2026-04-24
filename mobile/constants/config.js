@@ -1,14 +1,8 @@
-// config.js
-
-// For Android Emulator, use:
- //export const API_BASE_URL = 'http://10.0.2.2:8000/api';
-
-// For iOS Simulator, use:
-//export const API_BASE_URL = 'http://localhost:8000/api';
-
-// For Physical Device (replace with your computer's IP):
 export const API_BASE_URL = 'http://192.168.1.9:8000/api';
-//export const API_BASE_URL = 'http://washboxlaundry.infinityfreeapp.com/api';
+
+
+//export const API_BASE_URL = 'http://192.168.99.172:8000/api';
+//export const API_BASE_URL = 'http:///localhost:8000/api';
 
 // App Configuration
 export const APP_NAME = 'WashBox';
@@ -84,6 +78,12 @@ export const ENDPOINTS = {
   // Notifications
   NOTIFICATIONS: '/v1/notifications',
   DEVICE_TOKEN: '/v1/device-token',
+  
+  // Payment Methods
+  PAYMENT_METHODS: '/v1/payment-methods',
+  
+  // Addresses
+  ADDRESSES: '/v1/addresses',
 };
 
 // Storage Keys

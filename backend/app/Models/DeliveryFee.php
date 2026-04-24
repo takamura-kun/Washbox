@@ -93,18 +93,48 @@ class DeliveryFee extends Model
     }
 
     /**
-     * Get or create default fee structure for a branch
+     * Get or create default fee structure for a branch using system settings
      */
     public static function getOrCreateForBranch(int $branchId): self
     {
+        // Get default fees from system settings
+        $defaultPickupFee = (float) SystemSetting::get('default_pickup_fee', 50);
+        $defaultDeliveryFee = (float) SystemSetting::get('default_delivery_fee', 50);
+        
         return self::firstOrCreate(
             ['branch_id' => $branchId],
             [
-                'pickup_fee' => 50.00,
-                'delivery_fee' => 50.00,
+                'pickup_fee' => $defaultPickupFee,
+                'delivery_fee' => $defaultDeliveryFee,
                 'both_discount' => 10, // 10% discount when using both
                 'is_active' => true,
             ]
         );
+    }
+
+    /**
+     * Update all branch fees when system settings change
+     */
+    public static function updateAllBranchFeesFromSettings(): int
+    {
+        $defaultPickupFee = (float) SystemSetting::get('default_pickup_fee', 50);
+        $defaultDeliveryFee = (float) SystemSetting::get('default_delivery_fee', 50);
+        
+        return self::query()->update([
+            'pickup_fee' => $defaultPickupFee,
+            'delivery_fee' => $defaultDeliveryFee,
+            'updated_at' => now(),
+        ]);
+    }
+
+    /**
+     * Get current system default fees
+     */
+    public static function getSystemDefaultFees(): array
+    {
+        return [
+            'pickup_fee' => (float) SystemSetting::get('default_pickup_fee', 50),
+            'delivery_fee' => (float) SystemSetting::get('default_delivery_fee', 50),
+        ];
     }
 }

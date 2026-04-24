@@ -25,17 +25,17 @@
             {{-- Service Card --}}
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-body p-4 text-center">
-                    {{-- Icon --}}
+                    {{-- Image/Icon --}}
                     <div class="mb-3">
-                        <div class="rounded-3 mx-auto d-flex align-items-center justify-content-center"
-                            style="width: 150px; height: 150px; background: linear-gradient(135deg, {{ $service->is_active ? '#3D3B6B' : '#6B7280' }} 0%, {{ $service->is_active ? '#6366F1' : '#9CA3AF' }} 100%);">
-                            @if($service->icon_path)
-                                <img src="{{ asset('storage/' . $service->icon_path) }}"
-                                    class="w-100 h-100 rounded-3" style="object-fit: contain; background: white; padding: 10px;">
-                            @else
+                        @if($service->icon_path)
+                            <img src="{{ asset('storage/' . $service->icon_path) }}"
+                                class="rounded-3 mx-auto d-block" style="width: 100%; max-width: 300px; height: 200px; object-fit: cover;">
+                        @else
+                            <div class="rounded-3 mx-auto d-flex align-items-center justify-content-center"
+                                style="width: 150px; height: 150px; background: linear-gradient(135deg, {{ $service->is_active ? '#3D3B6B' : '#6B7280' }} 0%, {{ $service->is_active ? '#6366F1' : '#9CA3AF' }} 100%);">
                                 <i class="bi bi-droplet text-white" style="font-size: 4rem;"></i>
-                            @endif
-                        </div>
+                            </div>
+                        @endif
                     </div>
 
                     {{-- Name & Type --}}
@@ -156,13 +156,13 @@
                 </div>
             </div>
 
-            {{-- Recent Orders using this Service --}}
+            {{-- Recent Laundries using this Service --}}
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-header bg-white border-bottom py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 fw-bold text-dark">
                             <i class="bi bi-clock-history me-2 text-primary"></i>
-                            Recent Orders with this Service
+                            Recent Laundries with this Service
                         </h6>
                         <a href="{{ route('staff.laundries.index', ['service_id' => $service->id]) }}" class="btn btn-sm btn-outline-secondary">
                             View All
@@ -170,32 +170,32 @@
                     </div>
                 </div>
                 <div class="card-body p-0">
-                    @forelse($recent_orders as $order)
+                    @forelse($recent_laundries as $laundry)
                     <div class="p-3 border-bottom {{ $loop->last ? 'border-0' : '' }}">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <strong class="d-block mb-1">#{{ $order->tracking_number ?? $order->id }}</strong>
+                                <strong class="d-block mb-1">#{{ $laundry->tracking_number ?? $laundry->id }}</strong>
                                 <small class="text-muted">
-                                    <i class="bi bi-person me-1"></i>{{ $order->customer->name ?? 'N/A' }}
+                                    <i class="bi bi-person me-1"></i>{{ $laundry->customer->name ?? 'N/A' }}
                                 </small>
-                                @if($order->branch)
+                                @if($laundry->branch)
                                     <span class="mx-1">•</span>
-                                    <small class="text-muted">{{ $order->branch->name }}</small>
+                                    <small class="text-muted">{{ $laundry->branch->name }}</small>
                                 @endif
                             </div>
                             <div class="text-end">
-                                <span class="badge bg-{{ $order->status === 'completed' ? 'success' : ($order->status === 'processing' ? 'warning' : 'primary') }}">
-                                    {{ ucfirst($order->status) }}
+                                <span class="badge bg-{{ $laundry->status === 'completed' ? 'success' : ($laundry->status === 'processing' ? 'warning' : 'primary') }}">
+                                    {{ ucfirst($laundry->status) }}
                                 </span>
-                                <div class="small text-muted mt-1">{{ $order->created_at->format('M d, Y') }}</div>
-                                <small class="fw-semibold text-primary">₱{{ number_format($order->total_amount, 2) }}</small>
+                                <div class="small text-muted mt-1">{{ $laundry->created_at->format('M d, Y') }}</div>
+                                <small class="fw-semibold text-primary">₱{{ number_format($laundry->total_amount, 2) }}</small>
                             </div>
                         </div>
                     </div>
                     @empty
                     <div class="p-5 text-center">
                         <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.2;"></i>
-                        <p class="text-muted mb-0 mt-2">No orders have used this service yet</p>
+                        <p class="text-muted mb-0 mt-2">No laundries have used this service yet</p>
                     </div>
                     @endforelse
                 </div>

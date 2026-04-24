@@ -70,7 +70,7 @@ class DashboardController extends Controller
             // Pickup locations for map
             'pickupLocations' => PickupRequest::with('customer:id,name,phone')
                 ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->whereIn('status', ['pending', 'en_route'])
+                ->whereIn('status', ['pending', 'accepted', 'en_route'])
                 ->whereNotNull('latitude')
                 ->whereNotNull('longitude')
                 ->get(),

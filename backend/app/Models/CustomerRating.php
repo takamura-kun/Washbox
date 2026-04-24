@@ -20,12 +20,14 @@ class CustomerRating extends Model
         'staff_ratings',  // JSON field
         'staff_response',
         'responded_at',
+        'viewed_at',
     ];
 
     protected $casts = [
         'rating' => 'integer',
         'staff_ratings' => 'array',  // Automatically cast JSON to array
         'responded_at' => 'datetime',
+        'viewed_at' => 'datetime',
     ];
 
     // ========================================

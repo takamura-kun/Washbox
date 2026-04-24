@@ -40,7 +40,6 @@ class Customer extends Authenticatable
         'longitude' => 'decimal:8',
         'is_active' => 'boolean',
         'password' => 'hashed',
-        'is_active' => 'boolean',
     ];
 
     // ========================================================================
@@ -111,6 +110,38 @@ class Customer extends Authenticatable
     public function promotionUsage(): HasMany
     {
         return $this->hasMany(PromotionUsage::class);
+    }
+
+    /**
+     * Payment methods for this customer
+     */
+    public function paymentMethods(): HasMany
+    {
+        return $this->hasMany(CustomerPaymentMethod::class);
+    }
+
+    /**
+     * Active payment methods for this customer
+     */
+    public function activePaymentMethods(): HasMany
+    {
+        return $this->hasMany(CustomerPaymentMethod::class)->where('is_active', true);
+    }
+
+    /**
+     * Saved addresses for this customer
+     */
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(CustomerAddress::class);
+    }
+
+    /**
+     * Active addresses for this customer
+     */
+    public function activeAddresses(): HasMany
+    {
+        return $this->hasMany(CustomerAddress::class)->where('is_active', true);
     }
 
     // ========================================================================
@@ -254,7 +285,7 @@ class Customer extends Authenticatable
      */
     public function getTotalSpent(): float
     {
-        return $this->laundries()
+        return (float) $this->laundries()
                     ->where('status', 'completed')
                     ->sum('total_amount');
     }

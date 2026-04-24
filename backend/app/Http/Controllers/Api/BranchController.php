@@ -18,6 +18,8 @@ class BranchController extends Controller
     {
         try {
             $branches = Branch::where('is_active', true)
+                ->withCount(['ratings as ratings_count'])
+                ->withAvg('ratings as average_rating', 'rating')
                 ->orderBy('name')
                 ->get()
                 ->map(function ($branch) {
@@ -33,8 +35,11 @@ class BranchController extends Controller
                         'latitude' => $branch->latitude,
                         'longitude' => $branch->longitude,
                         'operating_hours' => $branch->operating_hours,
-                        'is_open' => $this->isBranchOpen($branch),
+                        'is_open' => $branch->isOpen(),
+                        'today_hours' => $branch->getTodayHoursFormatted(),
                         'is_active' => $branch->is_active,
+                        'average_rating' => $branch->average_rating ? round($branch->average_rating, 1) : null,
+                        'ratings_count' => $branch->ratings_count ?? 0,
                         'created_at' => $branch->created_at->toIso8601String(),
                         'updated_at' => $branch->updated_at->toIso8601String(),
                     ];

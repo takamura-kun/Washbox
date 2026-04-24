@@ -8,7 +8,7 @@
 
 @section('content')
 <div class="container-fluid px-4 py-5">
-    
+
     {{-- Hero Profile Card --}}
     <div class="profile-hero-card mb-4">
         <div class="hero-bg-pattern"></div>
@@ -180,7 +180,7 @@
             {{-- KPI Cards Row --}}
             <div class="row g-4 mb-4">
                 <div class="col-sm-6">
-                    <div class="kpi-card-premium total-orders">
+                    <div class="kpi-card-premium total-laundries">
                         <div class="kpi-overlay"></div>
                         <div class="kpi-content">
                             <div class="kpi-icon-wrapper">
@@ -190,7 +190,7 @@
                                 <span class="kpi-label">Total Laundries</span>
                                 <span class="kpi-value">{{ $customer->getTotalLaundriesCount() }}</span>
                                 <span class="kpi-trend">
-                                    <i class="bi bi-check-circle-fill me-1"></i>Orders placed
+                                    <i class="bi bi-check-circle-fill me-1"></i>Laundries placed
                                 </span>
                             </div>
                         </div>
@@ -220,13 +220,13 @@
             <div class="row g-4 mb-4">
                 <div class="col-sm-4">
                     <div class="metric-card">
-                        <div class="metric-icon avg-order">
+                        <div class="metric-icon avg-laundry">
                             <i class="bi bi-calculator-fill"></i>
                         </div>
                         <div class="metric-details">
-                            <span class="metric-label">Avg Order Value</span>
+                            <span class="metric-label">Avg Laundry Value</span>
                             <span class="metric-value">₱{{ number_format($customer->getTotalSpent() / max($customer->getTotalLaundriesCount(), 1), 0) }}</span>
-                            <span class="metric-sub">per order</span>
+                            <span class="metric-sub">per laundry</span>
                         </div>
                     </div>
                 </div>
@@ -246,38 +246,38 @@
 
                 <div class="col-sm-4">
                     <div class="metric-card">
-                        <div class="metric-icon last-order">
+                        <div class="metric-icon last-laundry">
                             <i class="bi bi-clock-history"></i>
                         </div>
                         <div class="metric-details">
-                            <span class="metric-label">Last Order</span>
-                            @php $lastOrder = $customer->laundries->sortByDesc('created_at')->first(); @endphp
-                            @if($lastOrder)
-                                <span class="metric-value">{{ $lastOrder->created_at->format('M d') }}</span>
-                                <span class="metric-sub">{{ $lastOrder->created_at->diffForHumans() }}</span>
+                            <span class="metric-label">Last Laundry</span>
+                            @php $lastLaundry = $customer->laundries->sortByDesc('created_at')->first(); @endphp
+                            @if($lastLaundry)
+                                <span class="metric-value">{{ $lastLaundry->created_at->format('M d') }}</span>
+                                <span class="metric-sub">{{ $lastLaundry->created_at->diffForHumans() }}</span>
                             @else
                                 <span class="metric-value">Never</span>
-                                <span class="metric-sub">No orders yet</span>
+                                <span class="metric-sub">No laundries yet</span>
                             @endif
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Recent Orders Section with Enhanced Empty State --}}
-            <div class="orders-section-card">
+            {{-- Recent Laundry Orders Section with Enhanced Empty State --}}
+            <div class="laundries-section-card">
                 <div class="card-header-modern d-flex justify-content-between align-items-center flex-wrap gap-3">
                     <div class="d-flex align-items-center gap-3">
                         <div class="section-icon-wrapper">
                             <i class="bi bi-receipt-cutoff"></i>
                         </div>
                         <div>
-                            <h5 class="mb-0 fw-700">Recent Laundry Orders</h5>
+                            <h5 class="mb-0 fw-700">Recent Laundry Laundries</h5>
                             <small class="text-muted-soft">Last 5 transactions</small>
                         </div>
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-modern btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#viewAllOrdersModal">
+                        <button type="button" class="btn btn-modern btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#viewAllLaundriesModal">
                             <i class="bi bi-grid-3x3-gap-fill me-2"></i>View All
                         </button>
                         <form method="POST" action="#" class="d-inline">
@@ -296,7 +296,7 @@
                             <table class="table modern-table mb-0">
                                 <thead>
                                     <tr>
-                                        <th class="ps-4">Order Details</th>
+                                        <th class="ps-4">Laundry Details</th>
                                         <th>Tracking</th>
                                         <th>Date & Time</th>
                                         <th class="text-center">Status</th>
@@ -305,10 +305,10 @@
                                 </thead>
                                 <tbody>
                                     @foreach($customer->laundries->sortByDesc('created_at')->take(5) as $laundry)
-                                        <tr class="order-row">
+                                        <tr class="laundry-row">
                                             <td class="ps-4">
                                                 <div class="d-flex align-items-center">
-                                                    <div class="order-id-badge">#{{ $laundry->id }}</div>
+                                                    <div class="laundry-id-badge">#{{ $laundry->id }}</div>
                                                 </div>
                                             </td>
                                             <td>
@@ -349,11 +349,11 @@
                                 <i class="bi bi-basket3"></i>
                                 <i class="bi bi-x-lg empty-state-cross"></i>
                             </div>
-                            <h5 class="fw-700 mb-2">No Orders Yet</h5>
-                            <p class="text-muted-soft mb-4">This customer hasn't placed any laundry orders</p>
+                            <h5 class="fw-700 mb-2">No Laundries Yet</h5>
+                            <p class="text-muted-soft mb-4">This customer hasn't placed any laundry laundries</p>
                             <div class="empty-state-actions">
                                 <a href="{{ route('staff.laundries.create', ['customer_id' => $customer->id]) }}" class="btn btn-modern btn-primary rounded-pill">
-                                    <i class="bi bi-plus-circle me-2"></i>Create New Order
+                                    <i class="bi bi-plus-circle me-2"></i>Create New Laundry
                                 </a>
                                 <button class="btn btn-modern btn-outline-secondary rounded-pill" onclick="refreshProfile()">
                                     <i class="bi bi-arrow-clockwise me-2"></i>Refresh
@@ -365,8 +365,8 @@
 
                 @if($customer->laundries->count() > 0)
                 <div class="card-footer-modern text-center py-3">
-                    <button type="button" class="btn btn-link text-primary fw-600" data-bs-toggle="modal" data-bs-target="#viewAllOrdersModal">
-                        View All {{ $customer->laundries->count() }} Orders <i class="bi bi-arrow-right ms-2"></i>
+                    <button type="button" class="btn btn-link text-primary fw-600" data-bs-toggle="modal" data-bs-target="#viewAllLaundriesModal">
+                        View All {{ $customer->laundries->count() }} Laundries <i class="bi bi-arrow-right ms-2"></i>
                     </button>
                 </div>
                 @endif
@@ -375,8 +375,8 @@
     </div>
 </div>
 
-{{-- Enhanced View All Orders Modal --}}
-<div class="modal fade" id="viewAllOrdersModal" tabindex="-1" aria-hidden="true">
+{{-- Enhanced View All Laundries Modal --}}
+<div class="modal fade" id="viewAllLaundriesModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content modal-content-premium">
             <div class="modal-header">
@@ -385,8 +385,8 @@
                         <i class="bi bi-list-check"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title fw-700">All Laundry Orders</h5>
-                        <small class="text-muted-soft">Complete order history for {{ $customer->name }}</small>
+                        <h5 class="modal-title fw-700">All Laundry Laundries</h5>
+                        <small class="text-muted-soft">Complete laundry history for {{ $customer->name }}</small>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -397,7 +397,7 @@
                         <table class="table modern-table mb-0">
                             <thead>
                                 <tr>
-                                    <th class="ps-4">Order #</th>
+                                    <th class="ps-4">Laundry #</th>
                                     <th>Tracking</th>
                                     <th>Date & Time</th>
                                     <th class="text-center">Status</th>
@@ -409,7 +409,7 @@
                                 @foreach($customer->laundries->sortByDesc('created_at') as $laundry)
                                     <tr>
                                         <td class="ps-4">
-                                            <span class="order-id-badge">#{{ $laundry->id }}</span>
+                                            <span class="laundry-id-badge">#{{ $laundry->id }}</span>
                                         </td>
                                         <td>
                                             <div class="tracking-code-modern">
@@ -458,7 +458,7 @@
                     @csrf
                     <input type="hidden" name="customer_id" value="{{ $customer->id }}">
                     <button type="submit" class="btn btn-modern btn-success rounded-pill">
-                        <i class="bi bi-filetype-csv me-2"></i>Export All Orders
+                        <i class="bi bi-filetype-csv me-2"></i>Export All Laundries
                     </button>
                 </form>
             </div>

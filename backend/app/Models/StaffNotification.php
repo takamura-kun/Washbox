@@ -88,6 +88,9 @@ class StaffNotification extends Model
             'urgent_pickup' => 'bi-exclamation-triangle',
             'customer_arriving' => 'bi-person-walking',
             'shift_reminder' => 'bi-clock',
+            'daily_target' => 'bi-target',
+            'rush_hour' => 'bi-speedometer',
+            'end_of_day_tasks' => 'bi-list-check',
             'message' => 'bi-chat',
             'system' => 'bi-gear',
         ];
@@ -176,19 +179,47 @@ class StaffNotification extends Model
     }
 
     /**
-     * Notify staff of urgent unclaimed or laundry
+     * Daily Operations Notifications
      */
-    public static function notifyUrgentUnclaimed($laundry, $staffId)
+    public static function notifyDailyTarget($staff, $current, $target, $percentage)
     {
         return self::create([
-            'user_id' => $staffId,
-            'type' => 'urgent_pickup',
-            'title' => 'Urgent: Unclaimed Laundry',
-            'message' => "Laundry #{$laundry->tracking_number} unclaimed for {$laundry->days_unclaimed} days",
-            'icon' => 'exclamation-triangle',
+            'user_id' => $staff->id,
+            'type' => 'daily_target',
+            'title' => 'Daily Target Update',
+            'message' => "{$percentage}% of daily target reached ({$current}/{$target})",
+            'icon' => 'target',
+            'color' => $percentage >= 80 ? 'success' : 'info',
+            'data' => ['current' => $current, 'target' => $target, 'percentage' => $percentage],
+            'branch_id' => $staff->branch_id,
+        ]);
+    }
+
+    public static function notifyRushHour($staff, $volume)
+    {
+        return self::create([
+            'user_id' => $staff->id,
+            'type' => 'rush_hour',
+            'title' => 'Rush Hour Alert',
+            'message' => "High volume period starting ({$volume} orders pending)",
+            'icon' => 'speedometer',
             'color' => 'warning',
-            'link' => route('staff.laundries.show', $laundry->id),
-            'branch_id' => $laundry->branch_id,
+            'data' => ['volume' => $volume],
+            'branch_id' => $staff->branch_id,
+        ]);
+    }
+
+    public static function notifyEndOfDayTasks($staff, $tasksRemaining)
+    {
+        return self::create([
+            'user_id' => $staff->id,
+            'type' => 'end_of_day_tasks',
+            'title' => 'Closing Checklist',
+            'message' => "{$tasksRemaining} tasks remaining for end-of-day closure",
+            'icon' => 'list-check',
+            'color' => 'info',
+            'data' => ['tasks_remaining' => $tasksRemaining],
+            'branch_id' => $staff->branch_id,
         ]);
     }
 }

@@ -4,6 +4,7 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('assets/css/laundry.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/dark-mode-fixes.css') }}">
 @endpush
 
 @section('content')

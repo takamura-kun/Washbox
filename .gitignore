@@ -26,3 +26,6 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
+
+# AI Code Review temporary files
+.ai-code-review/

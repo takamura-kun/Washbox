@@ -1,59 +1,424 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🧺 WashBox - Laundry Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A comprehensive laundry management system with web admin/staff dashboards and mobile app support.
 
-## About Laravel
+## 📋 Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### 🎯 Core Features
+- **Customer Management** - Registration, profiles, order history
+- **Laundry Orders** - Create, track, and manage laundry orders
+- **Pickup Requests** - Schedule and manage pickup/delivery
+- **Real-time Tracking** - GPS-based tracking with map integration
+- **Route Optimization** - AI-powered route planning for pickups
+- **Payment Processing** - Multiple payment methods support
+- **Notifications** - Push notifications via Firebase FCM
+- **Rating System** - Customer feedback and ratings
+- **Promotions** - Discount codes and promotional campaigns
+- **Unclaimed Reminders** - Automated reminders (Day 3, 5, 7)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### 👨‍💼 Admin Dashboard
+- Real-time analytics and statistics
+- Customer and order management
+- Staff management
+- Service and pricing configuration
+- Route optimization and mapping
+- Financial reports
+- System settings
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 👷 Staff Dashboard
+- Pickup request management
+- Order processing workflow
+- Route navigation
+- Customer communication
+- Task management
 
-## Learning Laravel
+### 📱 Mobile App Support
+- RESTful API for Flutter/React Native apps
+- Firebase authentication
+- Push notifications
+- Real-time order tracking
+- In-app payments
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## 🛠️ Technology Stack
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Backend
+- **Framework:** Laravel 12.52.0
+- **PHP:** 8.4.18
+- **Database:** MySQL 8.0+
+- **Queue:** Database driver
+- **Broadcasting:** Laravel Reverb
+- **Cache:** Database/Redis
 
-## Laravel Sponsors
+### Frontend
+- **JavaScript:** ES6+ Modules
+- **Maps:** Leaflet.js + OSRM
+- **Charts:** Chart.js
+- **UI:** Bootstrap 5
+- **Icons:** Bootstrap Icons
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Mobile
+- **API:** RESTful JSON API
+- **Auth:** Laravel Sanctum
+- **Notifications:** Firebase Cloud Messaging
 
-### Premium Partners
+### Third-party Services
+- **Firebase** - Authentication & Push Notifications
+- **OSRM** - Route optimization
+- **OpenStreetMap** - Mapping
+- **Google Maps** (Optional) - Geocoding
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 📦 Installation
 
-## Contributing
+### Prerequisites
+- PHP 8.2 or higher
+- Composer 2.x
+- MySQL 8.0+
+- Node.js 18+ (optional, for asset compilation)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Local Development Setup
 
-## Code of Conduct
+1. **Clone the repository**
+```bash
+git clone https://github.com/yourusername/washbox.git
+cd washbox/backend
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+2. **Install dependencies**
+```bash
+composer install
+```
 
-## Security Vulnerabilities
+3. **Configure environment**
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+4. **Edit .env file**
+```env
+DB_DATABASE=washbox
+DB_USERNAME=root
+DB_PASSWORD=your_password
 
-## License
+FIREBASE_CREDENTIALS=path/to/firebase-credentials.json
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+5. **Run migrations and seeders**
+```bash
+php artisan migrate
+php artisan db:seed
+```
+
+6. **Create storage link**
+```bash
+php artisan storage:link
+```
+
+7. **Start development server**
+```bash
+php artisan serve
+```
+
+8. **Start queue worker** (in separate terminal)
+```bash
+php artisan queue:work
+```
+
+9. **Start scheduler** (for development)
+```bash
+php artisan schedule:work
+```
+
+## 🚀 Production Deployment
+
+### Quick Start
+```bash
+cd backend
+chmod +x prepare-production.sh
+./prepare-production.sh
+```
+
+This will:
+- Clear all caches
+- Check environment configuration
+- Install optimized dependencies
+- Cache configurations
+- Create deployment documentation
+
+### Detailed Instructions
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment guide.
+
+### Production Checklist
+See [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md) for pre-deployment tasks.
+
+## 📱 Mobile App Setup
+
+### API Base URL
+Configure in your mobile app:
+```
+Production: https://yourdomain.com/api
+Development: http://localhost:8000/api
+```
+
+### Authentication
+The API uses Laravel Sanctum for authentication:
+```
+POST /api/login
+POST /api/register
+POST /api/logout
+```
+
+### API Documentation
+See [API.md](API.md) for complete API reference.
+
+## 🔧 Configuration
+
+### Environment Variables
+
+#### Required
+```env
+APP_NAME="WashBox Laundry"
+APP_ENV=production
+APP_KEY=base64:...
+APP_URL=https://yourdomain.com
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_DATABASE=washbox
+DB_USERNAME=root
+DB_PASSWORD=
+
+FIREBASE_CREDENTIALS=firebase-credentials.json
+```
+
+#### Optional
+```env
+# Mail
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.mailtrap.io
+MAIL_PORT=2525
+
+# AWS S3
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=
+
+# Broadcasting
+BROADCAST_CONNECTION=reverb
+```
+
+### Firebase Setup
+
+1. Create Firebase project at https://console.firebase.google.com
+2. Download service account credentials JSON
+3. Place in project root or configure path in .env
+4. Enable Cloud Messaging in Firebase Console
+
+### Scheduled Tasks
+
+The following tasks run automatically:
+- **Unclaimed Reminders** - Daily at 9:00 AM
+- **Database Cleanup** - Daily at 2:00 AM
+- **Report Generation** - Daily at 11:00 PM
+
+Configure in `routes/console.php`
+
+## 🧪 Testing
+
+### Run Tests
+```bash
+php artisan test
+```
+
+### Manual Testing Checklist
+- [ ] User registration and login
+- [ ] Create laundry order
+- [ ] Pickup request flow
+- [ ] Payment processing
+- [ ] Notifications delivery
+- [ ] Admin dashboard features
+- [ ] Staff dashboard features
+- [ ] Map and routing
+- [ ] Mobile API endpoints
+
+## 📊 Database Schema
+
+### Main Tables
+- `users` - System users (admin, staff)
+- `customers` - Customer accounts
+- `branches` - Laundry branches
+- `services` - Laundry services
+- `addons` - Service add-ons
+- `laundries` - Laundry orders
+- `pickup_requests` - Pickup/delivery requests
+- `notifications` - Push notifications log
+- `promotions` - Discount promotions
+- `customer_ratings` - Customer feedback
+
+## 🔐 Security
+
+### Best Practices Implemented
+- ✅ CSRF protection
+- ✅ SQL injection prevention (Eloquent ORM)
+- ✅ XSS protection
+- ✅ Password hashing (bcrypt)
+- ✅ API rate limiting
+- ✅ Input validation
+- ✅ File upload restrictions
+- ✅ Secure session handling
+
+### Production Security Checklist
+- [ ] Enable HTTPS/SSL
+- [ ] Set APP_DEBUG=false
+- [ ] Configure firewall
+- [ ] Restrict database access
+- [ ] Enable fail2ban
+- [ ] Regular security updates
+- [ ] Backup encryption
+
+## 📈 Performance Optimization
+
+### Implemented
+- Route caching
+- Config caching
+- View caching
+- Query optimization
+- Eager loading relationships
+- Database indexing
+- Asset minification
+
+### Recommended
+- Redis for cache/sessions
+- CDN for static assets
+- Database query optimization
+- Image optimization
+- Load balancing (for scale)
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Queue not processing**
+```bash
+php artisan queue:restart
+sudo supervisorctl restart washbox-worker:*
+```
+
+**Permissions error**
+```bash
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo chmod -R 775 storage bootstrap/cache
+```
+
+**Cache issues**
+```bash
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+```
+
+**Database connection failed**
+- Check .env database credentials
+- Verify MySQL is running
+- Check firewall rules
+
+## 📝 API Endpoints
+
+### Authentication
+```
+POST   /api/register
+POST   /api/login
+POST   /api/logout
+GET    /api/user
+```
+
+### Laundry Orders
+```
+GET    /api/laundries
+POST   /api/laundries
+GET    /api/laundries/{id}
+PUT    /api/laundries/{id}
+DELETE /api/laundries/{id}
+```
+
+### Pickup Requests
+```
+GET    /api/pickup-requests
+POST   /api/pickup-requests
+GET    /api/pickup-requests/{id}
+PUT    /api/pickup-requests/{id}/status
+```
+
+See [API.md](API.md) for complete documentation.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+## 📄 License
+
+This project is proprietary software. All rights reserved.
+
+## 👥 Team
+
+- **Project Manager:** [Name]
+- **Lead Developer:** [Name]
+- **Backend Developer:** [Name]
+- **Mobile Developer:** [Name]
+- **UI/UX Designer:** [Name]
+
+## 📞 Support
+
+- **Email:** support@washbox.com
+- **Phone:** +63 XXX XXX XXXX
+- **Website:** https://washbox.com
+
+## 🗺️ Roadmap
+
+### Version 1.0 (Current)
+- ✅ Core laundry management
+- ✅ Pickup/delivery system
+- ✅ Route optimization
+- ✅ Mobile app API
+- ✅ Push notifications
+
+### Version 1.1 (Planned)
+- [ ] Multi-language support
+- [ ] Advanced analytics
+- [ ] Customer loyalty program
+- [ ] Inventory management
+- [ ] Staff performance tracking
+
+### Version 2.0 (Future)
+- [ ] AI-powered demand forecasting
+- [ ] IoT machine integration
+- [ ] Blockchain payment options
+- [ ] AR try-on features
+- [ ] Voice assistant integration
+
+## 📚 Documentation
+
+- [Deployment Guide](DEPLOYMENT.md)
+- [Production Checklist](PRODUCTION_CHECKLIST.md)
+- [API Documentation](API.md)
+- [User Manual](USER_MANUAL.md)
+- [Admin Guide](ADMIN_GUIDE.md)
+
+## 🙏 Acknowledgments
+
+- Laravel Framework
+- OpenStreetMap
+- Firebase
+- Bootstrap
+- Chart.js
+- Leaflet.js
+
+---
+
+**Made with ❤️ by the WashBox Team**

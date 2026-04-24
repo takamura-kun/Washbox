@@ -29,14 +29,14 @@
         {{-- Left Column --}}
         <div class="col-lg-8">
             {{-- Promotion Details --}}
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-header bg-white border-bottom py-3">
-                    <h6 class="mb-0 fw-bold text-dark">
+            <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                         <i class="bi bi-info-circle me-2" style="color: #3D3B6B;"></i>
                         Promotion Details
                     </h6>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                     <div class="row g-4">
                         {{-- Promotion Value --}}
                         <div class="col-md-12">
@@ -52,13 +52,13 @@
 
                         {{-- Basic Information --}}
                         <div class="col-md-6">
-                            <label class="text-muted small">Promotion Name</label>
-                            <p class="fw-bold mb-0">{{ $promotion->name }}</p>
+                            <label class="small" style="color: var(--text-secondary) !important;">Promotion Name</label>
+                            <p class="fw-bold mb-0" style="color: var(--text-primary) !important;">{{ $promotion->name }}</p>
                         </div>
 
                         @if($promotion->promo_code)
                             <div class="col-md-6">
-                                <label class="text-muted small">Promo Code</label>
+                                <label class="small" style="color: var(--text-secondary) !important;">Promo Code</label>
                                 <p class="mb-0">
                                     <code class="fs-6 fw-bold text-primary">{{ $promotion->promo_code }}</code>
                                 </p>
@@ -67,54 +67,54 @@
 
                         @if($promotion->description)
                             <div class="col-12">
-                                <label class="text-muted small">Description</label>
-                                <p class="mb-0">{{ $promotion->description }}</p>
+                                <label class="small" style="color: var(--text-secondary) !important;">Description</label>
+                                <p class="mb-0" style="color: var(--text-primary) !important;">{{ $promotion->description }}</p>
                             </div>
                         @endif
 
                         {{-- Pricing Details --}}
                         @if($promotion->application_type === 'per_load_override')
                             <div class="col-md-6">
-                                <label class="text-muted small">Fixed Price Per Load</label>
-                                <p class="fw-bold mb-0 fs-5">₱{{ number_format($promotion->display_price, 2) }}</p>
+                                <label class="small" style="color: var(--text-secondary) !important;">Fixed Price Per Load</label>
+                                <p class="fw-bold mb-0 fs-5" style="color: var(--text-primary) !important;">₱{{ number_format($promotion->display_price, 2) }}</p>
                             </div>
                             <div class="col-md-6">
-                                <label class="text-muted small">Price Unit</label>
-                                <p class="fw-bold mb-0">{{ $promotion->price_unit }}</p>
+                                <label class="small" style="color: var(--text-secondary) !important;">Price Unit</label>
+                                <p class="fw-bold mb-0" style="color: var(--text-primary) !important;">{{ $promotion->price_unit }}</p>
                             </div>
                         @else
                             @if($promotion->discount_type === 'percentage')
                                 <div class="col-md-6">
-                                    <label class="text-muted small">Discount Percentage</label>
-                                    <p class="fw-bold mb-0 fs-5">{{ $promotion->discount_value }}%</p>
+                                    <label class="small" style="color: var(--text-secondary) !important;">Discount Percentage</label>
+                                    <p class="fw-bold mb-0 fs-5" style="color: var(--text-primary) !important;">{{ $promotion->discount_value }}%</p>
                                 </div>
                             @elseif($promotion->discount_type === 'fixed')
                                 <div class="col-md-6">
-                                    <label class="text-muted small">Discount Amount</label>
-                                    <p class="fw-bold mb-0 fs-5">₱{{ number_format($promotion->discount_value, 2) }}</p>
+                                    <label class="small" style="color: var(--text-secondary) !important;">Discount Amount</label>
+                                    <p class="fw-bold mb-0 fs-5" style="color: var(--text-primary) !important;">₱{{ number_format($promotion->discount_value, 2) }}</p>
                                 </div>
                             @endif
 
                             @if($promotion->min_amount > 0)
                                 <div class="col-md-6">
-                                    <label class="text-muted small">Minimum Order Amount</label>
-                                    <p class="fw-bold mb-0">₱{{ number_format($promotion->min_amount, 2) }}</p>
+                                    <label class="small" style="color: var(--text-secondary) !important;">Minimum Laundry Amount</label>
+                                    <p class="fw-bold mb-0" style="color: var(--text-primary) !important;">₱{{ number_format($promotion->min_amount, 2) }}</p>
                                 </div>
                             @endif
                         @endif
 
                         {{-- Validity Period --}}
                         <div class="col-md-6">
-                            <label class="text-muted small">Start Date</label>
-                            <p class="fw-bold mb-0">
+                            <label class="small" style="color: var(--text-secondary) !important;">Start Date</label>
+                            <p class="fw-bold mb-0" style="color: var(--text-primary) !important;">
                                 <i class="bi bi-calendar-event text-success me-1"></i>
                                 {{ $promotion->start_date->format('F d, Y') }}
                             </p>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="text-muted small">End Date</label>
-                            <p class="fw-bold mb-0">
+                            <label class="small" style="color: var(--text-secondary) !important;">End Date</label>
+                            <p class="fw-bold mb-0" style="color: var(--text-primary) !important;">
                                 <i class="bi bi-calendar-x text-danger me-1"></i>
                                 {{ $promotion->end_date->format('F d, Y') }}
                             </p>
@@ -122,8 +122,8 @@
 
                         {{-- Applicability --}}
                         <div class="col-md-6">
-                            <label class="text-muted small">Applicable Branch</label>
-                            <p class="mb-0">
+                            <label class="small" style="color: var(--text-secondary) !important;">Applicable Branch</label>
+                            <p class="mb-0" style="color: var(--text-primary) !important;">
                                 @if($promotion->branch)
                                     <i class="bi bi-shop me-1"></i> {{ $promotion->branch->name }}
                                 @else
@@ -133,13 +133,13 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="text-muted small">Display Order</label>
-                            <p class="mb-0">{{ $promotion->display_order }}</p>
+                            <label class="small" style="color: var(--text-secondary) !important;">Display Laundry</label>
+                            <p class="mb-0" style="color: var(--text-primary) !important;">{{ $promotion->display_laundry }}</p>
                         </div>
 
                         {{-- Status Badges --}}
                         <div class="col-12">
-                            <label class="text-muted small d-block mb-2">Status</label>
+                            <label class="small d-block mb-2" style="color: var(--text-secondary) !important;">Status</label>
                             <span class="badge bg-{{ $promotion->is_active ? 'success' : 'secondary' }} me-2">
                                 <i class="bi bi-{{ $promotion->is_active ? 'check-circle' : 'x-circle' }}"></i>
                                 {{ $promotion->is_active ? 'Active' : 'Inactive' }}
@@ -159,7 +159,7 @@
                         {{-- Banner Image --}}
                         @if($promotion->banner_image)
                             <div class="col-12">
-                                <label class="text-muted small d-block mb-2">Banner Image</label>
+                                <label class="small d-block mb-2" style="color: var(--text-secondary) !important;">Banner Image</label>
                                 <img src="{{ Storage::url($promotion->banner_image) }}"
                                      class="img-fluid rounded"
                                      style="max-height: 300px;">
@@ -170,20 +170,20 @@
             </div>
 
             {{-- Usage History --}}
-            @if($promotion->orders->count() > 0)
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+            @if($promotion->laundries->count() > 0)
+                <div class="card border-0 shadow-sm rounded-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                             <i class="bi bi-clock-history me-2" style="color: #3D3B6B;"></i>
                             Recent Usage
                         </h6>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-0" style="background-color: var(--card-bg) !important;">
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Order #</th>
+                                        <th>Laundry #</th>
                                         <th>Customer</th>
                                         <th>Date</th>
                                         <th>Amount</th>
@@ -192,22 +192,22 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($promotion->orders()->latest()->take(10)->get() as $order)
+                                    @foreach($promotion->laundries()->latest()->take(10)->get() as $laundry)
                                         <tr>
                                             <td>
-                                                <a href="{{ route('admin.orders.show', $order) }}" class="text-decoration-none">
-                                                    {{ $order->tracking_number }}
+                                                <a href="{{ route('admin.laundries.show', $laundry) }}" class="text-decoration-none">
+                                                    {{ $laundry->tracking_number }}
                                                 </a>
                                             </td>
-                                            <td>{{ $order->customer->name }}</td>
-                                            <td>{{ $order->created_at->format('M d, Y') }}</td>
-                                            <td>₱{{ number_format($order->total_amount, 2) }}</td>
+                                            <td>{{ $laundry->customer->name }}</td>
+                                            <td>{{ $laundry->created_at->format('M d, Y') }}</td>
+                                            <td>₱{{ number_format($laundry->total_amount, 2) }}</td>
                                             <td class="text-success">
-                                                -₱{{ number_format($order->discount_amount ?? 0, 2) }}
+                                                -₱{{ number_format($laundry->discount_amount ?? 0, 2) }}
                                             </td>
                                             <td>
-                                                <span class="badge bg-{{ $order->status == 'completed' ? 'success' : 'primary' }}">
-                                                    {{ ucfirst($order->status) }}
+                                                <span class="badge bg-{{ $laundry->status == 'completed' ? 'success' : 'primary' }}">
+                                                    {{ ucfirst($laundry->status) }}
                                                 </span>
                                             </td>
                                         </tr>
@@ -216,20 +216,20 @@
                             </table>
                         </div>
                     </div>
-                    @if($promotion->orders->count() > 10)
-                        <div class="card-footer bg-light text-center py-2">
-                            <small class="text-muted">
-                                Showing 10 of {{ $promotion->orders->count() }} orders
+                    @if($promotion->laundries->count() > 10)
+                        <div class="card-footer text-center py-2" style="background-color: var(--input-bg) !important; border-top: 1px solid var(--border-color) !important;">
+                            <small style="color: var(--text-secondary) !important;">
+                                Showing 10 of {{ $promotion->laundries->count() }} laundries
                             </small>
                         </div>
                     @endif
                 </div>
             @else
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-body text-center py-5">
-                        <i class="bi bi-inbox display-1 text-muted mb-3"></i>
-                        <h5 class="text-muted">No Usage Yet</h5>
-                        <p class="text-muted mb-0">This promotion hasn't been used in any orders yet.</p>
+                <div class="card border-0 shadow-sm rounded-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-body text-center py-5" style="background-color: var(--card-bg) !important;">
+                        <i class="bi bi-inbox display-1 mb-3" style="color: var(--text-secondary) !important;"></i>
+                        <h5 style="color: var(--text-secondary) !important;">No Usage Yet</h5>
+                        <p class="mb-0" style="color: var(--text-secondary) !important;">This promotion hasn't been used in any laundries yet.</p>
                     </div>
                 </div>
             @endif
@@ -238,16 +238,16 @@
         {{-- Right Column - Statistics --}}
         <div class="col-lg-4">
             {{-- Usage Statistics --}}
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-header text-white py-3" style="background: #3D3B6B;">
+            <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important;">
+                <div class="card-header text-white py-3" style="background: #3D3B6B !important;">
                     <h6 class="mb-0 fw-bold">
                         <i class="bi bi-graph-up me-2"></i>Usage Statistics
                     </h6>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                     <div class="mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">Total Usage</span>
+                            <span style="color: var(--text-secondary) !important;">Total Usage</span>
                             <h3 class="mb-0 fw-bold" style="color: #3D3B6B;">{{ $promotion->usage_count }}</h3>
                         </div>
                         @if($promotion->max_usage)
@@ -270,38 +270,38 @@
                                 @endif
                             </small>
                         @else
-                            <small class="text-muted">Unlimited usage</small>
+                            <small style="color: var(--text-secondary) !important;">Unlimited usage</small>
                         @endif
                     </div>
 
                     <hr>
 
                     <div class="mb-3">
-                        <label class="text-muted small d-block mb-1">Created</label>
-                        <p class="mb-0 fw-semibold">{{ $promotion->created_at->format('M d, Y') }}</p>
-                        <small class="text-muted">{{ $promotion->created_at->diffForHumans() }}</small>
+                        <label class="small d-block mb-1" style="color: var(--text-secondary) !important;">Created</label>
+                        <p class="mb-0 fw-semibold" style="color: var(--text-primary) !important;">{{ $promotion->created_at->format('M d, Y') }}</p>
+                        <small style="color: var(--text-secondary) !important;">{{ $promotion->created_at->diffForHumans() }}</small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="text-muted small d-block mb-1">Last Updated</label>
-                        <p class="mb-0 fw-semibold">{{ $promotion->updated_at->format('M d, Y') }}</p>
-                        <small class="text-muted">{{ $promotion->updated_at->diffForHumans() }}</small>
+                        <label class="small d-block mb-1" style="color: var(--text-secondary) !important;">Last Updated</label>
+                        <p class="mb-0 fw-semibold" style="color: var(--text-primary) !important;">{{ $promotion->updated_at->format('M d, Y') }}</p>
+                        <small style="color: var(--text-secondary) !important;">{{ $promotion->updated_at->diffForHumans() }}</small>
                     </div>
 
-                    @if($promotion->orders->count() > 0)
+                    @if($promotion->laundries->count() > 0)
                         <div class="mb-3">
-                            <label class="text-muted small d-block mb-1">Last Used</label>
+                            <label class="small d-block mb-1" style="color: var(--text-secondary) !important;">Last Used</label>
                             @php
-                                $lastOrder = $promotion->orders()->latest()->first();
+                                $lastLaundry = $promotion->laundries()->latest()->first();
                             @endphp
-                            <p class="mb-0 fw-semibold">{{ $lastOrder->created_at->format('M d, Y') }}</p>
-                            <small class="text-muted">{{ $lastOrder->created_at->diffForHumans() }}</small>
+                            <p class="mb-0 fw-semibold" style="color: var(--text-primary) !important;">{{ $lastLaundry->created_at->format('M d, Y') }}</p>
+                            <small style="color: var(--text-secondary) !important;">{{ $lastLaundry->created_at->diffForHumans() }}</small>
                         </div>
 
                         <div>
-                            <label class="text-muted small d-block mb-1">Total Discount Given</label>
+                            <label class="small d-block mb-1" style="color: var(--text-secondary) !important;">Total Discount Given</label>
                             <p class="mb-0 fw-bold text-success fs-5">
-                                ₱{{ number_format($promotion->orders->sum('discount_amount'), 2) }}
+                                ₱{{ number_format($promotion->laundries->sum('discount_amount'), 2) }}
                             </p>
                         </div>
                     @endif
@@ -309,14 +309,14 @@
             </div>
 
             {{-- Quick Actions --}}
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-header bg-white border-bottom py-3">
-                    <h6 class="mb-0 fw-bold text-dark">
+            <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
                         <i class="bi bi-lightning me-2" style="color: #3D3B6B;"></i>
                         Quick Actions
                     </h6>
                 </div>
-                <div class="card-body p-3">
+                <div class="card-body p-3" style="background-color: var(--card-bg) !important;">
                     <div class="d-grid gap-2">
                         <a href="{{ route('admin.promotions.edit', $promotion) }}"
                            class="btn btn-outline-primary">
@@ -349,20 +349,20 @@
 
             {{-- Time Remaining --}}
             @if($promotion->is_active)
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-body p-4 text-center">
-                        <i class="bi bi-hourglass-split display-4 text-muted mb-3"></i>
-                        <h6 class="text-muted mb-2">Time Remaining</h6>
+                <div class="card border-0 shadow-sm rounded-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-body p-4 text-center" style="background-color: var(--card-bg) !important;">
+                        <i class="bi bi-hourglass-split display-4 mb-3" style="color: var(--text-secondary) !important;"></i>
+                        <h6 class="mb-2" style="color: var(--text-secondary) !important;">Time Remaining</h6>
                         @if($promotion->end_date->isFuture())
                             <h4 class="fw-bold mb-0" style="color: #3D3B6B;">
                                 {{ $promotion->end_date->diffForHumans(null, true) }}
                             </h4>
-                            <small class="text-muted">
+                            <small style="color: var(--text-secondary) !important;">
                                 Ends {{ $promotion->end_date->format('M d, Y') }}
                             </small>
                         @else
                             <h4 class="fw-bold mb-0 text-danger">Expired</h4>
-                            <small class="text-muted">
+                            <small style="color: var(--text-secondary) !important;">
                                 Ended {{ $promotion->end_date->format('M d, Y') }}
                             </small>
                         @endif

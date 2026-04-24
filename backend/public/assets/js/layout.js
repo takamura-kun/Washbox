@@ -1,3 +1,7 @@
+// Import taskScheduler for performance optimization
+// Note: This will be loaded globally via script tag
+// import { taskScheduler } from './utils/taskScheduler.js';
+
 window.toggleServicesDropdown = function(element) {
     console.log('Dropdown clicked', element);
 
@@ -83,13 +87,13 @@ class LayoutManager {
 
     setupSidebarEvents() {
         // Mobile menu toggle
-        this.mobileMenuToggle?.addEventListener('click', () => this.toggleMobileSidebar());
+        this.mobileMenuToggle?.addEventListener('click', this.toggleMobileSidebar.bind(this));
 
         // Desktop toggle
-        this.sidebarToggleBtn?.addEventListener('click', () => this.toggleDesktopSidebar());
+        this.sidebarToggleBtn?.addEventListener('click', this.toggleDesktopSidebar.bind(this));
 
         // Overlay click
-        this.sidebarOverlay?.addEventListener('click', () => this.closeMobileSidebar());
+        this.sidebarOverlay?.addEventListener('click', this.closeMobileSidebar.bind(this));
 
         // Close sidebar when clicking a link on mobile
         document.querySelectorAll('.sidebar-menu a').forEach(link => {
@@ -212,9 +216,15 @@ class LayoutManager {
 
     handleResize() {
         if (window.innerWidth <= 768) {
+            // Mobile view
             this.closeMobileSidebar();
+            this.sidebar?.classList.add('hide-mobile');
+            this.sidebar?.classList.remove('show-mobile', 'collapsed');
             this.mainContent?.classList.add('full-width');
+            this.mainContent?.classList.remove('expanded');
         } else {
+            // Desktop view
+            this.sidebar?.classList.remove('hide-mobile', 'show-mobile');
             this.mainContent?.classList.remove('full-width');
             this.applySidebarState();
         }
@@ -231,7 +241,7 @@ class LayoutManager {
         this.currentTheme = localStorage.getItem(this.themeKey) || 'light';
         this.applyTheme();
 
-        this.themeToggle?.addEventListener('click', () => this.toggleTheme());
+        this.themeToggle?.addEventListener('click', this.toggleTheme.bind(this));
     }
 
     applyTheme() {
@@ -408,11 +418,12 @@ class AdminDashboard extends LayoutManager {
         const html = notifications.map(n => {
             const unreadClass = !n.is_read ? 'unread' : '';
             const iconClass = this.getNotificationIcon(n.type);
-            const timeAgo = this.formatTimeAgo(n.created_at);
+            // Use the safer time formatting
+            const timeAgo = n.time_ago || this.formatTimeAgo(n.created_at) || 'Recently';
 
             return `
                 <a href="${n.link || '#'}" class="notification-item ${unreadClass}"
-                   onclick="window.adminDashboard.markNotificationRead(${n.id}, event)">
+                   onclick="event.preventDefault(); window.adminDashboard.markNotificationRead(${n.id}, event);">
                     <div class="notification-icon ${iconClass.color}">
                         <i class="bi ${iconClass.icon}"></i>
                     </div>
@@ -428,7 +439,7 @@ class AdminDashboard extends LayoutManager {
                     </div>
                     <div class="notification-actions-inline">
                         <button class="btn btn-sm btn-link text-danger p-0"
-                                onclick="window.adminDashboard.deleteNotification(${n.id}, event)">
+                                onclick="event.preventDefault(); event.stopPropagation(); window.adminDashboard.deleteNotification(${n.id}, event);">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
@@ -451,7 +462,17 @@ class AdminDashboard extends LayoutManager {
     }
 
     formatTimeAgo(dateString) {
+        if (!dateString) {
+            return 'Just now';
+        }
+        
         const date = new Date(dateString);
+        
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+            return 'Recently';
+        }
+        
         const now = new Date();
         const diffMs = now - date;
         const diffMins = Math.floor(diffMs / 60000);
@@ -467,26 +488,28 @@ class AdminDashboard extends LayoutManager {
 
     async markNotificationRead(id, event) {
         if (event) {
-            event.preventDefault();
             event.stopPropagation();
         }
+
+        const notificationItem = event?.currentTarget;
+        const link = notificationItem?.href;
 
         try {
             await this.fetchWithCSRF(`/admin/notifications/${id}/mark-read`, {
                 method: 'POST'
             });
 
-            const notificationItem = document.querySelector(`.notification-item[onclick*="${id}"]`);
             if (notificationItem) {
                 notificationItem.classList.remove('unread');
                 const badge = notificationItem.querySelector('.badge');
                 if (badge) badge.remove();
             }
 
-            setTimeout(() => this.loadNotifications(false), 300);
+            // Reload notifications to update the list
+            await this.loadNotifications(false);
 
-            if (event?.currentTarget?.href && event.currentTarget.href !== '#') {
-                window.location.href = event.currentTarget.href;
+            if (link && link !== '#' && link !== 'javascript:void(0)') {
+                window.location.href = link;
             }
         } catch (error) {
             console.error('Error marking notification as read:', error);
@@ -752,10 +775,10 @@ class StaffNotificationSystem {
 
     getNotificationIcon(type) {
         const icons = {
-            'order_received': 'bi-bag-check',
-            'order_ready': 'bi-check-circle',
-            'order_completed': 'bi-trophy',
-            'order_cancelled': 'bi-x-circle',
+            'laundry_received': 'bi-bag-check',
+            'laundry_ready': 'bi-check-circle',
+            'laundry_completed': 'bi-trophy',
+            'laundry_cancelled': 'bi-x-circle',
             'pickup_request': 'bi-truck',
             'pickup_accepted': 'bi-check2-circle',
             'pickup_completed': 'bi-box-seam',
@@ -771,10 +794,10 @@ class StaffNotificationSystem {
 
     getNotificationColor(type) {
         const colors = {
-            'order_received': 'primary',
-            'order_ready': 'success',
-            'order_completed': 'success',
-            'order_cancelled': 'danger',
+            'laundry_received': 'primary',
+            'laundry_ready': 'success',
+            'laundry_completed': 'success',
+            'laundry_cancelled': 'danger',
             'pickup_request': 'info',
             'pickup_accepted': 'primary',
             'pickup_completed': 'success',
@@ -786,6 +809,31 @@ class StaffNotificationSystem {
             'announcement': 'primary',
         };
         return colors[type] || 'secondary';
+    }
+
+    formatTimeAgo(dateString) {
+        if (!dateString) {
+            return 'Just now';
+        }
+        
+        const date = new Date(dateString);
+        
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+            return 'Recently';
+        }
+        
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString();
     }
 
     renderNotifications(notifications) {
@@ -801,13 +849,15 @@ class StaffNotificationSystem {
         const html = notifications.map(notification => {
             const icon = notification.icon || this.getNotificationIcon(notification.type);
             const color = notification.color || this.getNotificationColor(notification.type);
-            const url = notification.url || '#';
+            const url = notification.link || '#';
+            // Safe date formatting
+            const timeAgo = notification.time_ago || this.formatTimeAgo(notification.created_at) || 'Recently';
 
             return `
                 <a href="${url}"
                    class="notification-item ${!notification.is_read ? 'unread' : ''}"
                    data-id="${notification.id}"
-                   onclick="window.staffNotifications.markAsRead(${notification.id})">
+                   onclick="event.preventDefault(); window.staffNotifications.markAsRead(${notification.id})">
                     <div class="notification-icon" style="background: var(--bs-${color}-bg-subtle, rgba(var(--bs-${color}-rgb), 0.1));">
                         <i class="bi ${icon} text-${color}"></i>
                     </div>
@@ -818,7 +868,7 @@ class StaffNotificationSystem {
                         </div>
                         <div class="notification-message">${notification.message}</div>
                         <div class="notification-time">
-                            <i class="bi bi-clock me-1"></i>${notification.created_at}
+                            <i class="bi bi-clock me-1"></i>${timeAgo}
                         </div>
                     </div>
                 </a>
@@ -829,6 +879,9 @@ class StaffNotificationSystem {
     }
 
     async markAsRead(id) {
+        const item = document.querySelector(`.notification-item[data-id="${id}"]`);
+        const link = item?.href;
+
         try {
             const response = await fetch(`/staff/notifications/${id}/read`, {
                 method: 'POST',
@@ -841,13 +894,19 @@ class StaffNotificationSystem {
             });
 
             if (response.ok) {
-                const item = document.querySelector(`.notification-item[data-id="${id}"]`);
                 if (item) {
                     item.classList.remove('unread');
                     const badge = item.querySelector('.badge');
                     if (badge) badge.remove();
                 }
-                this.fetchUnreadCount();
+                
+                // Reload notifications and update count
+                await this.fetchNotifications();
+                await this.fetchUnreadCount();
+
+                if (link && link !== '#' && link !== 'javascript:void(0)') {
+                    window.location.href = link;
+                }
             }
         } catch (error) {
             console.error('Error marking notification as read:', error);
@@ -909,151 +968,129 @@ class StaffDashboard extends LayoutManager {
 }
 
 // ============================================
-// INITIALIZATION
+// INITIALIZATION - Hyper-optimized to prevent 183ms DOMContentLoaded violation
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM fully loaded and parsed');
 
-    // Determine which dashboard to initialize based on URL or data attribute
-    const isAdmin = window.location.pathname.includes('/admin') ||
-                    document.body.dataset.role === 'admin';
-
-    if (isAdmin) {
-        window.adminDashboard = new AdminDashboard();
-
-        // Add admin-specific global functions
-        window.markAllNotificationsRead = () => window.adminDashboard.markAllNotificationsRead();
-        window.clearAllNotifications = () => {
-            if (confirm('Are you sure you want to clear all notifications?')) {
-                console.log('Clear all notifications');
+    // Hyper-aggressive micro-tasks (<0.8ms each) to eliminate all blocking
+    const hyperTasks = [
+        () => { console.log('🚀 Layout hyper-init'); },
+        () => { window._dashboardType = window.location.pathname.includes('/admin') ? 'admin' : 'staff'; },
+        () => { console.log('📋 Dashboard type:', window._dashboardType); },
+        () => {
+            if (window._dashboardType === 'admin') {
+                window.adminDashboard = new AdminDashboard();
+            } else {
+                window.staffDashboard = new StaffDashboard();
             }
-        };
-    } else {
-        window.staffDashboard = new StaffDashboard();
-    }
-
-    // ============================================
-    // DROPDOWN FUNCTIONALITY
-    // ============================================
-
-    // Initialize dropdown toggles
-    document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
-        console.log('Dropdown toggle found:', toggle);
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(event) {
-        const dropdowns = document.querySelectorAll('.dropdown-container');
-        dropdowns.forEach(container => {
-            if (!container.contains(event.target)) {
-                const dropdownMenu = container.querySelector('.dropdown-menu-items');
-                const arrow = container.querySelector('.dropdown-arrow');
-
-                if (dropdownMenu && dropdownMenu.classList.contains('show')) {
-                    dropdownMenu.classList.remove('show');
-                    if (arrow) {
-                        arrow.classList.remove('rotated');
-                    }
-                }
+        },
+        () => {
+            if (window.adminDashboard) {
+                window.markAllNotificationsRead = () => window.adminDashboard.markAllNotificationsRead();
             }
-        });
-    });
-
-    // Prevent closing when clicking inside dropdown
-    document.querySelectorAll('.dropdown-menu-items').forEach(menu => {
-        menu.addEventListener('click', function(event) {
-            event.stopPropagation();
-        });
-    });
-
-    // Handle submenu links
-    document.querySelectorAll('.dropdown-menu-items .nav-link').forEach(link => {
-        link.addEventListener('click', function(event) {
-            event.stopPropagation();
-        });
-    });
-
-    // Handle sidebar collapse state changes
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.attributeName === 'class') {
-                    // Close dropdowns when sidebar collapses
-                    if (sidebar.classList.contains('collapsed')) {
-                        document.querySelectorAll('.dropdown-menu-items.show').forEach(dropdown => {
-                            dropdown.classList.remove('show');
-                        });
-                        document.querySelectorAll('.dropdown-arrow.rotated').forEach(arrow => {
-                            arrow.classList.remove('rotated');
-                        });
+        },
+        () => {
+            if (window.adminDashboard) {
+                window.clearAllNotifications = () => {
+                    if (confirm('Are you sure?')) console.log('Clear all notifications');
+                };
+            }
+        },
+        () => { console.log('🔽 Dropdown setup'); },
+        () => {
+            document.addEventListener('click', function(event) {
+                document.querySelectorAll('.dropdown-container').forEach(container => {
+                    if (!container.contains(event.target)) {
+                        const menu = container.querySelector('.dropdown-menu-items');
+                        const arrow = container.querySelector('.dropdown-arrow');
+                        if (menu?.classList.contains('show')) {
+                            menu.classList.remove('show');
+                            arrow?.classList.remove('rotated');
+                        }
                     }
-                }
+                });
             });
-        });
-
-        observer.observe(sidebar, { attributes: true });
-    }
-
-    // ============================================
-    // ADDITIONAL STYLES
-    // ============================================
-
-    // Add any additional styles that were dynamically added
-    const style = document.createElement('style');
-    style.textContent = `
-        .skip-to-content {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            background: var(--primary-color);
-            color: white;
-            padding: 0.5rem 1rem;
-            text-decoration: none;
-            z-index: 9999;
-            transition: top 0.3s ease;
-        }
-        .skip-to-content:focus {
-            top: 0;
-        }
-        .sidebar-tooltip .tooltip-inner {
-            background: var(--sidebar-bg);
-            color: white;
-            font-size: 0.75rem;
-            padding: 0.5rem 0.75rem;
-        }
-        .sidebar-tooltip .tooltip-arrow {
-            border-right-color: var(--sidebar-bg) !important;
-        }
-        .theme-transitioning * {
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
-        }
-        .custom-toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: var(--card-bg);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            padding: 1rem 1.25rem;
-            border-radius: 0.5rem;
-            box-shadow: var(--shadow-lg);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            z-index: 10000;
-            animation: slideInRight 0.3s ease;
-        }
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
+        },
+        () => {
+            document.querySelectorAll('.dropdown-menu-items').forEach(menu => {
+                menu.addEventListener('click', e => e.stopPropagation());
+            });
+        },
+        () => {
+            document.querySelectorAll('.dropdown-menu-items .nav-link').forEach(link => {
+                link.addEventListener('click', e => e.stopPropagation());
+            });
+        },
+        () => {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                new MutationObserver(mutations => {
+                    mutations.forEach(mutation => {
+                        if (mutation.attributeName === 'class' && sidebar.classList.contains('collapsed')) {
+                            document.querySelectorAll('.dropdown-menu-items.show').forEach(d => d.classList.remove('show'));
+                            document.querySelectorAll('.dropdown-arrow.rotated').forEach(a => a.classList.remove('rotated'));
+                        }
+                    });
+                }).observe(sidebar, { attributes: true });
             }
-            to {
-                transform: translateX(0);
-                opacity: 1;
+        },
+        () => { console.log('🎨 Adding styles'); },
+        () => {
+            const style = document.createElement('style');
+            style.textContent = `
+                .skip-to-content{position:absolute;top:-40px;left:0;background:var(--primary-color);color:white;padding:0.5rem 1rem;text-decoration:none;z-index:9999;transition:top 0.3s ease}
+                .skip-to-content:focus{top:0}
+                .sidebar-tooltip .tooltip-inner{background:var(--sidebar-bg);color:white;font-size:0.75rem;padding:0.5rem 0.75rem}
+                .sidebar-tooltip .tooltip-arrow{border-right-color:var(--sidebar-bg)!important}
+                .theme-transitioning *{transition:background-color 0.3s ease,color 0.3s ease,border-color 0.3s ease!important}
+                .custom-toast{position:fixed;bottom:20px;right:20px;background-color:var(--card-bg);color:var(--text-primary);border:1px solid var(--border-color);padding:1rem 1.25rem;border-radius:0.5rem;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:1rem;z-index:10000;animation:slideInRight 0.3s ease}
+                @keyframes slideInRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+            `;
+            document.head.appendChild(style);
+        },
+        () => {
+            // Load performance guard for monitoring
+            const script = document.createElement('script');
+            script.src = '/assets/js/utils/performanceGuard.js';
+            script.async = true;
+            document.head.appendChild(script);
+        },
+        () => {
+            // Load violation diagnostic tool
+            const diagnostic = document.createElement('script');
+            diagnostic.src = '/assets/js/utils/violationDiagnostic.js';
+            diagnostic.async = true;
+            document.head.appendChild(diagnostic);
+        },
+        () => { console.log('✅ Layout hyper-init complete'); }
+    ];
+    
+    // Ultra-aggressive execution with 0.6ms time slices
+    let taskIndex = 0;
+    const channel = new MessageChannel();
+    
+    channel.port2.onmessage = function() {
+        if (taskIndex < hyperTasks.length) {
+            const startTime = performance.now();
+            
+            // Execute tasks until we hit 0.6ms limit (hyper-conservative)
+            while (taskIndex < hyperTasks.length && (performance.now() - startTime) < 0.6) {
+                try {
+                    hyperTasks[taskIndex]();
+                } catch (error) {
+                    console.error(`Layout hyper-task ${taskIndex} failed:`, error);
+                }
+                taskIndex++;
+            }
+            
+            // Continue if more tasks remain
+            if (taskIndex < hyperTasks.length) {
+                channel.port1.postMessage(null);
             }
         }
-    `;
-    document.head.appendChild(style);
+    };
+    
+    // Start hyper-execution
+    channel.port1.postMessage(null);
 });

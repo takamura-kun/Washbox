@@ -6,52 +6,127 @@
 
 @push('styles')
 <style>
-/* ── Dark mode: Add-ons page ── */
-[data-theme="dark"] .card { background: #1e293b !important; border-color: #334155 !important; }
-[data-theme="dark"] .card-body { color: #f1f5f9; }
-[data-theme="dark"] .card h3.fw-bold { color: #f1f5f9 !important; }
-[data-theme="dark"] .card-header { background: #0f172a !important; border-color: #334155 !important; }
-[data-theme="dark"] .card-header h6 { color: #f1f5f9 !important; }
-[data-theme="dark"] h4.fw-bold { color: #f1f5f9 !important; }
-[data-theme="dark"] .text-muted { color: #94a3b8 !important; }
-[data-theme="dark"] .form-check-label { color: #f1f5f9 !important; }
-/* search bar */
-[data-theme="dark"] .input-group-text { background: #334155 !important; border-color: #334155 !important; color: #94a3b8 !important; }
-[data-theme="dark"] .form-control.bg-light { background: #1e293b !important; border-color: #334155 !important; color: #f1f5f9 !important; }
-[data-theme="dark"] .form-control.bg-light::placeholder { color: #64748b; }
-[data-theme="dark"] .form-control.bg-light:focus { background: #0f172a !important; border-color: #5452a0 !important; box-shadow: 0 0 0 0.25rem rgba(84,82,160,0.2) !important; color: #f1f5f9 !important; }
-/* stat icon tints */
-[data-theme="dark"] .bg-success.bg-opacity-10 { background: rgba(16,185,129,0.15) !important; }
-[data-theme="dark"] .bg-info.bg-opacity-10    { background: rgba(59,130,246,0.15)  !important; }
-[data-theme="dark"] .bg-warning.bg-opacity-10 { background: rgba(245,158,11,0.15)  !important; }
-/* table */
-[data-theme="dark"] .table { --bs-table-color: #f1f5f9; --bs-table-bg: transparent; --bs-table-border-color: #334155; --bs-table-hover-bg: rgba(255,255,255,0.04); color: #f1f5f9; border-color: #334155; }
-[data-theme="dark"] thead.table-light th, [data-theme="dark"] .table-light th { background: #0f172a !important; color: #94a3b8 !important; border-color: #334155 !important; }
-[data-theme="dark"] .table td { color: #f1f5f9 !important; border-color: #334155 !important; background: transparent !important; }
-[data-theme="dark"] .table-hover tbody tr:hover > td { background: rgba(255,255,255,0.04) !important; color: #f1f5f9 !important; }
-[data-theme="dark"] .table td .fw-semibold { color: #f1f5f9; }
-[data-theme="dark"] .table td .small.text-muted { color: #94a3b8 !important; }
-/* ID column green → brighter green */
-[data-theme="dark"] .table td.fw-bold.text-success { color: #4ade80 !important; }
-[data-theme="dark"] .text-success { color: #4ade80 !important; }
-[data-theme="dark"] .text-info    { color: #60a5fa !important; }
-[data-theme="dark"] .text-warning { color: #fbbf24 !important; }
-/* badges */
-[data-theme="dark"] .badge.bg-light { background: #334155 !important; color: #e2e8f0 !important; border-color: #475569 !important; }
-[data-theme="dark"] .badge.bg-light.text-dark { color: #e2e8f0 !important; }
-[data-theme="dark"] .badge.bg-success   { background: rgba(16,185,129,0.2) !important; color: #4ade80 !important; }
-[data-theme="dark"] .badge.bg-secondary { background: rgba(100,116,139,0.2) !important; color: #94a3b8 !important; }
-[data-theme="dark"] .badge.bg-info      { background: rgba(59,130,246,0.2)  !important; color: #60a5fa !important; }
-/* action button */
-[data-theme="dark"] .btn-outline-info { border-color: #3b82f6; color: #60a5fa; }
-[data-theme="dark"] .btn-outline-info:hover { background: #3b82f6; color: #fff; border-color: #3b82f6; }
-/* empty state */
-[data-theme="dark"] h5.text-muted { color: #64748b !important; }
+/* Add-ons page - proper light/dark mode support */
+
+/* Light mode (default) */
+.addons-page .card {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+.addons-page .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.addons-page .card-header {
+    background: var(--bg-color);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.addons-page .table {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.addons-page .table thead th {
+    background: var(--bg-color);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.addons-page .table tbody td {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.addons-page .table-hover tbody tr:hover td {
+    background: var(--bg-color);
+}
+
+.addons-page h4,
+.addons-page h5,
+.addons-page h6 {
+    color: var(--text-primary);
+}
+
+.addons-page .text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.addons-page .fw-semibold {
+    color: var(--text-primary);
+}
+
+.addons-page .bg-light {
+    background: var(--border-color) !important;
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] .addons-page .card {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .addons-page .card-header {
+    background: var(--bg-color);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .addons-page .table {
+    background: transparent;
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .addons-page .table thead th {
+    background: var(--bg-color);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .addons-page .table tbody td {
+    background: transparent;
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .addons-page .table-hover tbody tr:hover td {
+    background: rgba(255,255,255,0.05);
+}
+
+[data-theme="dark"] .addons-page .bg-light {
+    background: var(--border-color) !important;
+}
+
+[data-theme="dark"] .addons-page .text-success {
+    color: #4ade80 !important;
+}
+
+[data-theme="dark"] .addons-page .badge.bg-light {
+    background: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .addons-page .badge.bg-light.text-dark {
+    color: var(--text-primary) !important;
+}
+
+@media (max-width: 768px) {
+    .addons-page .input-group { max-width: 100% !important; }
+    .addons-page .table th i { font-size: 0.75rem; }
+}
+
+@media (max-width: 576px) {
+    .addons-page .form-check-label { font-size: 0.8rem; }
+}
 </style>
 @endpush
 
 @section('content')
-<div class="container-fluid px-4 py-4">
+<div class="container-fluid px-4 py-4 addons-page">
     {{-- Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -152,6 +227,7 @@
                     <thead class="table-light">
                         <tr>
                             <th class="ps-4"><i class="bi bi-hash me-1"></i>ID</th>
+                            <th><i class="bi bi-image me-1"></i>Image</th>
                             <th><i class="bi bi-plus-circle me-1"></i>Add-on Name</th>
                             <th><i class="bi bi-link-45deg me-1"></i>Slug</th>
                             <th><i class="bi bi-card-text me-1"></i>Description</th>
@@ -165,6 +241,19 @@
                         @foreach($addons as $addon)
                         <tr class="addon-row" data-active="{{ $addon->is_active ? '1' : '0' }}" data-id="{{ $addon->id }}">
                             <td class="ps-4 fw-bold text-success">#{{ $addon->id }}</td>
+                            <td>
+                                @if($addon->image)
+                                    <img src="{{ asset('storage/addons/' . $addon->image) }}" 
+                                         class="rounded" 
+                                         style="width: 50px; height: 50px; object-fit: cover;"
+                                         alt="{{ $addon->name }}">
+                                @else
+                                    <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                         style="width: 50px; height: 50px;">
+                                        <i class="bi bi-image text-muted"></i>
+                                    </div>
+                                @endif
+                            </td>
                             <td>
                                 <div class="fw-semibold">{{ $addon->name }}</div>
                             </td>

@@ -75,7 +75,8 @@ class NotificationController extends Controller
                     'icon' => $n->icon_class,
                     'color' => $n->color,
                     'link' => $n->link,
-                    'time_ago' => $n->time_ago,
+                    'time_ago' => $n->created_at ? $n->created_at->diffForHumans() : 'Just now',
+                    'formatted_date' => $n->created_at ? $n->created_at->format('M d, Y h:i A') : 'Date unavailable',
                     'is_read' => $n->is_read,
                 ];
             }),

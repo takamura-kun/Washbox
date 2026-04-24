@@ -7,7 +7,7 @@
     --accent-color: #FF5C35;
     --success-color: #10B981;
     --warning-color: #F59E0B;
-    --danger-color: #EF4444;
+    --danger-color: #DC2626;
     --info-color: #3B82F6;
     --sidebar-bg: #2d2b5f;
     --sidebar-text: rgba(255, 255, 255, 0.9);
@@ -627,11 +627,12 @@ pre code {
 
 .brand-text { flex: 1; overflow: hidden; }
 
-.brand-text h3 {
+.brand-text h3,
+.brand-text h5 {
     font-weight: 700;
     font-size: 1.1rem;
     margin: 0;
-    color: white;
+    color: white !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -640,7 +641,7 @@ pre code {
 
 .brand-text small {
     font-size: 0.68rem;
-    color: rgba(255, 92, 53, 0.9);
+    color: rgba(255, 92, 53, 0.9) !important;
     display: block;
     margin-top: 0.2rem;
     font-weight: 500;
@@ -766,7 +767,7 @@ pre code {
 
 .sidebar-menu .nav-label {
     padding: 1rem 1.5rem 0.4rem;
-    color: rgba(255, 255, 255, 0.32);
+    color: rgba(255, 255, 255, 0.32) !important;
     font-size: 0.63rem;
     text-transform: uppercase;
     letter-spacing: 1.6px;
@@ -803,20 +804,22 @@ pre code {
 
 .sidebar-menu li a {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     padding: 0.75rem 1.375rem;
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(255, 255, 255, 0.65) !important;
     text-decoration: none;
     transition:
         background 0.22s ease,
         color 0.22s ease,
         padding-left 0.2s ease,
         border-left-color 0.22s ease;
-    white-space: nowrap;
+    white-space: normal;
     position: relative;
     border-left: 3px solid transparent;
     border-radius: 0 8px 8px 0;
     margin-right: 0.75rem;
+    min-height: 42px;
+    cursor: pointer !important;
 }
 
 .sidebar-menu li a i {
@@ -826,28 +829,41 @@ pre code {
     text-align: center;
     flex-shrink: 0;
     transition: margin-right var(--transition-speed) ease, color 0.22s ease, transform 0.22s ease;
+    color: inherit;
+    padding-top: 0.15rem;
 }
 
 .sidebar-menu li a:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
-    border-left-color: rgba(255, 255, 255, 0.22);
-    padding-left: 1.625rem;
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: white !important;
+    border-left-color: rgba(255, 255, 255, 0.22) !important;
+    padding-left: 1.625rem !important;
+    cursor: pointer !important;
 }
 
 .sidebar-menu li a:hover i {
-    color: rgba(255, 92, 53, 0.9);
+    color: rgba(255, 92, 53, 0.9) !important;
     transform: translateX(2px);
 }
 
 .sidebar-menu li a.active {
-    background: linear-gradient(90deg, rgba(255, 92, 53, 0.2) 0%, rgba(255, 92, 53, 0.05) 100%);
-    color: white;
-    border-left-color: #FF5C35;
+    background: linear-gradient(90deg, rgba(255, 92, 53, 0.2) 0%, rgba(255, 92, 53, 0.05) 100%) !important;
+    color: white !important;
+    border-left-color: #FF5C35 !important;
     font-weight: 600;
+    cursor: pointer !important;
 }
 
-.sidebar-menu li a.active i { color: #FF5C35; }
+.sidebar-menu li a:focus,
+.sidebar-menu li a:active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: white !important;
+    outline: none !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+}
+
+.sidebar-menu li a.active i { color: #FF5C35 !important; }
 
 /* Right-side glowing dot on active items */
 .sidebar-menu li a.active::after {
@@ -873,15 +889,27 @@ pre code {
 }
 
 .sidebar.collapsed .sidebar-menu li a:hover {
-    padding-left: 0;
-    background: rgba(255, 255, 255, 0.1);
+    padding-left: 0 !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.sidebar.collapsed .sidebar-menu li a:focus,
+.sidebar.collapsed .sidebar-menu li a:active {
+    background: rgba(255, 255, 255, 0.1) !important;
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 .sidebar.collapsed .sidebar-menu li a i { margin-right: 0; font-size: 1.25rem; }
 
 .sidebar.collapsed .sidebar-menu li a.active {
-    background: rgba(255, 92, 53, 0.18);
-    padding-left: 0;
+    background: rgba(255, 92, 53, 0.18) !important;
+    padding-left: 0 !important;
+}
+
+.sidebar.collapsed .sidebar-menu li a.active:focus,
+.sidebar.collapsed .sidebar-menu li a.active:active {
+    background: rgba(255, 92, 53, 0.18) !important;
 }
 
 .sidebar.collapsed .sidebar-menu li a.active::after {
@@ -896,10 +924,13 @@ pre code {
 .sidebar-menu .menu-text {
     transition: opacity var(--transition-speed) ease, max-width var(--transition-speed) ease;
     max-width: 200px;
-    overflow: hidden;
+    overflow: visible;
+    white-space: normal;
+    line-height: 1.3;
+    color: inherit !important;
 }
 
-.sidebar.collapsed .menu-text { opacity: 0; max-width: 0; }
+.sidebar.collapsed .menu-text { opacity: 0; max-width: 0; overflow: hidden; }
 
 /* ---- Badges ---- */
 .sidebar-menu .badge {
@@ -1954,7 +1985,7 @@ pre code {
     font-size: 0.85rem;
     width: 20px;
     margin-right: 0.625rem;
-    color: rgba(255, 255, 255, 0.42);
+    color: rgba(255, 255, 255, 0.42) !important;
     transition: color 0.2s ease, transform 0.2s ease;
 }
 
@@ -1964,8 +1995,16 @@ pre code {
     padding-left: 3.5rem !important;
 }
 
+.dropdown-menu-items .nav-link:focus,
+.dropdown-menu-items .nav-link:active {
+    background: rgba(255, 255, 255, 0.07) !important;
+    color: white !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
 .dropdown-menu-items .nav-link:hover i {
-    color: rgba(255, 92, 53, 0.85);
+    color: rgba(255, 92, 53, 0.85) !important;
     transform: translateX(2px);
 }
 
@@ -1975,7 +2014,12 @@ pre code {
     font-weight: 500;
 }
 
-.dropdown-menu-items .nav-link.active i { color: #FF5C35; }
+.dropdown-menu-items .nav-link.active:focus,
+.dropdown-menu-items .nav-link.active:active {
+    background: rgba(255, 92, 53, 0.12) !important;
+}
+
+.dropdown-menu-items .nav-link.active i { color: #FF5C35 !important; }
 
 /* Badge container */
 .badge-container {
@@ -2023,6 +2067,164 @@ pre code {
 }
 
 .sidebar.collapsed .dropdown-toggle .dropdown-arrow { display: none; }
+
+/* ============================================ */
+/* SIDEBAR THEME ISOLATION - CRITICAL FIX     */
+/* Ensure sidebar always maintains proper colors */
+/* regardless of global theme switching        */
+/* ============================================ */
+
+/* WASHBOX brand text - always white regardless of theme */
+.sidebar .brand-text h3,
+.sidebar .brand-text h5,
+[data-theme="light"] .sidebar .brand-text h3,
+[data-theme="dark"] .sidebar .brand-text h3,
+[data-theme="light"] .sidebar .brand-text h5,
+[data-theme="dark"] .sidebar .brand-text h5 {
+    color: white !important;
+}
+
+/* Branch info text - always orange accent */
+.sidebar .brand-text small,
+.sidebar .branch-info small,
+[data-theme="light"] .sidebar .brand-text small,
+[data-theme="dark"] .sidebar .brand-text small,
+[data-theme="light"] .sidebar .branch-info small,
+[data-theme="dark"] .sidebar .branch-info small {
+    color: rgba(255, 92, 53, 0.9) !important;
+}
+
+/* Navigation labels */
+.sidebar .nav-label,
+[data-theme="light"] .sidebar .nav-label,
+[data-theme="dark"] .sidebar .nav-label {
+    color: rgba(255, 255, 255, 0.32) !important;
+}
+
+/* Navigation links */
+.sidebar .sidebar-menu li a,
+[data-theme="light"] .sidebar .sidebar-menu li a,
+[data-theme="dark"] .sidebar .sidebar-menu li a {
+    color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.sidebar .sidebar-menu li a:hover,
+[data-theme="light"] .sidebar .sidebar-menu li a:hover,
+[data-theme="dark"] .sidebar .sidebar-menu li a:hover {
+    color: white !important;
+}
+
+.sidebar .sidebar-menu li a.active,
+[data-theme="light"] .sidebar .sidebar-menu li a.active,
+[data-theme="dark"] .sidebar .sidebar-menu li a.active {
+    color: white !important;
+}
+
+/* Navigation icons */
+.sidebar .sidebar-menu li a i,
+[data-theme="light"] .sidebar .sidebar-menu li a i,
+[data-theme="dark"] .sidebar .sidebar-menu li a i {
+    color: inherit !important;
+}
+
+.sidebar .sidebar-menu li a:hover i,
+[data-theme="light"] .sidebar .sidebar-menu li a:hover i,
+[data-theme="dark"] .sidebar .sidebar-menu li a:hover i {
+    color: rgba(255, 92, 53, 0.9) !important;
+}
+
+.sidebar .sidebar-menu li a.active i,
+[data-theme="light"] .sidebar .sidebar-menu li a.active i,
+[data-theme="dark"] .sidebar .sidebar-menu li a.active i {
+    color: #FF5C35 !important;
+}
+
+/* Menu text */
+.sidebar .menu-text,
+[data-theme="light"] .sidebar .menu-text,
+[data-theme="dark"] .sidebar .menu-text {
+    color: inherit !important;
+}
+
+/* Dropdown menu items */
+.sidebar .dropdown-menu-items .nav-link,
+[data-theme="light"] .sidebar .dropdown-menu-items .nav-link,
+[data-theme="dark"] .sidebar .dropdown-menu-items .nav-link {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.sidebar .dropdown-menu-items .nav-link:hover,
+[data-theme="light"] .sidebar .dropdown-menu-items .nav-link:hover,
+[data-theme="dark"] .sidebar .dropdown-menu-items .nav-link:hover {
+    color: white !important;
+}
+
+.sidebar .dropdown-menu-items .nav-link.active,
+[data-theme="light"] .sidebar .dropdown-menu-items .nav-link.active,
+[data-theme="dark"] .sidebar .dropdown-menu-items .nav-link.active {
+    color: white !important;
+}
+
+.sidebar .dropdown-menu-items .nav-link i,
+[data-theme="light"] .sidebar .dropdown-menu-items .nav-link i,
+[data-theme="dark"] .sidebar .dropdown-menu-items .nav-link i {
+    color: rgba(255, 255, 255, 0.42) !important;
+}
+
+.sidebar .dropdown-menu-items .nav-link:hover i,
+[data-theme="light"] .sidebar .dropdown-menu-items .nav-link:hover i,
+[data-theme="dark"] .sidebar .dropdown-menu-items .nav-link:hover i {
+    color: rgba(255, 92, 53, 0.85) !important;
+}
+
+.sidebar .dropdown-menu-items .nav-link.active i,
+[data-theme="light"] .sidebar .dropdown-menu-items .nav-link.active i,
+[data-theme="dark"] .sidebar .dropdown-menu-items .nav-link.active i {
+    color: #FF5C35 !important;
+}
+
+/* Additional fixes for any text elements in sidebar */
+.sidebar *,
+[data-theme="light"] .sidebar *,
+[data-theme="dark"] .sidebar * {
+    /* Prevent global theme from affecting sidebar text */
+}
+
+/* Specifically target the WASHBOX text that might be affected */
+.sidebar h5,
+.sidebar .text-white,
+[data-theme="light"] .sidebar h5,
+[data-theme="dark"] .sidebar h5,
+[data-theme="light"] .sidebar .text-white,
+[data-theme="dark"] .sidebar .text-white {
+    color: white !important;
+}
+
+/* Branch name text */
+.sidebar .text-white-50,
+[data-theme="light"] .sidebar .text-white-50,
+[data-theme="dark"] .sidebar .text-white-50 {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Override Bootstrap utility classes in sidebar */
+.sidebar .text-dark,
+.sidebar .text-black,
+[data-theme="light"] .sidebar .text-dark,
+[data-theme="light"] .sidebar .text-black,
+[data-theme="dark"] .sidebar .text-dark,
+[data-theme="dark"] .sidebar .text-black {
+    color: white !important;
+}
+
+/* Ensure all headings in sidebar stay white */
+.sidebar h1, .sidebar h2, .sidebar h3, .sidebar h4, .sidebar h5, .sidebar h6,
+[data-theme="light"] .sidebar h1, [data-theme="light"] .sidebar h2, [data-theme="light"] .sidebar h3,
+[data-theme="light"] .sidebar h4, [data-theme="light"] .sidebar h5, [data-theme="light"] .sidebar h6,
+[data-theme="dark"] .sidebar h1, [data-theme="dark"] .sidebar h2, [data-theme="dark"] .sidebar h3,
+[data-theme="dark"] .sidebar h4, [data-theme="dark"] .sidebar h5, [data-theme="dark"] .sidebar h6 {
+    color: white !important;
+}
 
 /* ============================================ */
 /* RESPONSIVE DESIGN                            */
@@ -2227,6 +2429,27 @@ pre code {
 /* Hover indent — match new base padding */
 .sidebar-menu li a:hover {
     padding-left: 1.5rem !important;
+}
+
+/* Remove any Bootstrap default focus/active backgrounds */
+.sidebar-menu li a:focus-visible {
+    outline: 2px solid rgba(255, 92, 53, 0.5) !important;
+    outline-offset: -2px !important;
+}
+
+/* Ensure no background bleeds through on click */
+.sidebar-menu li,
+.dropdown-menu-items li {
+    background: transparent !important;
+}
+
+.sidebar-menu li:hover,
+.sidebar-menu li:focus,
+.sidebar-menu li:active,
+.dropdown-menu-items li:hover,
+.dropdown-menu-items li:focus,
+.dropdown-menu-items li:active {
+    background: transparent !important;
 }
 
 /* Active dot — reposition for new padding */

@@ -116,16 +116,8 @@ class SettingsController extends Controller
      */
     public function profile()
     {
-        try {
-            $user = Auth::user();
-            return view('staff.settings.profile', compact('user'));
-
-        } catch (\Exception $e) {
-            Log::error('Staff Profile Error: ' . $e->getMessage());
-
-            return redirect()->back()
-                ->with('error', 'Error loading profile: ' . $e->getMessage());
-        }
+        $user = Auth::user();
+        return view('staff.profile.index', compact('user'));
     }
 
     /**
@@ -163,13 +155,21 @@ class SettingsController extends Controller
     {
         try {
             $validated = $request->validate([
-                'current_password' => 'required|current_password',
-                'new_password' => 'required|string|min:8|confirmed',
+                'current_password' => 'required|string',
+                'password' => 'required|string|min:8|confirmed',
             ]);
 
             $user = Auth::user();
+            
+            // Check if current password is correct
+            if (!Hash::check($validated['current_password'], $user->password)) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Current password is incorrect.');
+            }
+
             $user->update([
-                'password' => Hash::make($validated['new_password']),
+                'password' => Hash::make($validated['password']),
             ]);
 
             return redirect()->route('staff.profile')

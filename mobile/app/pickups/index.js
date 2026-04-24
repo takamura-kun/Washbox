@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -37,25 +38,17 @@ const COLORS = {
 
 const STATUS_COLORS = {
   pending: '#F59E0B',
-  confirmed: '#0EA5E9',
+  accepted: '#0EA5E9',
+  en_route: '#10B981',
   picked_up: '#8B5CF6',
-  processing: '#3B82F6',
-  ready_for_delivery: '#10B981',
-  out_for_delivery: '#10B981',
-  delivered: '#10B981',
-  en_route: '#F59E0B',
   cancelled: '#EF4444',
 };
 
 const STATUS_LABELS = {
   pending: 'Pending',
-  confirmed: 'Confirmed',
-  picked_up: 'Picked Up',
-  processing: 'Processing',
-  ready_for_delivery: 'Ready for Delivery',
-  out_for_delivery: 'Out for Delivery',
-  delivered: 'Delivered',
+  accepted: 'Accepted',
   en_route: 'En Route',
+  picked_up: 'Picked Up',
   cancelled: 'Cancelled',
 };
 
@@ -98,6 +91,13 @@ export default function PickupsHistoryScreen() {
 
   useEffect(() => {
     fetchPickups();
+    
+    // Auto-refresh every 30 seconds when screen is active
+    const interval = setInterval(() => {
+      fetchPickups();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, [fetchPickups]);
 
   const onRefresh = () => {
@@ -106,8 +106,8 @@ export default function PickupsHistoryScreen() {
   };
 
   // Explicit status lists — safer than exclusion-based filtering
-  const ACTIVE_STATUSES = ['pending', 'confirmed', 'en_route'];
-  const COMPLETED_STATUSES = ['picked_up', 'delivered', 'cancelled'];
+  const ACTIVE_STATUSES = ['pending', 'accepted', 'en_route'];
+  const COMPLETED_STATUSES = ['picked_up', 'cancelled'];
 
   const filteredPickups = useMemo(() => {
     if (filter === 'active') return pickups.filter(p => ACTIVE_STATUSES.includes(p.status));
@@ -129,14 +129,28 @@ export default function PickupsHistoryScreen() {
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
+  const showToast = (message, type = 'info') => {
+    // Simple alert for now - can be replaced with proper toast library
+    Alert.alert(
+      type === 'success' ? 'Success' : type === 'danger' ? 'Error' : 'Info',
+      message,
+      [{ text: 'OK' }]
+    );
+  };
+
   const renderPickupItem = ({ item }) => {
     const statusColor = STATUS_COLORS[item.status] || COLORS.textMuted;
     const statusLabel = STATUS_LABELS[item.status] || item.status;
-    const isActive = ['pending', 'confirmed', 'en_route'].includes(item.status);
+    const isActive = ['pending', 'accepted', 'confirmed', 'en_route'].includes(item.status);
+    const pickup = item; // For easier access in nested functions
 
-    // Card is now a plain View — no tap navigation
+    // Card is now clickable — navigate to details
     return (
-      <View style={styles.pickupCard}>
+      <TouchableOpacity 
+        style={styles.pickupCard}
+        onPress={() => router.push(`/pickups/${item.id}`)}
+        activeOpacity={0.7}
+      >
         <LinearGradient
           colors={[COLORS.surface, COLORS.surfaceLight]}
           style={styles.cardGradient}
@@ -201,16 +215,76 @@ export default function PickupsHistoryScreen() {
               </Text>
             </View>
 
-            {/* Active indicator */}
-            {isActive && (
-              <View style={styles.activePill}>
-                <View style={styles.activePulse} />
-                <Text style={styles.activePillText}>In Progress</Text>
-              </View>
+            {/* Action buttons based on status */}
+            {isActive && pickup.status === 'pending' && (
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  Alert.alert(
+                    'Cancel Pickup',
+                    'Are you sure you want to cancel this pickup request?',
+                    [
+                      { text: 'No', style: 'cancel' },
+                      {
+                        text: 'Yes, Cancel',
+                        style: 'destructive',
+                        onPress: async () => {
+                          try {
+                            const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
+                            const response = await fetch(`${API_BASE_URL}/v1/pickups/${item.id}/cancel`, {
+                              method: 'PUT',
+                              headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                              },
+                            });
+                            
+                            if (response.ok) {
+                              // Refresh the list
+                              fetchPickups();
+                              showToast('Pickup cancelled successfully', 'success');
+                            } else {
+                              const data = await response.json();
+                              showToast(data.message || 'Failed to cancel pickup', 'danger');
+                            }
+                          } catch (error) {
+                            showToast('Failed to cancel pickup', 'danger');
+                          }
+                        }
+                      }
+                    ]
+                  );
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close-circle" size={14} color={COLORS.danger} />
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
             )}
+            
+            {isActive && pickup.status !== 'pending' && (
+              <TouchableOpacity
+                style={styles.trackButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  router.push(`/pickup-tracking?id=${item.id}`);
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="navigate" size={14} color={COLORS.pickup} />
+                <Text style={styles.trackButtonText}>Track</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* View details arrow */}
+            <View style={styles.viewDetailsChip}>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+            </View>
           </View>
         </LinearGradient>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -251,8 +325,8 @@ export default function PickupsHistoryScreen() {
 
   const counts = {
     all: pickups.length,
-    active: pickups.filter(p => ['pending', 'confirmed', 'en_route'].includes(p.status)).length,
-    completed: pickups.filter(p => ['delivered', 'cancelled'].includes(p.status)).length,
+    active: pickups.filter(p => ['pending', 'accepted', 'confirmed', 'en_route'].includes(p.status)).length,
+    completed: pickups.filter(p => ['picked_up', 'cancelled'].includes(p.status)).length,
   };
 
   return (
@@ -368,7 +442,7 @@ const styles = StyleSheet.create({
   // List
   listContent: { padding: 20, paddingBottom: 40 },
 
-  // Card — now View, not TouchableOpacity
+  // Card — now TouchableOpacity, clickable
   pickupCard: {
     marginBottom: 16, borderRadius: 20,
     overflow: 'hidden', borderWidth: 1, borderColor: COLORS.borderLight,
@@ -444,6 +518,49 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.pickup,
   },
   activePillText: { fontSize: 10, fontWeight: '700', color: COLORS.pickup },
+
+  // Track button
+  trackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.pickupGlow,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.pickup + '40',
+  },
+  trackButtonText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.pickup,
+  },
+  
+  // Cancel button
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.danger + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.danger + '40',
+  },
+  cancelButtonText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.danger,
+  },
+
+  // View details chip
+  viewDetailsChip: {
+    width: 28, height: 28, borderRadius: 10,
+    backgroundColor: COLORS.primarySoft,
+    justifyContent: 'center', alignItems: 'center',
+  },
 
   // Empty State
   emptyState: {

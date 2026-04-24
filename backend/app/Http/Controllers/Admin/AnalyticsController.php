@@ -246,6 +246,170 @@ class AnalyticsController extends Controller
         ];
     }
 
+    /**
+     * API endpoint for historical analytics data
+     * Route: GET /admin/api/analytics/historical
+     */
+    public function historical(Request $request)
+    {
+        $metric = $request->input('metric', 'daily_pickups');
+        $days = $request->input('days', 30);
+        
+        $startDate = Carbon::now()->subDays($days);
+        $endDate = Carbon::now();
+        
+        $data = match($metric) {
+            'daily_pickups' => $this->getDailyPickups($startDate, $endDate),
+            'hourly_pickups' => $this->getHourlyPickups($startDate, $endDate),
+            'daily_revenue' => $this->getDailyRevenue($startDate, $endDate),
+            default => []
+        };
+        
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'metric' => $metric,
+            'period' => $days . ' days'
+        ]);
+    }
+    
+    /**
+     * API endpoint for customer behavior analytics
+     * Route: GET /admin/api/analytics/customer-behavior
+     */
+    public function customerBehavior(Request $request)
+    {
+        $days = $request->input('days', 30);
+        $startDate = Carbon::now()->subDays($days);
+        $endDate = Carbon::now();
+        
+        $data = [
+            'repeat_customers' => $this->getRepeatCustomers($startDate, $endDate),
+            'avg_order_value' => $this->getAverageOrderValue($startDate, $endDate),
+            'churn_indicators' => $this->getChurnIndicators($startDate, $endDate),
+            'customer_segments' => $this->getCustomerSegments($startDate, $endDate)
+        ];
+        
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'period' => $days . ' days'
+        ]);
+    }
+    
+    /**
+     * API endpoint for real-time analytics
+     * Route: GET /admin/api/analytics/realtime
+     */
+    public function realtime(Request $request)
+    {
+        $activePickups = \App\Models\PickupRequest::whereIn('status', ['pending', 'accepted', 'en_route'])->count();
+        $completedToday = \App\Models\PickupRequest::where('status', 'picked_up')->whereDate('updated_at', today())->count();
+        $revenueToday = Laundry::whereIn('status', ['paid', 'completed'])->whereDate('created_at', today())->sum('total_amount');
+        $ordersToday = Laundry::whereDate('created_at', today())->count();
+        
+        return response()->json([
+            'success' => true,
+            'active_pickups' => $activePickups,
+            'completed_today' => $completedToday,
+            'revenue_today' => (float) $revenueToday,
+            'orders_today' => $ordersToday,
+            'timestamp' => now()->toIso8601String()
+        ]);
+    }
+    
+    // Helper methods for analytics data
+    private function getDailyPickups($startDate, $endDate)
+    {
+        return \App\Models\PickupRequest::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(fn($item) => [
+                'date' => $item->date,
+                'count' => (int) $item->count
+            ]);
+    }
+    
+    private function getHourlyPickups($startDate, $endDate)
+    {
+        return \App\Models\PickupRequest::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('HOUR(created_at) as hour, COUNT(*) as count')
+            ->groupBy('hour')
+            ->orderBy('hour')
+            ->get()
+            ->map(fn($item) => [
+                'hour' => (int) $item->hour,
+                'count' => (int) $item->count
+            ]);
+    }
+    
+    private function getDailyRevenue($startDate, $endDate)
+    {
+        return Laundry::whereBetween('created_at', [$startDate, $endDate])
+            ->whereIn('status', ['paid', 'completed'])
+            ->selectRaw('DATE(created_at) as date, SUM(total_amount) as revenue')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(fn($item) => [
+                'date' => $item->date,
+                'revenue' => (float) $item->revenue
+            ]);
+    }
+    
+    private function getRepeatCustomers($startDate, $endDate)
+    {
+        return Laundry::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('customer_id, COUNT(*) as order_count')
+            ->groupBy('customer_id')
+            ->having('order_count', '>', 1)
+            ->count();
+    }
+    
+    private function getAverageOrderValue($startDate, $endDate)
+    {
+        return (float) Laundry::whereBetween('created_at', [$startDate, $endDate])
+            ->whereIn('status', ['paid', 'completed'])
+            ->avg('total_amount') ?? 0;
+    }
+    
+    private function getChurnIndicators($startDate, $endDate)
+    {
+        $inactiveCustomers = Laundry::selectRaw('customer_id, MAX(created_at) as last_order')
+            ->groupBy('customer_id')
+            ->having('last_order', '<', Carbon::now()->subDays(30))
+            ->count();
+            
+        return [
+            'inactive_customers' => $inactiveCustomers,
+            'churn_risk_threshold' => 30 // days
+        ];
+    }
+    
+    private function getCustomerSegments($startDate, $endDate)
+    {
+        $segments = Laundry::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('customer_id, COUNT(*) as order_count, SUM(total_amount) as total_spent')
+            ->groupBy('customer_id')
+            ->get()
+            ->groupBy(function($customer) {
+                if ($customer->order_count >= 10) return 'loyal';
+                if ($customer->order_count >= 5) return 'regular';
+                if ($customer->order_count >= 2) return 'repeat';
+                return 'new';
+            })
+            ->map(fn($group) => $group->count());
+            
+        return [
+            'loyal' => $segments->get('loyal', 0),
+            'regular' => $segments->get('regular', 0),
+            'repeat' => $segments->get('repeat', 0),
+            'new' => $segments->get('new', 0)
+        ];
+    }
+
     protected function getPromotionEffectiveness($startDate, $endDate)
     {
         $promotions = Promotion::withCount(['laundries' => fn($q) => $q->whereBetween('created_at', [$startDate, $endDate])])

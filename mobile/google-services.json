@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "219759805571",
+    "project_id": "washboxlaundryshop",
+    "storage_bucket": "washboxlaundryshop.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:219759805571:android:d0df74470891498bb2c7b6",
+        "android_client_info": {
+          "package_name": "com.washbox.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "<your_firebase_api_key>"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

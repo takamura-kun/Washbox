@@ -27,7 +27,7 @@ const COLORS = {
   border: '#1E293B',
 };
 
-const TermsModal = ({ visible, onClose }) => {
+const TermsModal = ({ visible, onClose, onAccept, showAcceptButton = false }) => {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
   const termsData = [
@@ -176,13 +176,31 @@ const TermsModal = ({ visible, onClose }) => {
 
           {/* Footer Button */}
           <View style={styles.footer}>
-            <TouchableOpacity 
-              style={styles.acceptButton}
-              onPress={onClose}
-            >
-              <Ionicons name="checkmark-circle" size={20} color="#fff" />
-              <Text style={styles.acceptButtonText}>I Understand</Text>
-            </TouchableOpacity>
+            {showAcceptButton ? (
+              <View style={styles.footerButtons}>
+                <TouchableOpacity 
+                  style={styles.declineButton}
+                  onPress={onClose}
+                >
+                  <Text style={styles.declineButtonText}>Decline</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.acceptButton}
+                  onPress={onAccept}
+                >
+                  <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                  <Text style={styles.acceptButtonText}>Accept & Continue</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={styles.acceptButton}
+                onPress={onClose}
+              >
+                <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                <Text style={styles.acceptButtonText}>I Understand</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -342,7 +360,27 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
+  footerButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  declineButton: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.cardDark,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  declineButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
   acceptButton: {
+    flex: 1,
     flexDirection: 'row',
     backgroundColor: COLORS.primary,
     paddingVertical: 16,

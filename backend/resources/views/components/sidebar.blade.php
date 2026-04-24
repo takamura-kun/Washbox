@@ -19,12 +19,12 @@
 
             {{-- Brand Text --}}
             <div class="brand-text">
-                <h5 class="text-white mb-1 fw-bold" style="font-size: 1.1rem;">WASHBOX</h5>
+                <h5 class="mb-1 fw-bold" style="font-size: 1.1rem; color: white !important;">WASHBOX</h5>
 
                 {{-- Branch Info --}}
                 @if($role === 'staff' && auth()->user()->branch)
                     <div class="branch-info mt-1">
-                        <small class="text-white-50 d-block fw-bold" style="font-size: 0.6rem; letter-spacing: 1px;">
+                        <small class="d-block fw-bold" style="font-size: 0.6rem; letter-spacing: 1px; color: rgba(255, 92, 53, 0.9) !important;">
                             {{ strtoupper(auth()->user()->branch->name) }} BRANCH
                         </small>
                     </div>
@@ -48,7 +48,7 @@
             <li><span class="nav-label">Management</span></li>
             <x-admin.nav-item route="admin.analytics" icon="bi-graph-up" label="Analytics" />
             <x-admin.nav-item route="admin.branches.index" icon="bi-shop" label="Branches" />
-            {{-- ADD THIS LINE FOR SERVICES & ADD-ONS --}}
+            <x-admin.nav-item route="admin.service-types.index" icon="bi-grid-3x3-gap" label="Service Types" />
             <x-admin.nav-item route="admin.services.index" icon="bi-droplet" label="Services & Add-Ons" />
         @endif
 
@@ -61,13 +61,44 @@
         <x-admin.nav-item route="{{ $role }}.pickups.index" icon="bi-truck" label="Pickups" />
         <x-admin.nav-item route="{{ $role }}.customers.index" icon="bi-people" label="Customers" />
         <x-admin.nav-item route="{{ $role }}.unclaimed.index" icon="bi-exclamation-octagon text-warning" label="Unclaimed" />
+        @if($role === 'staff')
+            @php
+                // Don't show badge if we're currently on the ratings page
+                $newStaffRatings = request()->routeIs('staff.ratings.*') ? 0 : \App\Models\CustomerRating::where('branch_id', auth()->user()->branch_id ?? 0)
+                    ->whereNull('viewed_at')
+                    ->count();
+            @endphp
+            <x-admin.nav-item 
+                route="staff.ratings.index" 
+                icon="bi-star" 
+                label="Ratings"
+                :badge="$newStaffRatings"
+                badgeClass="bg-danger rounded-pill" />
+        @endif
 
         {{-- Admin Section --}}
         @if($role === 'admin')
             <li><span class="nav-label">Admin</span></li>
             <x-admin.nav-item route="admin.promotions.index" icon="bi-megaphone" label="Promotions" />
+            @php
+                $pendingPayments = \App\Models\PaymentProof::where('status', 'pending')->count();
+            @endphp
+            <x-admin.nav-item 
+                route="admin.payments.verification.index" 
+                icon="bi-credit-card-2-front text-success" 
+                label="Payment Verification"
+                :badge="$pendingPayments"
+                badgeClass="bg-warning text-dark rounded-pill" />
             <x-admin.nav-item route="admin.staff.index" icon="bi-person-badge" label="Staff" />
-            <x-admin.nav-item route="admin.reports.index" icon="bi-file-earmark-bar-graph" label="Reports" />
+            @php
+                $newRatings = \App\Models\CustomerRating::whereNull('viewed_at')->count();
+            @endphp
+            <x-admin.nav-item 
+                route="admin.reports.index" 
+                icon="bi-file-earmark-bar-graph" 
+                label="Reports"
+                :badge="$newRatings"
+                badgeClass="bg-danger rounded-pill" />
         @endif
 
         <li><hr class="border-white opacity-10 mx-3"></li>

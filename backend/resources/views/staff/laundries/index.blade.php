@@ -4,6 +4,25 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('assets/css/laundry.css') }}">
+    <style>
+        .hover-lift {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
+        }
+        /* Light mode */
+        [data-theme="light"] .hover-lift {
+            background-color: #ffffff !important;
+            color: #111827 !important;
+        }
+        /* Dark mode */
+        [data-theme="dark"] .hover-lift {
+            background-color: #1F2937 !important;
+            color: #F9FAFB !important;
+        }
+    </style>
 @endpush
 
 @section('content')
@@ -12,11 +31,9 @@
     {{-- Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <p class="text-muted small mb-0">Track and manage all laundry orders for your branch</p>
+            <p class="text-muted small mb-0">Track and manage all laundry for your branch</p>
         </div>
-        <a href="{{ route('staff.laundries.create') }}"
-           class="btn btn-primary shadow-sm"
-           style="background: #3D3B6B; border: none;">
+        <a href="{{ route('staff.laundries.create') }}" class="btn btn-primary shadow-sm">
             <i class="bi bi-plus-circle me-2"></i>Create New Laundry
         </a>
     </div>
@@ -36,7 +53,7 @@
             </div>
         </div>
 
-        {{-- Received (was incorrectly labelled "Pending") --}}
+        {{-- Received --}}
         <div class="col-md-2 col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-body p-3 text-center">
@@ -75,12 +92,12 @@
             </div>
         </div>
 
-        {{-- Today --}}
+        {{-- Today — FIX: text-dark → text-secondary (dark mode safe) --}}
         <div class="col-md-2 col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-body p-3 text-center">
                     <div class="bg-dark bg-opacity-10 p-2 rounded-3 d-inline-block mb-2">
-                        <i class="bi bi-calendar-check fs-4 text-dark"></i>
+                        <i class="bi bi-calendar-check fs-4 text-secondary"></i>
                     </div>
                     <h4 class="fw-bold mb-0">{{ $stats['today_laundries'] ?? 0 }}</h4>
                     <small class="text-muted">Today</small>
@@ -162,111 +179,97 @@
         </div>
     </div>
 
-    {{-- Laundries Table --}}
-    <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="px-4 py-3">Tracking #</th>
-                            <th class="px-4 py-3">Customer</th>
-                            <th class="px-4 py-3">Service</th>
-                            <th class="px-4 py-3">Weight / Loads</th>
-                            <th class="px-4 py-3">Amount</th>
-                            <th class="px-4 py-3">Status</th>
-                            <th class="px-4 py-3">Date</th>
-                            <th class="px-4 py-3 text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($laundries as $laundry)
-                        <tr>
-                            <td class="px-4 py-3">
-                                <strong class="text-primary">{{ $laundry->tracking_number }}</strong>
+    {{-- Laundries Grid --}}
+    @forelse($laundries as $laundry)
+        @if($loop->first)
+        <div class="row g-3">
+        @endif
+            @php
+                $badgeMap = [
+                    'completed'  => 'success',
+                    'ready'      => 'info',
+                    'processing' => 'warning',
+                    'paid'       => 'primary',
+                    'cancelled'  => 'danger',
+                    'received'   => 'secondary',
+                ];
+                $badge = $badgeMap[$laundry->status] ?? 'secondary';
+            @endphp
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <a href="{{ route('staff.laundries.show', $laundry) }}" class="tracking-number fw-bold text-decoration-none">
+                                    {{ $laundry->tracking_number }}
+                                </a>
                                 @if($laundry->pickupRequest)
-                                    <br><small class="text-muted">
-                                        <i class="bi bi-truck me-1"></i>Pickup #{{ $laundry->pickupRequest->id }}
-                                    </small>
+                                    <br><small class="text-muted"><i class="bi bi-truck me-1"></i>Pickup #{{ $laundry->pickupRequest->id }}</small>
                                 @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="fw-semibold">{{ $laundry->customer->name ?? 'N/A' }}</div>
-                                <small class="text-muted">{{ $laundry->customer->phone ?? '' }}</small>
-                            </td>
-                            <td class="px-4 py-3">
-                                {{ $laundry->service->name ?? 'N/A' }}
-                                @if($laundry->addons_total > 0)
-                                    <br><small class="text-success">+₱{{ number_format($laundry->addons_total, 2) }} add-ons</small>
-                                @endif
-                                @if($laundry->promotion)
-                                    <br><small class="text-info"><i class="bi bi-tag me-1"></i>{{ $laundry->promotion->name }}</small>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3">
+                            </div>
+                            <span class="badge bg-{{ $badge }}">{{ ucfirst($laundry->status) }}</span>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-person-circle me-2 text-muted"></i>
+                                <div>
+                                    <div class="fw-semibold">{{ $laundry->customer->name ?? 'N/A' }}</div>
+                                    <small class="text-muted">{{ $laundry->customer->phone ?? '' }}</small>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-droplet me-2 text-muted"></i>
+                                <div>
+                                    <span>{{ $laundry->service->name ?? 'N/A' }}</span>
+                                    @if($laundry->addons_total > 0)
+                                        <br><small class="text-success">+₱{{ number_format($laundry->addons_total, 2) }} add-ons</small>
+                                    @endif
+                                    @if($laundry->promotion)
+                                        <br><small class="text-info"><i class="bi bi-tag me-1"></i>{{ $laundry->promotion->name }}</small>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <div>
                                 @if($laundry->weight > 0)
-                                    <span>{{ number_format($laundry->weight, 2) }} kg</span><br>
+                                    <small class="text-muted">{{ number_format($laundry->weight, 2) }} kg</small>
                                 @endif
                                 @if($laundry->number_of_loads)
-                                    <small class="text-muted">
-                                        {{ $laundry->number_of_loads }}
-                                        {{ ($laundry->service?->pricing_type === 'per_piece') ? 'pc(s)' : 'load(s)' }}
-                                    </small>
+                                    <small class="text-muted">{{ $laundry->number_of_loads }} {{ ($laundry->service?->pricing_type === 'per_piece') ? 'pc(s)' : 'load(s)' }}</small>
                                 @endif
-                                @if(!$laundry->weight && !$laundry->number_of_loads)
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                <strong>₱{{ number_format($laundry->total_amount, 2) }}</strong>
+                                <br><small class="text-muted">{{ $laundry->created_at->format('M d, Y h:i A') }}</small>
+                            </div>
+                            <div class="text-end">
+                                <strong class="amount d-block">₱{{ number_format($laundry->total_amount, 2) }}</strong>
                                 @if($laundry->discount_amount > 0)
-                                    <br><small class="text-success">-₱{{ number_format($laundry->discount_amount, 2) }} disc.</small>
+                                    <small class="text-success">-₱{{ number_format($laundry->discount_amount, 2) }}</small>
                                 @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                @php
-                                    $badgeMap = [
-                                        'completed'  => 'success',
-                                        'ready'      => 'info',
-                                        'processing' => 'warning',
-                                        'paid'       => 'primary',
-                                        'cancelled'  => 'danger',
-                                        'received'   => 'secondary',
-                                    ];
-                                    $badge = $badgeMap[$laundry->status] ?? 'secondary';
-                                @endphp
-                                <span class="badge bg-{{ $badge }}">{{ ucfirst($laundry->status) }}</span>
-                            </td>
-                            <td class="px-4 py-3">
-                                <small>{{ $laundry->created_at->format('M d, Y') }}</small>
-                                <br><small class="text-muted">{{ $laundry->created_at->format('h:i A') }}</small>
-                            </td>
-                            <td class="px-4 py-3 text-center">
-                                <a href="{{ route('staff.laundries.show', $laundry) }}"
-                                   class="btn btn-sm btn-outline-primary"
-                                   title="View Details">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="8" class="text-center py-5">
-                                <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.2;"></i>
-                                <p class="text-muted mt-2 mb-3">No laundries found</p>
-                                <a href="{{ route('staff.laundries.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="bi bi-plus-circle me-1"></i>Create First Laundry
-                                </a>
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @if($loop->last)
+        </div>
+        @endif
+    @empty
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-5">
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>No laundries found</p>
+                    <a href="{{ route('staff.laundries.create') }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-circle me-1"></i>Create First Laundry
+                    </a>
+                </div>
             </div>
         </div>
+    @endforelse
 
-        @if($laundries->hasPages())
-        <div class="card-footer bg-white border-top rounded-bottom-4">
+    @if($laundries->hasPages())
+    <div class="card border-0 shadow-sm rounded-4 mt-3">
+        <div class="card-body p-3">
             <div class="d-flex justify-content-between align-items-center">
                 <small class="text-muted">
                     Showing {{ $laundries->firstItem() }}–{{ $laundries->lastItem() }}
@@ -275,8 +278,8 @@
                 {{ $laundries->links() }}
             </div>
         </div>
-        @endif
     </div>
+    @endif
 
 </div>
 @endsection

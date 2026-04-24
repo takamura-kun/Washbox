@@ -198,38 +198,112 @@ export default function NotificationsScreen() {
 
   const getNotificationIcon = (type) => {
     const icons = {
-      pickup_accepted: 'checkmark-circle',
-      pickup_en_route: 'car',
-      pickup_completed: 'checkbox',
-      order_received: 'cube',
-      order_ready: 'checkmark-done-circle',
-      order_completed: 'gift',
-      unclaimed_day3: 'time',
-      unclaimed_day5: 'alert-circle',
-      unclaimed_day7: 'warning',
-      general: 'megaphone',
+      // Laundry lifecycle
+      'laundry_received': 'cube',
+      'laundry_ready': 'checkmark-done-circle',
+      'laundry_completed': 'gift',
+      'laundry_cancelled': 'close-circle',
+      
+      // Payment notifications
+      'payment_pending': 'card',
+      'payment_received': 'checkmark-circle',
+      'payment_verification': 'time',
+      'payment_approved': 'checkmark-circle',
+      'payment_rejected': 'close-circle',
+      
+      // Pickup & Delivery
+      'pickup_submitted': 'paper-plane',
+      'pickup_accepted': 'checkmark-circle',
+      'pickup_en_route': 'car',
+      'pickup_completed': 'checkbox',
+      'pickup_cancelled': 'close-circle',
+      'delivery_scheduled': 'calendar',
+      'delivery_en_route': 'car',
+      'delivery_completed': 'checkmark-done',
+      'delivery_failed': 'close-circle',
+      
+      // System & Business
+      'system_maintenance': 'construct',
+      'app_update': 'download',
+      'branch_closure': 'business',
+      'service_update': 'information-circle',
+      
+      // Customer engagement
+      'feedback_request': 'star',
+      'loyalty_reward': 'trophy',
+      'birthday_greeting': 'gift',
+      
+      // Emergency & Important
+      'emergency_alert': 'warning',
+      'unclaimed_reminder': 'time',
+      
+      // Promotional
+      'promotion': 'pricetag',
+      'welcome': 'hand-left',
+      'general': 'megaphone',
     };
     return icons[type] || 'notifications';
   };
 
   const getNotificationColor = (type) => {
     const colors = {
-      pickup_accepted: COLORS.info,
-      pickup_en_route: COLORS.primary,
-      pickup_completed: COLORS.success,
-      order_received: COLORS.info,
-      order_ready: COLORS.success,
-      order_completed: COLORS.success,
-      unclaimed_day3: COLORS.warning,
-      unclaimed_day5: COLORS.warning,
-      unclaimed_day7: COLORS.danger,
-      general: COLORS.textSecondary,
+      // Laundry lifecycle
+      'laundry_received': COLORS.info,
+      'laundry_ready': COLORS.success,
+      'laundry_completed': COLORS.success,
+      'laundry_cancelled': COLORS.danger,
+      
+      // Payment notifications
+      'payment_pending': COLORS.warning,
+      'payment_received': COLORS.success,
+      'payment_verification': COLORS.info,
+      'payment_approved': COLORS.success,
+      'payment_rejected': COLORS.danger,
+      
+      // Pickup & Delivery
+      'pickup_submitted': COLORS.info,
+      'pickup_accepted': COLORS.success,
+      'pickup_en_route': COLORS.primary,
+      'pickup_completed': COLORS.success,
+      'pickup_cancelled': COLORS.danger,
+      'delivery_scheduled': COLORS.info,
+      'delivery_en_route': COLORS.primary,
+      'delivery_completed': COLORS.success,
+      'delivery_failed': COLORS.danger,
+      
+      // System & Business
+      'system_maintenance': COLORS.warning,
+      'app_update': COLORS.primary,
+      'branch_closure': COLORS.warning,
+      'service_update': COLORS.info,
+      
+      // Customer engagement
+      'feedback_request': COLORS.primary,
+      'loyalty_reward': COLORS.success,
+      'birthday_greeting': COLORS.primary,
+      
+      // Emergency & Important
+      'emergency_alert': COLORS.danger,
+      'unclaimed_reminder': COLORS.warning,
+      
+      // Promotional
+      'promotion': COLORS.primary,
+      'welcome': COLORS.primary,
+      'general': COLORS.textSecondary,
     };
     return colors[type] || COLORS.primary;
   };
 
   const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'Unknown';
+    
     const date = new Date(timestamp);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Unknown';
+    }
+    
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);

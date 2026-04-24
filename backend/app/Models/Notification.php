@@ -109,7 +109,12 @@ class Notification extends Model
             'laundry_ready' => '✅',
             'laundry_completed' => '🎉',
             'laundry_cancelled' => '❌',
+            
+            // Payment notifications
+            'payment_pending' => '💳',
             'payment_received' => '💰',
+            'payment_verification' => '🔍',
+            'payment_rejected' => '❌',
 
             // Pickup notifications
             'pickup_submitted' => '📬',
@@ -123,6 +128,20 @@ class Notification extends Model
             'delivery_en_route' => '🚚',
             'delivery_completed' => '✅',
             'delivery_failed' => '❌',
+            
+            // System & Business notifications
+            'system_maintenance' => '🔧',
+            'app_update' => '📱',
+            'branch_closure' => '🏪',
+            'service_update' => 'ℹ️',
+            
+            // Customer engagement
+            'feedback_request' => '⭐',
+            'loyalty_reward' => '🏆',
+            'birthday_greeting' => '🎂',
+            
+            // Emergency & Important
+            'emergency_alert' => '🚨',
 
             // Unclaimed notifications
             'unclaimed_reminder' => '⏰',
@@ -148,7 +167,12 @@ class Notification extends Model
             'laundry_ready' => 'success',
             'laundry_completed' => 'success',
             'laundry_cancelled' => 'danger',
+            
+            // Payment
+            'payment_pending' => 'warning',
             'payment_received' => 'success',
+            'payment_verification' => 'info',
+            'payment_rejected' => 'danger',
 
             // Pickup
             'pickup_submitted' => 'info',
@@ -162,6 +186,20 @@ class Notification extends Model
             'delivery_en_route' => 'primary',
             'delivery_completed' => 'success',
             'delivery_failed' => 'danger',
+            
+            // System & Business
+            'system_maintenance' => 'warning',
+            'app_update' => 'primary',
+            'branch_closure' => 'warning',
+            'service_update' => 'info',
+            
+            // Customer engagement
+            'feedback_request' => 'primary',
+            'loyalty_reward' => 'success',
+            'birthday_greeting' => 'primary',
+            
+            // Emergency & Important
+            'emergency_alert' => 'danger',
 
             // Unclaimed
             'unclaimed_reminder' => 'warning',
@@ -498,13 +536,30 @@ class Notification extends Model
         ]);
     }
 
-    public static function createPickupCancelled($pickupRequest, ?string $reason = null)
+    public static function createPickupProofUploaded($pickupRequest)
+    {
+        $pickupRequest->loadMissing('customer');
+
+        return self::createAndSend([
+            'customer_id' => $pickupRequest->customer_id,
+            'type' => 'pickup_proof_uploaded',
+            'title' => 'Laundry Received at Shop! 📸',
+            'body' => "Your laundry has arrived at our shop. Check the photo proof!",
+            'data' => [
+                'pickup_request_id' => $pickupRequest->id,
+                'proof_photo_url' => $pickupRequest->pickup_proof_photo_url,
+            ],
+            'pickup_request_id' => $pickupRequest->id,
+        ]);
+    }
+
+    public static function createPickupCancelled($pickupRequest, $cancelledBy = 'customer')
     {
         $pickupRequest->loadMissing('customer');
 
         $body = "Your pickup request has been cancelled.";
-        if ($reason) {
-            $body .= " Reason: {$reason}";
+        if ($cancelledBy === 'customer') {
+            $body = "You have cancelled your pickup request for {$pickupRequest->preferred_date->format('M d, Y')}. You can schedule a new pickup anytime.";
         }
 
         return self::createAndSend([
@@ -514,7 +569,8 @@ class Notification extends Model
             'body' => $body,
             'data' => [
                 'pickup_request_id' => $pickupRequest->id,
-                'reason' => $reason,
+                'cancelled_by' => $cancelledBy,
+                'preferred_date' => $pickupRequest->preferred_date->format('Y-m-d'),
             ],
             'pickup_request_id' => $pickupRequest->id,
         ]);
@@ -723,6 +779,219 @@ class Notification extends Model
             'title' => $title,
             'body' => $body,
             'data' => $data,
+        ]);
+    }
+
+    // ===========================
+    // PAYMENT NOTIFICATIONS
+    // ===========================
+
+    public static function createPaymentPending($laundry)
+    {
+        $laundry->loadMissing('customer');
+
+        return self::createAndSend([
+            'customer_id' => $laundry->customer_id,
+            'type' => 'payment_pending',
+            'title' => 'Payment Required 💳',
+            'body' => "Please pay ₱" . number_format($laundry->total_amount, 2) . " for laundry #{$laundry->tracking_number}.",
+            'data' => [
+                'laundries_id' => $laundry->id,
+                'tracking_number' => $laundry->tracking_number,
+                'amount' => $laundry->total_amount,
+            ],
+            'laundries_id' => $laundry->id,
+        ]);
+    }
+
+    public static function createPaymentVerification($laundry)
+    {
+        $laundry->loadMissing('customer');
+
+        return self::createAndSend([
+            'customer_id' => $laundry->customer_id,
+            'type' => 'payment_verification',
+            'title' => 'Payment Under Review 🔍',
+            'body' => "Your payment proof for laundry #{$laundry->tracking_number} is being verified.",
+            'data' => [
+                'laundries_id' => $laundry->id,
+                'tracking_number' => $laundry->tracking_number,
+            ],
+            'laundries_id' => $laundry->id,
+        ]);
+    }
+
+    public static function createPaymentRejected($laundry, ?string $reason = null)
+    {
+        $laundry->loadMissing('customer');
+
+        $body = "Payment proof for laundry #{$laundry->tracking_number} was rejected.";
+        if ($reason) {
+            $body .= " Reason: {$reason}";
+        }
+        $body .= " Please resubmit payment.";
+
+        return self::createAndSend([
+            'customer_id' => $laundry->customer_id,
+            'type' => 'payment_rejected',
+            'title' => 'Payment Rejected ❌',
+            'body' => $body,
+            'data' => [
+                'laundries_id' => $laundry->id,
+                'tracking_number' => $laundry->tracking_number,
+                'reason' => $reason,
+            ],
+            'laundries_id' => $laundry->id,
+        ]);
+    }
+
+    // ===========================
+    // SYSTEM NOTIFICATIONS
+    // ===========================
+
+    public static function createSystemMaintenance($customerId, $startTime, $endTime)
+    {
+        return self::createAndSend([
+            'customer_id' => $customerId,
+            'type' => 'system_maintenance',
+            'title' => 'Scheduled Maintenance 🔧',
+            'body' => "System maintenance from {$startTime} to {$endTime}. Services may be temporarily unavailable.",
+            'data' => [
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+            ],
+        ]);
+    }
+
+    public static function createAppUpdate($customerId, $version, $features = [])
+    {
+        return self::createAndSend([
+            'customer_id' => $customerId,
+            'type' => 'app_update',
+            'title' => 'App Update Available 📱',
+            'body' => "Version {$version} is now available with new features and improvements!",
+            'data' => [
+                'version' => $version,
+                'features' => $features,
+            ],
+        ]);
+    }
+
+    // ===========================
+    // BUSINESS NOTIFICATIONS
+    // ===========================
+
+    public static function createBranchClosure($customerId, $branch, $date, $reason = null)
+    {
+        $body = "{$branch->name} will be closed on {$date}.";
+        if ($reason) {
+            $body .= " Reason: {$reason}";
+        }
+
+        return self::createAndSend([
+            'customer_id' => $customerId,
+            'type' => 'branch_closure',
+            'title' => 'Branch Closure Notice 🏪',
+            'body' => $body,
+            'data' => [
+                'branch_id' => $branch->id,
+                'branch_name' => $branch->name,
+                'closure_date' => $date,
+                'reason' => $reason,
+            ],
+        ]);
+    }
+
+    public static function createServiceUpdate($customerId, $serviceName, $updateType, $details)
+    {
+        $titles = [
+            'price_change' => 'Price Update 💰',
+            'new_service' => 'New Service Available 🆕',
+            'service_discontinued' => 'Service Update ⚠️',
+        ];
+
+        return self::createAndSend([
+            'customer_id' => $customerId,
+            'type' => 'service_update',
+            'title' => $titles[$updateType] ?? 'Service Update 📢',
+            'body' => "{$serviceName}: {$details}",
+            'data' => [
+                'service_name' => $serviceName,
+                'update_type' => $updateType,
+                'details' => $details,
+            ],
+        ]);
+    }
+
+    // ===========================
+    // CUSTOMER ENGAGEMENT
+    // ===========================
+
+    public static function createFeedbackRequest($laundry)
+    {
+        $laundry->loadMissing('customer');
+
+        return self::createAndSend([
+            'customer_id' => $laundry->customer_id,
+            'type' => 'feedback_request',
+            'title' => 'How was your experience? ⭐',
+            'body' => "Please rate your experience with laundry #{$laundry->tracking_number}. Your feedback helps us improve!",
+            'data' => [
+                'laundries_id' => $laundry->id,
+                'tracking_number' => $laundry->tracking_number,
+            ],
+            'laundries_id' => $laundry->id,
+        ]);
+    }
+
+    public static function createLoyaltyReward($customer, $points, $reward = null)
+    {
+        $body = "You've earned {$points} loyalty points!";
+        if ($reward) {
+            $body .= " You've unlocked: {$reward}";
+        }
+
+        return self::createAndSend([
+            'customer_id' => $customer->id,
+            'type' => 'loyalty_reward',
+            'title' => 'Loyalty Points Earned! 🎯',
+            'body' => $body,
+            'data' => [
+                'points' => $points,
+                'reward' => $reward,
+            ],
+        ]);
+    }
+
+    public static function createBirthdayGreeting($customer)
+    {
+        return self::createAndSend([
+            'customer_id' => $customer->id,
+            'type' => 'birthday_greeting',
+            'title' => 'Happy Birthday! 🎂',
+            'body' => "Happy Birthday {$customer->name}! Enjoy a special 20% discount on your next laundry service!",
+            'data' => [
+                'customer_name' => $customer->name,
+                'discount' => 20,
+            ],
+        ]);
+    }
+
+    // ===========================
+    // EMERGENCY NOTIFICATIONS
+    // ===========================
+
+    public static function createEmergencyAlert($customerId, $title, $message, $severity = 'high')
+    {
+        return self::createAndSend([
+            'customer_id' => $customerId,
+            'type' => 'emergency_alert',
+            'title' => "🚨 {$title}",
+            'body' => $message,
+            'data' => [
+                'severity' => $severity,
+                'alert_title' => $title,
+            ],
         ]);
     }
 

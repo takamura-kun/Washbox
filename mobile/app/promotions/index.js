@@ -11,6 +11,7 @@ import {
   StatusBar,
   Platform,
   Animated,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -198,96 +199,191 @@ export default function PromotionsScreen() {
           {/* Promotions Grid */}
           {filteredPromotions.length > 0 ? (
             <View style={styles.promotionsGrid}>
-              {filteredPromotions.map((promo, index) => (
-                <TouchableOpacity
-                  key={promo.id}
-                  style={styles.promoCard}
-                  activeOpacity={0.9}
-                  onPress={() => {
-                    // Navigate to promotion details if needed
-                    // router.push(`/promotions/${promo.id}`);
-                  }}
-                >
-                  <LinearGradient
-                    colors={index % 2 === 0 ? COLORS.gradientPrimary : COLORS.gradientSecondary}
-                    style={styles.promoGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+              {filteredPromotions.map((promo, index) => {
+                const hasBackgroundImage = promo.banner_image;
+                const gradientColors = index % 2 === 0 ? COLORS.gradientPrimary : COLORS.gradientSecondary;
+                
+                return (
+                  <TouchableOpacity
+                    key={promo.id}
+                    style={styles.promoCard}
+                    activeOpacity={0.9}
+                    onPress={() => {
+                      // Navigate to promotion details if needed
+                      // router.push(`/promotions/${promo.id}`);
+                    }}
                   >
-                    {/* Badges */}
-                    <View style={styles.promoBadges}>
-                      {promo.is_featured && (
-                        <View style={styles.featuredBadge}>
-                          <Ionicons name="star" size={10} color={COLORS.warning} />
-                          <Text style={styles.featuredBadgeText}>FEATURED</Text>
-                        </View>
-                      )}
-                      {promo.is_active && (
-                        <View style={styles.activeBadge}>
-                          <View style={styles.activeDot} />
-                          <Text style={styles.activeBadgeText}>ACTIVE</Text>
-                        </View>
-                      )}
-                    </View>
+                    {hasBackgroundImage ? (
+                      <View style={styles.promoImageContainer}>
+                        <Image
+                          source={{ uri: promo.banner_image }}
+                          style={styles.promoBackgroundImage}
+                          resizeMode="cover"
+                        />
+                        <LinearGradient
+                          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+                          style={styles.promoImageOverlay}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 0, y: 1 }}
+                        >
+                          <View style={styles.promoContentWithImage}>
+                            {/* Badges */}
+                            <View style={styles.promoBadges}>
+                              {promo.is_featured && (
+                                <View style={styles.featuredBadge}>
+                                  <Ionicons name="star" size={10} color={COLORS.warning} />
+                                  <Text style={styles.featuredBadgeText}>FEATURED</Text>
+                                </View>
+                              )}
+                              {promo.is_active && (
+                                <View style={styles.activeBadge}>
+                                  <View style={styles.activeDot} />
+                                  <Text style={styles.activeBadgeText}>ACTIVE</Text>
+                                </View>
+                              )}
+                            </View>
 
-                    {/* Content */}
-                    <View style={styles.promoContent}>
-                      <Text style={styles.promoTitle} numberOfLines={2}>
-                        {promo.poster_title || promo.name}
-                      </Text>
-                      
-                      <Text style={styles.promoSubtitle} numberOfLines={2}>
-                        {promo.poster_subtitle || promo.description}
-                      </Text>
+                            {/* Content */}
+                            <View style={styles.promoContent}>
+                              <Text style={styles.promoTitle} numberOfLines={2}>
+                                {promo.poster_title || promo.name}
+                              </Text>
+                              
+                              <Text style={styles.promoSubtitle} numberOfLines={2}>
+                                {promo.poster_subtitle || promo.description}
+                              </Text>
 
-                      {/* Price */}
-                      {promo.display_price && (
-                        <View style={styles.promoPriceContainer}>
-                          <Text style={styles.promoPrice}>₱{promo.display_price}</Text>
-                          {promo.original_price && (
-                            <Text style={styles.promoOriginalPrice}>
-                              ₱{promo.original_price}
-                            </Text>
+                              {/* Price */}
+                              {promo.display_price && (
+                                <View style={styles.promoPriceContainer}>
+                                  <Text style={styles.promoPrice}>₱{promo.display_price}</Text>
+                                  {promo.original_price && (
+                                    <Text style={styles.promoOriginalPrice}>
+                                      ₱{promo.original_price}
+                                    </Text>
+                                  )}
+                                </View>
+                              )}
+
+                              {/* Features */}
+                              {promo.poster_features && promo.poster_features.length > 0 && (
+                                <View style={styles.promoFeatures}>
+                                  {promo.poster_features.slice(0, 2).map((feature, idx) => (
+                                    <View key={idx} style={styles.featureRow}>
+                                      <Ionicons 
+                                        name="checkmark-circle" 
+                                        size={12} 
+                                        color="rgba(255,255,255,0.9)" 
+                                      />
+                                      <Text style={styles.featureText} numberOfLines={1}>
+                                        {feature}
+                                      </Text>
+                                    </View>
+                                  ))}
+                                </View>
+                              )}
+
+                              {/* Valid Until */}
+                              {promo.end_date && (
+                                <View style={styles.validityContainer}>
+                                  <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.7)" />
+                                  <Text style={styles.validityText}>
+                                    Valid until {new Date(promo.end_date).toLocaleDateString()}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+
+                            {/* Arrow */}
+                            <View style={styles.promoArrow}>
+                              <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.8)" />
+                            </View>
+                          </View>
+                        </LinearGradient>
+                      </View>
+                    ) : (
+                      <LinearGradient
+                        colors={gradientColors}
+                        style={styles.promoGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                      >
+                        {/* Badges */}
+                        <View style={styles.promoBadges}>
+                          {promo.is_featured && (
+                            <View style={styles.featuredBadge}>
+                              <Ionicons name="star" size={10} color={COLORS.warning} />
+                              <Text style={styles.featuredBadgeText}>FEATURED</Text>
+                            </View>
+                          )}
+                          {promo.is_active && (
+                            <View style={styles.activeBadge}>
+                              <View style={styles.activeDot} />
+                              <Text style={styles.activeBadgeText}>ACTIVE</Text>
+                            </View>
                           )}
                         </View>
-                      )}
 
-                      {/* Features */}
-                      {promo.poster_features && promo.poster_features.length > 0 && (
-                        <View style={styles.promoFeatures}>
-                          {promo.poster_features.slice(0, 2).map((feature, idx) => (
-                            <View key={idx} style={styles.featureRow}>
-                              <Ionicons 
-                                name="checkmark-circle" 
-                                size={12} 
-                                color="rgba(255,255,255,0.9)" 
-                              />
-                              <Text style={styles.featureText} numberOfLines={1}>
-                                {feature}
+                        {/* Content */}
+                        <View style={styles.promoContent}>
+                          <Text style={styles.promoTitle} numberOfLines={2}>
+                            {promo.poster_title || promo.name}
+                          </Text>
+                          
+                          <Text style={styles.promoSubtitle} numberOfLines={2}>
+                            {promo.poster_subtitle || promo.description}
+                          </Text>
+
+                          {/* Price */}
+                          {promo.display_price && (
+                            <View style={styles.promoPriceContainer}>
+                              <Text style={styles.promoPrice}>₱{promo.display_price}</Text>
+                              {promo.original_price && (
+                                <Text style={styles.promoOriginalPrice}>
+                                  ₱{promo.original_price}
+                                </Text>
+                              )}
+                            </View>
+                          )}
+
+                          {/* Features */}
+                          {promo.poster_features && promo.poster_features.length > 0 && (
+                            <View style={styles.promoFeatures}>
+                              {promo.poster_features.slice(0, 2).map((feature, idx) => (
+                                <View key={idx} style={styles.featureRow}>
+                                  <Ionicons 
+                                    name="checkmark-circle" 
+                                    size={12} 
+                                    color="rgba(255,255,255,0.9)" 
+                                  />
+                                  <Text style={styles.featureText} numberOfLines={1}>
+                                    {feature}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+
+                          {/* Valid Until */}
+                          {promo.end_date && (
+                            <View style={styles.validityContainer}>
+                              <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.7)" />
+                              <Text style={styles.validityText}>
+                                Valid until {new Date(promo.end_date).toLocaleDateString()}
                               </Text>
                             </View>
-                          ))}
+                          )}
                         </View>
-                      )}
 
-                      {/* Valid Until */}
-                      {promo.valid_until && (
-                        <View style={styles.validityContainer}>
-                          <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.7)" />
-                          <Text style={styles.validityText}>
-                            Valid until {new Date(promo.valid_until).toLocaleDateString()}
-                          </Text>
+                        {/* Arrow */}
+                        <View style={styles.promoArrow}>
+                          <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.8)" />
                         </View>
-                      )}
-                    </View>
-
-                    {/* Arrow */}
-                    <View style={styles.promoArrow}>
-                      <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.8)" />
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ))}
+                      </LinearGradient>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           ) : (
             // Empty State
@@ -437,6 +533,32 @@ const styles = StyleSheet.create({
   promoGradient: {
     padding: 20,
     minHeight: 200,
+  },
+  promoImageContainer: {
+    position: 'relative',
+    minHeight: 200,
+  },
+  promoBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  promoImageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+  },
+  promoContentWithImage: {
+    padding: 20,
+    flex: 1,
+    justifyContent: 'space-between',
   },
   promoBadges: {
     flexDirection: 'row',

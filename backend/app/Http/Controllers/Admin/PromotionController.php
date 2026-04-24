@@ -138,6 +138,7 @@ class PromotionController extends Controller
             'min_amount' => 'nullable|numeric|min:0',
             'max_usage' => 'nullable|integer|min:1',
             'display_laundry' => 'nullable|integer|min:0',
+            'marketing_cost' => 'nullable|numeric|min:0',
         ]);
 
         $data = [
@@ -156,6 +157,7 @@ class PromotionController extends Controller
             'max_usage' => $request->max_usage,
             'display_laundry' => $request->input('display_laundry', 0),
             'featured' => $request->has('featured'),
+            'marketing_cost' => $request->input('marketing_cost', 0),
         ];
 
         if ($request->hasFile('banner_image')) {
@@ -445,6 +447,14 @@ class PromotionController extends Controller
         ]);
 
         $status = $promotion->is_active ? 'activated' : 'deactivated';
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Promotion {$status} successfully!",
+                'is_active' => $promotion->is_active
+            ]);
+        }
 
         return redirect()->route('admin.promotions.index')
             ->with('success', "Promotion {$status} successfully!");

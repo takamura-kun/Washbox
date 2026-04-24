@@ -40,26 +40,32 @@ class ServiceController extends Controller
             $services = $query
                 ->orderByRaw("FIELD(category, 'drop_off', 'self_service', 'addon')")
                 ->orderBy('name')
-                ->get([
-                    'id',
-                    'name',
-                    'description',
-                    'category',
-                    'service_type',
-                    'pricing_type',
-                    'price_per_load',
-                    'min_weight',
-                    'max_weight',
-                    'turnaround_time',
-                    'is_active',
-                ]);
+                ->get()
+                ->map(function ($service) {
+                    return [
+                        'id' => $service->id,
+                        'name' => $service->name,
+                        'description' => $service->description,
+                        'category' => $service->category,
+                        'service_type' => $service->service_type,
+                        'pricing_type' => $service->pricing_type,
+                        'price_per_kilo' => $service->price_per_kilo,
+                        'price_per_load' => $service->price_per_load,
+                        'min_weight' => $service->min_weight,
+                        'max_weight' => $service->max_weight,
+                        'turnaround_time' => $service->turnaround_time,
+                        'is_active' => $service->is_active,
+                        'image' => $service->image,
+                        'image_url' => $service->image_url,
+                        'icon_path' => $service->icon_path,
+                        'icon_url' => $service->icon_url,
+                    ];
+                });
 
             return response()->json([
                 'success' => true,
-                'data'    => [
-                    'services' => $services,
-                    'total'    => $services->count(),
-                ],
+                'data'    => $services,
+                'total'   => $services->count(),
             ]);
 
         } catch (\Exception $e) {

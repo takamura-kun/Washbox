@@ -84,6 +84,21 @@
             </a>
         </li>
 
+        {{-- Ratings --}}
+        <li class="nav-item">
+            <a href="{{ route('staff.ratings.index') }}"
+               class="nav-link {{ request()->routeIs('staff.ratings.*') ? 'active' : '' }}">
+                <i class="bi bi-star text-warning"></i>
+                <span class="menu-text">Ratings</span>
+                @php
+                    $branchRatings = \App\Models\CustomerRating::where('branch_id', auth()->user()->branch_id ?? 0)->count();
+                @endphp
+                @if($branchRatings > 0)
+                    <span class="badge bg-warning text-dark rounded-pill ms-auto">{{ $branchRatings }}</span>
+                @endif
+            </a>
+        </li>
+
         {{-- Services & Add-ons Dropdown --}}
         @php
             $isServicesActive = request()->routeIs('staff.services.*');
@@ -161,21 +176,23 @@
             </a>
         </li>
 
-        {{-- Analytics Section --}}
-        <li class="nav-label">Insights</li>
-
-        {{-- Analytics --}}
+        {{-- Payment Verification --}}
         <li class="nav-item">
-
-        {{-- Branches (View Only) --}}
-        <li class="nav-item">
-            <a href="{{ route('staff.branches.index') }}"
-               class="nav-link {{ request()->routeIs('staff.branches.*') ? 'active' : '' }}">
-                <i class="bi bi-building text-info"></i>
-                <span class="menu-text">Branches</span>
+            <a href="{{ route('staff.payments.verification.index') }}"
+               class="nav-link {{ request()->routeIs('staff.payments.verification.*') ? 'active' : '' }}">
+                <i class="bi bi-credit-card-2-front text-success"></i>
+                <span class="menu-text">Payment Verification</span>
+                @php
+                    $pendingPayments = \App\Models\PaymentProof::where('status', 'pending')
+                        ->whereHas('laundry', function($q) {
+                            $q->where('branch_id', auth()->user()->branch_id ?? 0);
+                        })->count();
+                @endphp
+                @if($pendingPayments > 0)
+                    <span class="badge bg-warning text-dark rounded-pill ms-auto">{{ $pendingPayments }}</span>
+                @endif
             </a>
         </li>
-
         <li class="nav-divider"><hr class="border-white opacity-10 mx-3"></li>
 
         {{-- Profile Section --}}
@@ -183,7 +200,7 @@
 
         {{-- Profile --}}
         <li class="nav-item">
-            <a href="{{ route('staff.profile') }}"
+            <a href="/staff/profile"
                class="nav-link {{ request()->routeIs('staff.profile') ? 'active' : '' }}">
                 <i class="bi bi-person-circle"></i>
                 <span class="menu-text">Profile</span>

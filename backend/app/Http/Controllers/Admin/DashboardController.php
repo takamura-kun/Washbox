@@ -153,6 +153,10 @@ class DashboardController extends Controller
             // Charts Data
             'last7DaysRevenue' => $revenueTrend['data'],
             'revenueLabels'    => $revenueTrend['labels'],
+            'dailyLaundryCount' => $this->getDailyLaundryCount($startDate, $endDate),
+            'paymentMethods'   => $this->getPaymentMethods($startDate, $endDate),
+            'topServices'      => $this->getTopServices($startDate, $endDate),
+            'yoyRevenue'       => $this->getYearOverYearRevenue(),
 
             // Utilities
             'activePromotions' => Promotion::where('status', 'active')
@@ -265,6 +269,8 @@ class DashboardController extends Controller
     {
         // Customers have preferred_branch_id directly on the customers table.
         // Registration types are: 'walk_in' and 'self_registered'.
+        
+        // Get customers WITH preferred branch
         $raw = Customer::select(
                 'preferred_branch_id',
                 'registration_type',
@@ -275,9 +281,18 @@ class DashboardController extends Controller
             ->get()
             ->groupBy('preferred_branch_id');
 
+        // Get customers WITHOUT preferred branch (unassigned)
+        $unassigned = Customer::select(
+                'registration_type',
+                DB::raw('COUNT(*) as count')
+            )
+            ->whereNull('preferred_branch_id')
+            ->groupBy('registration_type')
+            ->get();
+
         $branches = Branch::select('id', 'name')->orderBy('name')->get();
 
-        return $branches->map(function ($branch) use ($raw) {
+        $result = $branches->map(function ($branch) use ($raw) {
             $rows     = $raw->get($branch->id, collect());
             $walkIn   = 0;
             $mobile   = 0;
@@ -303,7 +318,37 @@ class DashboardController extends Controller
                 'mobile'  => $mobile,
                 'total'   => $total,
             ];
-        })->filter()->values()->toArray();
+        })->filter()->values();
+
+        // Add unassigned customers as a separate entry if any exist
+        if ($unassigned->isNotEmpty()) {
+            $walkIn = 0;
+            $mobile = 0;
+
+            foreach ($unassigned as $row) {
+                $type = strtolower(trim((string) $row->registration_type));
+                $cnt  = (int) $row->count;
+
+                if ($type === 'self_registered') {
+                    $mobile += $cnt;
+                } else {
+                    $walkIn += $cnt;
+                }
+            }
+
+            $total = $walkIn + $mobile;
+            if ($total > 0) {
+                $result->push([
+                    'id'      => 0,  // Special ID for unassigned
+                    'name'    => 'Unassigned',
+                    'walk_in' => $walkIn,
+                    'mobile'  => $mobile,
+                    'total'   => $total,
+                ]);
+            }
+        }
+
+        return $result->toArray();
     }
 
     private function getTopCustomers(int $limit = 5)
@@ -413,6 +458,7 @@ class DashboardController extends Controller
     {
         return PickupRequest::with(['customer', 'branch'])
             ->whereIn('status', ['pending', 'accepted', 'en_route'])
+            ->whereNotIn('status', ['cancelled', 'picked_up'])
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->limit(20)
@@ -658,7 +704,7 @@ class DashboardController extends Controller
 
     private function getLaundryPipelineByBranch()
     {
-        $statuses = ['received', 'processing', 'ready', 'completed', 'cancelled'];
+        $statuses = ['received', 'ready', 'paid', 'completed', 'cancelled'];
 
         $raw = Laundry::select('branch_id', 'status', DB::raw('count(*) as count'))
             ->whereIn('status', $statuses)
@@ -800,5 +846,107 @@ class DashboardController extends Controller
         }
         Cache::forget('dashboard_stats_' . Auth::id()); // legacy key
         return response()->json(['message' => 'Dashboard cache cleared successfully']);
+    }
+
+    /**
+     * Get daily laundry count for selected period
+     */
+    private function getDailyLaundryCount($startDate, $endDate)
+    {
+        $dailyData = Laundry::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->keyBy('date');
+
+        $data = [];
+        $labels = [];
+        $current = clone $startDate;
+
+        while ($current <= $endDate) {
+            $dateStr = $current->format('Y-m-d');
+            $data[] = isset($dailyData[$dateStr]) ? (int) $dailyData[$dateStr]->count : 0;
+            $labels[] = $current->format('M d');
+            $current->addDay();
+        }
+
+        return ['data' => $data, 'labels' => $labels];
+    }
+
+    /**
+     * Get payment methods breakdown
+     */
+    private function getPaymentMethods($startDate, $endDate)
+    {
+        $payments = Laundry::whereBetween('created_at', [$startDate, $endDate])
+            ->where('status', '!=', 'cancelled')
+            ->selectRaw('payment_method, COUNT(*) as count, SUM(total_amount) as total')
+            ->groupBy('payment_method')
+            ->orderByDesc('total')
+            ->get();
+
+        $totalAmount = $payments->sum('total');
+        
+        return $payments->map(function($payment) use ($totalAmount) {
+            return [
+                'method' => $payment->payment_method ?: 'Cash',
+                'count' => (int) $payment->count,
+                'amount' => (float) $payment->total,
+                'percentage' => $totalAmount > 0 ? round(($payment->total / $totalAmount) * 100, 1) : 0
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Get top services for selected period
+     */
+    private function getTopServices($startDate, $endDate)
+    {
+        $services = Service::withCount(['laundries' => function($query) use ($startDate, $endDate) {
+                $query->whereBetween('created_at', [$startDate, $endDate])
+                      ->where('status', '!=', 'cancelled');
+            }])
+            ->having('laundries_count', '>', 0)
+            ->orderByDesc('laundries_count')
+            ->limit(5)
+            ->get();
+
+        $maxCount = $services->max('laundries_count') ?: 1;
+
+        return $services->map(function($service, $index) use ($maxCount) {
+            return [
+                'rank' => $index + 1,
+                'name' => $service->name,
+                'count' => (int) $service->laundries_count,
+                'percentage' => round(($service->laundries_count / $maxCount) * 100, 1)
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Get year-over-year revenue comparison (last 5 years)
+     */
+    private function getYearOverYearRevenue()
+    {
+        $years = [];
+        $data = [];
+        $currentYear = now()->year;
+
+        for ($i = 4; $i >= 0; $i--) {
+            $year = $currentYear - $i;
+            $years[] = $year;
+            
+            $revenue = Laundry::whereYear('created_at', $year)
+                ->where('status', '!=', 'cancelled')
+                ->sum('total_amount');
+            
+            $data[] = (float) $revenue;
+        }
+
+        return [
+            'years' => $years,
+            'data' => $data
+        ];
     }
 }

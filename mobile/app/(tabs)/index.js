@@ -22,47 +22,59 @@ import { API_BASE_URL, STORAGE_KEYS } from '../../constants/config';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ─────────────────────────────────────────────
-// DESIGN SYSTEM
+// PROFESSIONAL DESIGN SYSTEM
 // ─────────────────────────────────────────────
 const COLORS = {
-  // Base
+  // Base - Dark theme
   background: '#06081A',
   surface: '#0F1332',
   surfaceLight: '#171D45',
   surfaceElevated: '#1E2654',
 
-  // Brand
+  // Brand - Professional blue palette
   primary: '#0EA5E9',
   primaryDark: '#0284C7',
-  primaryGlow: 'rgba(14, 165, 233, 0.12)',
+  primaryLight: '#3B82F6',
   primarySoft: 'rgba(14, 165, 233, 0.08)',
+  primaryGlow: 'rgba(14, 165, 233, 0.12)',
 
-  // Accents
+  // Accents - Refined color palette
   secondary: '#8B5CF6',
+  secondaryLight: '#7C3AED',
   secondaryGlow: 'rgba(139, 92, 246, 0.12)',
-  accent: '#F59E0B',
-  accentGlow: 'rgba(245, 158, 11, 0.12)',
   success: '#10B981',
+  successLight: '#059669',
   successGlow: 'rgba(16, 185, 129, 0.12)',
   warning: '#F59E0B',
+  warningLight: '#D97706',
   danger: '#EF4444',
-  dangerGlow: 'rgba(239, 68, 68, 0.12)',
+  dangerLight: '#DC2626',
+  info: '#0891B2',
+  accent: '#F59E0B',
+  accentGlow: 'rgba(245, 158, 11, 0.12)',
   pink: '#EC4899',
 
-  // Text
+  // Text - High contrast for readability
   textPrimary: '#F1F5F9',
   textSecondary: '#94A3B8',
   textMuted: '#64748B',
+  textLight: '#CBD5E1',
 
-  // Borders
+  // Borders - Subtle and clean
   border: '#1E293B',
   borderLight: 'rgba(255, 255, 255, 0.06)',
+  borderMuted: '#334155',
 
-  // Gradients
+  // Shadows
+  shadow: 'rgba(0, 0, 0, 0.25)',
+  shadowMedium: 'rgba(0, 0, 0, 0.35)',
+  shadowStrong: 'rgba(0, 0, 0, 0.45)',
+
+  // Gradients - Subtle and professional
   gradientPrimary: ['#0EA5E9', '#3B82F6'],
   gradientSecondary: ['#8B5CF6', '#7C3AED'],
-  gradientAccent: ['#F59E0B', '#F97316'],
   gradientSuccess: ['#10B981', '#059669'],
+  gradientWarning: ['#F59E0B', '#F97316'],
   gradientSurface: ['#0F1332', '#171D45'],
 };
 
@@ -247,14 +259,14 @@ export default function HomeScreen() {
       const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
       if (!token) return;
 
-      const response = await fetch(`${API_BASE_URL}/v1/notifications?unread_only=true`, {
+      const response = await fetch(`${API_BASE_URL}/v1/notifications/unread-count`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.data.notifications) {
-          setUnreadCount(data.data.notifications.length);
+        if (data.success) {
+          setUnreadCount(data.data?.unread_count ?? 0);
         }
       }
     } catch (error) {
@@ -298,13 +310,15 @@ export default function HomeScreen() {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
-        <Image
-          source={require('../../assets/images/logo.png')}
-          style={styles.loadingLogo}
-          resizeMode="contain"
-        />
-        <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 24 }} />
-        <Text style={styles.loadingText}>Loading WashBox...</Text>
+        <View style={styles.loadingContainer}>
+          <Image
+            source={require('../../assets/images/logo.png')}
+            style={styles.loadingLogo}
+            resizeMode="contain"
+          />
+          <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
+          <Text style={styles.loadingText}>Loading your dashboard...</Text>
+        </View>
       </View>
     );
   }
@@ -331,69 +345,104 @@ export default function HomeScreen() {
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
           {/* ═══════════════════════════════════════
-              HEADER
+              MODERN HEADER
           ═══════════════════════════════════════ */}
           <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Image
-                source={require('../../assets/images/logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-              <View style={styles.headerGreeting}>
-                <Text style={styles.greetingLabel}>{getGreeting()}</Text>
-                <Text style={styles.greetingName}>{firstName}</Text>
+            <View style={styles.headerContent}>
+              <View style={styles.headerTop}>
+                <View style={styles.headerLeft}>
+                  <View style={styles.avatarContainer}>
+                    <Text style={styles.avatarText}>
+                      {firstName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.greetingContainer}>
+                    <Text style={styles.greetingTime}>{getGreeting()}</Text>
+                    <Text style={styles.greetingName}>{firstName}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.headerActions}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => router.push('/notifications')}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="notifications-outline" size={20} color={COLORS.textSecondary} />
+                    {unreadCount > 0 && (
+                      <View style={styles.notificationBadge}>
+                        <Text style={styles.notificationBadgeText}>
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+              
+              {/* Welcome Card */}
+              <View style={styles.welcomeCard}>
+                <LinearGradient
+                  colors={COLORS.gradientPrimary}
+                  style={styles.welcomeGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <View style={styles.welcomeContent}>
+                    <Text style={styles.welcomeTitle}>Ready for fresh laundry?</Text>
+                    <Text style={styles.welcomeSubtitle}>
+                      Schedule a pickup and let us handle the rest
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.welcomeButton}
+                      onPress={() => router.push('/(tabs)/pickup')}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.welcomeButtonText}>Schedule Pickup</Text>
+                      <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.welcomeIcon}>
+                    <Ionicons name="car-outline" size={32} color="rgba(255,255,255,0.9)" />
+                  </View>
+                </LinearGradient>
               </View>
             </View>
-
-            <TouchableOpacity
-              style={styles.notifButton}
-              onPress={() => router.push('/notifications')}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="notifications-outline" size={22} color={COLORS.textPrimary} />
-              {unreadCount > 0 && (
-                <View style={styles.notifBadge}>
-                  <Text style={styles.notifBadgeText}>
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
           </View>
 
 
           {/* ═══════════════════════════════════════
-              QUICK ACTIONS
+              QUICK SERVICES
           ═══════════════════════════════════════ */}
-          <View style={styles.quickActionsSection}>
-            <View style={styles.quickActionsGrid}>
-              <QuickAction
+          <View style={styles.servicesSection}>
+            <Text style={styles.sectionTitle}>Quick Services</Text>
+            <View style={styles.servicesGrid}>
+              <ServiceCard
                 icon="car-outline"
-                label="Schedule Pickup"
-                colors={COLORS.gradientPrimary}
-                glowColor={COLORS.primaryGlow}
+                title="Pickup"
+                subtitle="Schedule now"
+                color={COLORS.primary}
                 onPress={() => router.push('/(tabs)/pickup')}
               />
-              <QuickAction
+              <ServiceCard
                 icon="shirt-outline"
-                label="My Laundry"
-                colors={COLORS.gradientSecondary}
-                glowColor={COLORS.secondaryGlow}
+                title="Laundry"
+                subtitle="Track Laundries"
+                color={COLORS.secondary}
                 onPress={() => router.push('/(tabs)/laundry')}
               />
-              <QuickAction
+              <ServiceCard
                 icon="star-outline"
-                label="Rate Service"
-                colors={COLORS.gradientAccent}
-                glowColor={COLORS.accentGlow}
+                title="Rate"
+                subtitle="Share feedback"
+                color={COLORS.warning}
                 onPress={() => router.push('/ratings')}
               />
-              <QuickAction
-                icon="pricetag-outline"
-                label="Promotions"
-                colors={['#EC4899', '#F43F5E']}
-                glowColor="rgba(236, 72, 153, 0.12)"
+              <ServiceCard
+                icon="gift-outline"
+                title="Offers"
+                subtitle="Save money"
+                color={COLORS.success}
                 onPress={() => router.push('/promotions')}
                 badge={featuredPromos.length > 0 ? featuredPromos.length : null}
               />
@@ -405,22 +454,19 @@ export default function HomeScreen() {
               ACTIVE LAUNDRY
           ═══════════════════════════════════════ */}
           {activeLaundries.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleRow}>
-                  <View style={[styles.sectionDot, { backgroundColor: COLORS.primary }]} />
-                  <Text style={styles.sectionTitle}>Active Laundry</Text>
-                </View>
+            <View style={styles.activeSection}>
+              <View style={styles.activeSectionHeader}>
+                <Text style={styles.sectionTitle}>Active Laundries</Text>
                 <TouchableOpacity
-                  style={styles.seeAllButton}
+                  style={styles.activeSeeAllButton}
                   onPress={() => router.push('/(tabs)/laundry')}
                 >
-                  <Text style={styles.seeAllText}>See All</Text>
-                  <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
+                  <Text style={styles.activeSeeAllText}>See All</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.laundryList}>
+              <View style={styles.laundryContainer}>
                 {activeLaundries.map((laundry, index) => (
                   <LaundryCard key={laundry.id || index} laundry={laundry} />
                 ))}
@@ -428,39 +474,26 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* No active — show CTA */}
+          {/* Empty State */}
           {activeLaundries.length === 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleRow}>
-                  <View style={[styles.sectionDot, { backgroundColor: COLORS.primary }]} />
-                  <Text style={styles.sectionTitle}>Active Laundry</Text>
+            <View style={styles.emptySection}>
+              <Text style={styles.sectionTitle}>Active Laundries</Text>
+              <View style={styles.emptyStateCard}>
+                <View style={styles.emptyStateIcon}>
+                  <Ionicons name="shirt-outline" size={32} color={COLORS.textMuted} />
                 </View>
-              </View>
-              <TouchableOpacity
-                style={styles.emptyCta}
-                onPress={() => router.push('/(tabs)/pickup')}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#111640', '#171D45']}
-                  style={styles.emptyCtaGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                <Text style={styles.emptyStateTitle}>No active laundries</Text>
+                <Text style={styles.emptyStateText}>
+                  Start your first laundry order today
+                </Text>
+                <TouchableOpacity
+                  style={styles.emptyStateButton}
+                  onPress={() => router.push('/(tabs)/pickup')}
+                  activeOpacity={0.8}
                 >
-                  <View style={styles.emptyCtaIcon}>
-                    <Ionicons name="basket-outline" size={28} color={COLORS.primary} />
-                  </View>
-                  <Text style={styles.emptyCtaTitle}>No active laundry</Text>
-                  <Text style={styles.emptyCtaText}>
-                    Schedule a pickup and we'll take care of the rest
-                  </Text>
-                  <View style={styles.emptyCtaButton}>
-                    <Text style={styles.emptyCtaButtonText}>Schedule Pickup</Text>
-                    <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
+                  <Text style={styles.emptyStateButtonText}>Schedule Pickup</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -502,44 +535,34 @@ export default function HomeScreen() {
 
 
           {/* ═══════════════════════════════════════
-              STATS OVERVIEW
+              OVERVIEW STATS
           ═══════════════════════════════════════ */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <View style={[styles.sectionDot, { backgroundColor: COLORS.success }]} />
-                <Text style={styles.sectionTitle}>Your Overview</Text>
-              </View>
-            </View>
-
-            <View style={styles.statsGrid}>
+          <View style={styles.overviewSection}>
+            <Text style={styles.sectionTitle}>Overview</Text>
+            <View style={styles.overviewGrid}>
               <StatCard
-                icon="shirt"
+                icon="shirt-outline"
                 label="Total Laundries"
                 value={stats.totalLaundries || laundries.length}
                 color={COLORS.primary}
-                bgColor={COLORS.primaryGlow}
               />
               <StatCard
-                icon="wallet"
+                icon="wallet-outline"
                 label="Total Spent"
                 value={`₱${Number(stats.totalSpent || 0).toLocaleString()}`}
                 color={COLORS.success}
-                bgColor={COLORS.successGlow}
               />
               <StatCard
-                icon="hourglass"
+                icon="time-outline"
                 label="In Progress"
                 value={stats.pendingLaundries || activeLaundries.length}
-                color={COLORS.secondary}
-                bgColor={COLORS.secondaryGlow}
+                color={COLORS.warning}
               />
               <StatCard
-                icon="car"
-                label="Active Pickups"
+                icon="car-outline"
+                label="Pickups"
                 value={stats.activePickups || 0}
-                color={COLORS.accent}
-                bgColor={COLORS.accentGlow}
+                color={COLORS.secondary}
               />
             </View>
           </View>
@@ -552,81 +575,67 @@ export default function HomeScreen() {
 
 
 // ─────────────────────────────────────────────
-// QUICK ACTION BUTTON
+// SERVICE CARD COMPONENT
 // ─────────────────────────────────────────────
-const QuickAction = ({ icon, label, colors, glowColor, onPress, badge }) => (
-  <TouchableOpacity style={styles.quickAction} onPress={onPress} activeOpacity={0.75}>
-    <View style={[styles.quickActionIconWrap, { backgroundColor: glowColor }]}>
-      <LinearGradient
-        colors={colors}
-        style={styles.quickActionIcon}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Ionicons name={icon} size={22} color="#FFF" />
-      </LinearGradient>
+const ServiceCard = ({ icon, title, subtitle, color, onPress, badge }) => (
+  <TouchableOpacity style={styles.serviceCard} onPress={onPress} activeOpacity={0.7}>
+    <View style={[styles.serviceIconContainer, { backgroundColor: color + '10' }]}>
+      <Ionicons name={icon} size={24} color={color} />
       {badge && (
-        <View style={styles.quickActionBadge}>
-          <Text style={styles.quickActionBadgeText}>{badge}</Text>
+        <View style={styles.serviceBadge}>
+          <Text style={styles.serviceBadgeText}>{badge}</Text>
         </View>
       )}
     </View>
-    <Text style={styles.quickActionLabel} numberOfLines={1}>{label}</Text>
+    <Text style={styles.serviceTitle}>{title}</Text>
+    <Text style={styles.serviceSubtitle}>{subtitle}</Text>
   </TouchableOpacity>
 );
 
 
 // ─────────────────────────────────────────────
-// LAUNDRY CARD
+// MODERN LAUNDRY CARD
 // ─────────────────────────────────────────────
 const LaundryCard = ({ laundry }) => {
   const statusColor = getStatusColor(laundry.status);
 
   return (
     <TouchableOpacity
-      style={styles.laundryCard}
+      style={styles.modernLaundryCard}
       onPress={() => router.push(`/laundries/${laundry.tracking_number || laundry.id}`)}
       activeOpacity={0.7}
     >
-      {/* Status indicator line */}
-      <View style={[styles.laundryStatusLine, { backgroundColor: statusColor }]} />
-
-      <View style={styles.laundryContent}>
-        {/* Top row */}
-        <View style={styles.laundryTopRow}>
-          <View style={[styles.laundryIconWrap, { backgroundColor: statusColor + '18' }]}>
-            <Ionicons name={getStatusIcon(laundry.status)} size={18} color={statusColor} />
-          </View>
-          <View style={styles.laundryInfo}>
-            <Text style={styles.laundryTracker}>
+      <View style={styles.laundryCardHeader}>
+        <View style={styles.laundryCardLeft}>
+          <View style={[styles.laundryStatusIndicator, { backgroundColor: statusColor }]} />
+          <View>
+            <Text style={styles.laundryTrackingNumber}>
               {laundry.tracking_number || `#${laundry.id}`}
             </Text>
-            <Text style={styles.laundryService} numberOfLines={1}>
+            <Text style={styles.laundryServiceName}>
               {laundry.service_name || 'Laundry Service'}
             </Text>
           </View>
-          <View style={[styles.statusChip, { backgroundColor: statusColor + '18' }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.statusText, { color: statusColor }]}>
-              {formatStatus(laundry.status)}
-            </Text>
+        </View>
+        <View style={[styles.laundryStatusBadge, { backgroundColor: statusColor + '15' }]}>
+          <Text style={[styles.laundryStatusText, { color: statusColor }]}>
+            {formatStatus(laundry.status)}
+          </Text>
+        </View>
+      </View>
+      
+      <View style={styles.laundryCardFooter}>
+        {laundry.branch_name && (
+          <View style={styles.laundryBranchInfo}>
+            <Ionicons name="location-outline" size={14} color={COLORS.textMuted} />
+            <Text style={styles.laundryBranchText}>{laundry.branch_name}</Text>
           </View>
-        </View>
-
-        {/* Bottom row */}
-        <View style={styles.laundryBottomRow}>
-          {laundry.branch_name && (
-            <View style={styles.laundryMeta}>
-              <Ionicons name="business-outline" size={12} color={COLORS.textMuted} />
-              <Text style={styles.laundryMetaText}>{laundry.branch_name}</Text>
-            </View>
-          )}
-          {laundry.total_amount > 0 && (
-            <Text style={styles.laundryAmount}>
-              ₱{Number(laundry.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </Text>
-          )}
-        </View>
+        )}
+        {laundry.total_amount > 0 && (
+          <Text style={styles.laundryAmount}>
+            ₱{Number(laundry.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -646,6 +655,7 @@ const PROMO_GRADIENTS = [
 
 const PromoCard = ({ promo, index }) => {
   const colors = PROMO_GRADIENTS[index % PROMO_GRADIENTS.length];
+  const hasBackgroundImage = promo.banner_image_url || promo.banner_image;
 
   return (
     <TouchableOpacity
@@ -653,87 +663,165 @@ const PromoCard = ({ promo, index }) => {
       activeOpacity={0.85}
       onPress={() => router.push('/promotions')}
     >
-      <LinearGradient
-        colors={colors}
-        style={styles.promoGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        {/* Decorative circles */}
-        <View style={[styles.promoCircle, styles.promoCircle1]} />
-        <View style={[styles.promoCircle, styles.promoCircle2]} />
+      {hasBackgroundImage ? (
+        <View style={styles.promoImageContainer}>
+          <Image
+            source={{ uri: promo.banner_image_url || promo.banner_image }}
+            style={styles.promoBackgroundImage}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+            style={styles.promoImageOverlay}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          >
+            {/* Content with image background */}
+            <View style={styles.promoContentWithImage}>
 
-        {/* Badges */}
-        <View style={styles.promoBadges}>
-          {promo.is_featured && (
-            <View style={styles.promoBadge}>
-              <Ionicons name="star" size={10} color="#FFC107" />
-              <Text style={styles.promoBadgeText}>FEATURED</Text>
+            {/* Badges */}
+            <View style={styles.promoBadges}>
+              {promo.is_featured && (
+                <View style={styles.promoBadge}>
+                  <Ionicons name="star" size={10} color="#FFC107" />
+                  <Text style={styles.promoBadgeText}>FEATURED</Text>
+                </View>
+              )}
+              {promo.is_active && (
+                <View style={[styles.promoBadge, { backgroundColor: 'rgba(16, 185, 129, 0.25)' }]}>
+                  <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#10B981' }} />
+                  <Text style={[styles.promoBadgeText, { color: '#6EE7B7' }]}>ACTIVE</Text>
+                </View>
+              )}
             </View>
-          )}
-          {promo.is_active && (
-            <View style={[styles.promoBadge, { backgroundColor: 'rgba(16, 185, 129, 0.25)' }]}>
-              <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#10B981' }} />
-              <Text style={[styles.promoBadgeText, { color: '#6EE7B7' }]}>ACTIVE</Text>
-            </View>
-          )}
-        </View>
 
-        {/* Content */}
-        <Text style={styles.promoTitle} numberOfLines={2}>
-          {promo.poster_title || promo.name}
-        </Text>
-        <Text style={styles.promoSubtitle} numberOfLines={2}>
-          {promo.poster_subtitle || promo.description}
-        </Text>
+            {/* Content */}
+            <Text style={styles.promoTitle} numberOfLines={2}>
+              {promo.poster_title || promo.name}
+            </Text>
+            <Text style={styles.promoSubtitle} numberOfLines={2}>
+              {promo.poster_subtitle || promo.description}
+            </Text>
 
-        {/* Price */}
-        {promo.display_price && (
-          <View style={styles.promoPriceRow}>
-            <Text style={styles.promoPrice}>₱{promo.display_price}</Text>
-            {promo.original_price && (
-              <Text style={styles.promoOriginal}>₱{promo.original_price}</Text>
+            {/* Price */}
+            {promo.display_price && (
+              <View style={styles.promoPriceRow}>
+                <Text style={styles.promoPrice}>₱{promo.display_price}</Text>
+                {promo.original_price && (
+                  <Text style={styles.promoOriginal}>₱{promo.original_price}</Text>
+                )}
+              </View>
+            )}
+
+            {/* Features */}
+            {promo.poster_features?.length > 0 && (
+              <View style={styles.promoFeatures}>
+                {promo.poster_features.slice(0, 2).map((f, i) => (
+                  <View key={i} style={styles.promoFeatureRow}>
+                    <Ionicons name="checkmark-circle" size={12} color="rgba(255,255,255,0.85)" />
+                    <Text style={styles.promoFeatureText} numberOfLines={1}>{f}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Valid until */}
+            {promo.valid_until && (
+              <View style={styles.promoValidity}>
+                <Ionicons name="time-outline" size={11} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.promoValidityText}>
+                  Valid until {new Date(promo.valid_until).toLocaleDateString()}
+                </Text>
+              </View>
             )}
           </View>
-        )}
+        </LinearGradient>
+        </View>
+      ) : (
+        <LinearGradient
+          colors={colors}
+          style={styles.promoGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          {/* Decorative circles */}
+          <View style={[styles.promoCircle, styles.promoCircle1]} />
+          <View style={[styles.promoCircle, styles.promoCircle2]} />
 
-        {/* Features */}
-        {promo.poster_features?.length > 0 && (
-          <View style={styles.promoFeatures}>
-            {promo.poster_features.slice(0, 2).map((f, i) => (
-              <View key={i} style={styles.promoFeatureRow}>
-                <Ionicons name="checkmark-circle" size={12} color="rgba(255,255,255,0.85)" />
-                <Text style={styles.promoFeatureText} numberOfLines={1}>{f}</Text>
+          {/* Badges */}
+          <View style={styles.promoBadges}>
+            {promo.is_featured && (
+              <View style={styles.promoBadge}>
+                <Ionicons name="star" size={10} color="#FFC107" />
+                <Text style={styles.promoBadgeText}>FEATURED</Text>
               </View>
-            ))}
+            )}
+            {promo.is_active && (
+              <View style={[styles.promoBadge, { backgroundColor: 'rgba(16, 185, 129, 0.25)' }]}>
+                <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#10B981' }} />
+                <Text style={[styles.promoBadgeText, { color: '#6EE7B7' }]}>ACTIVE</Text>
+              </View>
+            )}
           </View>
-        )}
 
-        {/* Valid until */}
-        {promo.valid_until && (
-          <View style={styles.promoValidity}>
-            <Ionicons name="time-outline" size={11} color="rgba(255,255,255,0.6)" />
-            <Text style={styles.promoValidityText}>
-              Valid until {new Date(promo.valid_until).toLocaleDateString()}
-            </Text>
-          </View>
-        )}
-      </LinearGradient>
+          {/* Content */}
+          <Text style={styles.promoTitle} numberOfLines={2}>
+            {promo.poster_title || promo.name}
+          </Text>
+          <Text style={styles.promoSubtitle} numberOfLines={2}>
+            {promo.poster_subtitle || promo.description}
+          </Text>
+
+          {/* Price */}
+          {promo.display_price && (
+            <View style={styles.promoPriceRow}>
+              <Text style={styles.promoPrice}>₱{promo.display_price}</Text>
+              {promo.original_price && (
+                <Text style={styles.promoOriginal}>₱{promo.original_price}</Text>
+              )}
+            </View>
+          )}
+
+          {/* Features */}
+          {promo.poster_features?.length > 0 && (
+            <View style={styles.promoFeatures}>
+              {promo.poster_features.slice(0, 2).map((f, i) => (
+                <View key={i} style={styles.promoFeatureRow}>
+                  <Ionicons name="checkmark-circle" size={12} color="rgba(255,255,255,0.85)" />
+                  <Text style={styles.promoFeatureText} numberOfLines={1}>{f}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Valid until */}
+          {promo.valid_until && (
+            <View style={styles.promoValidity}>
+              <Ionicons name="time-outline" size={11} color="rgba(255,255,255,0.6)" />
+              <Text style={styles.promoValidityText}>
+                Valid until {new Date(promo.valid_until).toLocaleDateString()}
+              </Text>
+            </View>
+          )}
+        </LinearGradient>
+      )}
     </TouchableOpacity>
   );
 };
 
 
 // ─────────────────────────────────────────────
-// STAT CARD
+// MODERN STAT CARD
 // ─────────────────────────────────────────────
-const StatCard = ({ icon, label, value, color, bgColor }) => (
-  <View style={styles.statCard}>
-    <View style={[styles.statIconWrap, { backgroundColor: bgColor }]}>
-      <Ionicons name={icon} size={18} color={color} />
+const StatCard = ({ icon, label, value, color }) => (
+  <View style={styles.modernStatCard}>
+    <View style={[styles.statIconContainer, { backgroundColor: color + '10' }]}>
+      <Ionicons name={icon} size={20} color={color} />
     </View>
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
+    <View style={styles.statContent}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
   </View>
 );
 
@@ -752,69 +840,95 @@ const styles = StyleSheet.create({
   },
 
   // Loading
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 40,
+  },
   loadingLogo: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
+    width: 64,
+    height: 64,
+    borderRadius: 16,
   },
   loadingText: {
     color: COLORS.textSecondary,
-    marginTop: 12,
-    fontSize: 14,
+    marginTop: 16,
+    fontSize: 16,
     fontWeight: '500',
   },
 
-  // ─── Header ───
+  // Modern Header
   header: {
+    backgroundColor: COLORS.surface,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  headerContent: {
+    paddingHorizontal: 20,
+  },
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 62 : 48,
-    paddingBottom: 12,
+    marginBottom: 20,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     flex: 1,
   },
-  logo: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+  avatarContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  headerGreeting: {
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  greetingContainer: {
     flex: 1,
   },
-  greetingLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+  greetingTime: {
+    fontSize: 14,
     color: COLORS.textMuted,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    fontWeight: '500',
   },
   greetingName: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '700',
     color: COLORS.textPrimary,
-    letterSpacing: -0.3,
-    marginTop: 1,
+    marginTop: 2,
   },
-  notifButton: {
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
     width: 44,
     height: 44,
-    borderRadius: 14,
-    backgroundColor: COLORS.surface,
+    borderRadius: 22,
+    backgroundColor: COLORS.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.borderLight,
   },
-  notifBadge: {
+  notificationBadge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
+    top: 8,
+    right: 8,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
@@ -823,46 +937,103 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
   },
-  notifBadgeText: {
+  notificationBadgeText: {
     fontSize: 10,
-    fontWeight: '800',
-    color: '#FFF',
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 
-  // ─── Quick Actions ───
-  quickActionsSection: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 8,
+  // Welcome Card
+  welcomeCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  quickActionsGrid: {
+  welcomeGradient: {
+    padding: 20,
     flexDirection: 'row',
-    gap: 12,
-  },
-  quickAction: {
-    flex: 1,
     alignItems: 'center',
+  },
+  welcomeContent: {
+    flex: 1,
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  welcomeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    gap: 6,
+  },
+  welcomeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  welcomeIcon: {
+    marginLeft: 16,
+  },
+
+  // Services Section
+  servicesSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 16,
+  },
+  servicesGrid: {
+    flexDirection: 'row',
     gap: 8,
   },
-  quickActionIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
+  serviceCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  serviceIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 8,
     position: 'relative',
   },
-  quickActionIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quickActionBadge: {
+  serviceBadge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
+    top: -4,
+    right: -4,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
@@ -870,18 +1041,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: COLORS.background,
   },
-  quickActionBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#FFF',
+  serviceBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
-  quickActionLabel: {
-    fontSize: 11,
+  serviceTitle: {
+    fontSize: 14,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  serviceSubtitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
     textAlign: 'center',
   },
 
@@ -907,7 +1081,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.textPrimary,
     letterSpacing: -0.2,
@@ -923,90 +1097,73 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
 
-  // ─── Laundry Cards ───
-  laundryList: {
-    paddingHorizontal: 20,
-    gap: 10,
-  },
-  laundryCard: {
+  // Modern Laundry Cards
+  modernLaundryCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    flexDirection: 'row',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
-  },
-  laundryStatusLine: {
-    width: 4,
-  },
-  laundryContent: {
-    flex: 1,
-    padding: 14,
-    gap: 10,
-  },
-  laundryTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  laundryIconWrap: {
-    width: 38,
-    height: 38,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  laundryInfo: {
+  laundryCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  laundryCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
-  laundryTracker: {
-    fontSize: 13,
+  laundryStatusIndicator: {
+    width: 4,
+    height: 32,
+    borderRadius: 2,
+    marginRight: 12,
+  },
+  laundryTrackingNumber: {
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.textPrimary,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    letterSpacing: 0.3,
   },
-  laundryService: {
+  laundryServiceName: {
     fontSize: 12,
     color: COLORS.textMuted,
     marginTop: 2,
   },
-  statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
+  laundryStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  statusDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+  laundryStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  laundryBottomRow: {
+  laundryCardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingLeft: 50,
   },
-  laundryMeta: {
+  laundryBranchInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  laundryMetaText: {
-    fontSize: 11,
+  laundryBranchText: {
+    fontSize: 12,
     color: COLORS.textMuted,
-    fontWeight: '500',
   },
   laundryAmount: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
@@ -1076,6 +1233,32 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
+  },
+  promoImageContainer: {
+    position: 'relative',
+    minHeight: 190,
+  },
+  promoBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  promoImageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+  },
+  promoContentWithImage: {
+    padding: 20,
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   promoGradient: {
     padding: 20,
@@ -1176,40 +1359,128 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // ─── Stats Grid ───
-  statsGrid: {
+  // Overview Section
+  overviewSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  overviewGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    gap: 10,
+    gap: 12,
   },
-  statCard: {
-    width: (SCREEN_WIDTH - 50) / 2,
+  modernStatCard: {
+    width: (SCREEN_WIDTH - 52) / 2,
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    gap: 6,
-  },
-  statIconWrap: {
-    width: 36,
-    height: 36,
     borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    marginRight: 12,
+  },
+  statContent: {
+    flex: 1,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.textPrimary,
-    letterSpacing: -0.3,
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
     color: COLORS.textMuted,
-    letterSpacing: 0.2,
+    fontWeight: '500',
+  },
+
+  // Section Styles
+  activeSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  emptySection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  activeSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  activeSeeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  activeSeeAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  laundryContainer: {
+    gap: 12,
+  },
+
+  // Empty State
+  emptyStateCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  emptyStateIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.surfaceElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  emptyStateButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyStateButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

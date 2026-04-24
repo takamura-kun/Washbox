@@ -29,6 +29,7 @@ class Service extends Model
         'max_weight',
         'turnaround_time',
         'icon_path',
+        'image',
         'is_active',
         'category', // Make sure category is in fillable
         'display_laundry',
@@ -131,6 +132,24 @@ class Service extends Model
     }
 
     /**
+     * Get the image URL attribute.
+     */
+    public function getImageUrlAttribute()
+    {
+        if (!$this->image) {
+            return null;
+        }
+
+        // If it's already a full URL, return it
+        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
+            return $this->image;
+        }
+
+        // Otherwise, return storage URL
+        return asset('storage/services/' . $this->image);
+    }
+
+    /**
      * Get the icon URL attribute.
      */
     public function getIconUrlAttribute()
@@ -149,22 +168,27 @@ class Service extends Model
     }
 
     /**
-     * Get the formatted price attribute based on pricing type.
+     * Get the formatted price attribute based on pricing type with system fallback.
      */
     public function getFormattedPriceAttribute()
     {
         if ($this->pricing_type === 'per_piece') {
-            return '₱' . number_format($this->price_per_piece ?? 0, 2) . '/piece';
+            $price = $this->price_per_piece ?? SystemSetting::get('default_price_per_piece', 60);
+            return '₱' . number_format($price, 2) . '/piece';
         }
-        return '₱' . number_format($this->price_per_load ?? 0, 2) . '/load';
+        $price = $this->price_per_load ?? SystemSetting::get('default_price_per_load', 120);
+        return '₱' . number_format($price, 2) . '/load';
     }
 
     /**
-     * Get the actual price value based on pricing type.
+     * Get the actual price value based on pricing type with system fallback.
      */
     public function getPriceAttribute()
     {
-        return $this->pricing_type === 'per_piece' ? $this->price_per_piece : $this->price_per_load;
+        if ($this->pricing_type === 'per_piece') {
+            return $this->price_per_piece ?? SystemSetting::get('default_price_per_piece', 60);
+        }
+        return $this->price_per_load ?? SystemSetting::get('default_price_per_load', 120);
     }
 
     /**
@@ -281,6 +305,7 @@ class Service extends Model
 
     /**
      * Calculate price based on quantity and pricing type.
+     * Falls back to system settings if service price is not set.
      *
      * @param float|null $quantity
      * @return float
@@ -288,9 +313,35 @@ class Service extends Model
     public function calculatePrice($quantity = null)
     {
         if ($this->pricing_type === 'per_piece') {
-            return (float) ($this->price_per_piece ?? 0) * ($quantity ?? 1);
+            $pricePerPiece = $this->price_per_piece ?? SystemSetting::get('default_price_per_piece', 60);
+            return (float) $pricePerPiece * ($quantity ?? 1);
         }
-        return (float) ($this->price_per_load ?? 0);
+        
+        $pricePerLoad = $this->price_per_load ?? SystemSetting::get('default_price_per_load', 120);
+        return (float) $pricePerLoad;
+    }
+
+    /**
+     * Update all services with null prices to use system defaults
+     */
+    public static function updateNullPricesFromSettings(): array
+    {
+        $defaultPricePerPiece = (float) SystemSetting::get('default_price_per_piece', 60);
+        $defaultPricePerLoad = (float) SystemSetting::get('default_price_per_load', 120);
+        
+        $updatedPerPiece = self::whereNull('price_per_piece')
+            ->where('pricing_type', 'per_piece')
+            ->update(['price_per_piece' => $defaultPricePerPiece]);
+            
+        $updatedPerLoad = self::whereNull('price_per_load')
+            ->where('pricing_type', 'per_load')
+            ->update(['price_per_load' => $defaultPricePerLoad]);
+            
+        return [
+            'per_piece_updated' => $updatedPerPiece,
+            'per_load_updated' => $updatedPerLoad,
+            'total_updated' => $updatedPerPiece + $updatedPerLoad
+        ];
     }
 
     /**

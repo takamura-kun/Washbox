@@ -7,10 +7,103 @@ use App\Models\Branch;
 use App\Models\CustomerRating;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class BranchRatingController extends Controller
 {
+    /**
+     * Get branches for customer rating (API endpoint)
+     */
+    public function branches(Request $request)
+    {
+        try {
+            $customer = $request->user();
+            
+            $branches = Branch::where('is_active', true)
+                ->withCount(['ratings as ratings_count'])
+                ->withAvg('ratings as average_rating', 'rating')
+                ->orderBy('name')
+                ->get()
+                ->map(function ($branch) {
+                    return [
+                        'id' => $branch->id,
+                        'name' => $branch->name,
+                        'code' => $branch->code,
+                        'address' => $branch->address,
+                        'city' => $branch->city,
+                        'province' => $branch->province,
+                        'phone' => $branch->phone,
+                        'average_rating' => $branch->average_rating ? round($branch->average_rating, 1) : null,
+                        'ratings_count' => $branch->ratings_count ?? 0,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Branches retrieved successfully',
+                'data' => [
+                    'branches' => $branches,
+                    'count' => $branches->count()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve branches',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    /**
+     * Store a new branch rating from customer
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'branch_id' => 'required|exists:branches,id',
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            // Check if customer already rated this branch
+            $existingRating = CustomerRating::where('customer_id', Auth::id())
+                ->where('branch_id', $request->branch_id)
+                ->first();
+
+            if ($existingRating) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You have already rated this branch. You can update your existing rating instead.'
+                ], 400);
+            }
+
+            // Create new branch rating
+            $rating = CustomerRating::create([
+                'customer_id' => Auth::id(),
+                'branch_id' => $request->branch_id,
+                'rating' => $request->rating,
+                'comment' => $request->comment,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Branch rating submitted successfully',
+                'data' => [
+                    'rating' => $rating->load('branch')
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit rating: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Display branch ratings report
      */
@@ -18,6 +111,9 @@ class BranchRatingController extends Controller
     {
         $dateFrom = $this->getDateFromFilter($request);
         $dateTo = $this->getDateToFilter($request);
+
+        // Mark all ratings as viewed when accessing this page
+        \App\Models\CustomerRating::whereNull('viewed_at')->update(['viewed_at' => now()]);
 
         // Get branch statistics with ratings
         $branches = Branch::withCount([
@@ -57,7 +153,18 @@ class BranchRatingController extends Controller
             $query->where('rating', $request->rating);
         }
 
-        $recentRatings = $query->latest()->paginate(20);
+        // Group ratings by customer
+        $allRatings = $query->latest()->get();
+        $customersWithRatings = $allRatings->groupBy('customer_id')->map(function($customerRatings) {
+            $customer = $customerRatings->first()->customer;
+            return (object) [
+                'customer' => $customer,
+                'average_rating' => round($customerRatings->avg('rating'), 1),
+                'rating_count' => $customerRatings->count(),
+                'latest_rating' => $customerRatings->first(),
+                'all_ratings' => $customerRatings
+            ];
+        })->values();
 
         // Calculate summary statistics
         $summary = [
@@ -90,12 +197,16 @@ class BranchRatingController extends Controller
             ->limit(5)
             ->get(['id', 'name']);
 
+        // Get all branches for filter dropdown
+        $allBranches = Branch::orderBy('name')->get(['id', 'name']);
+
         return view('admin.reports.branch-ratings', compact(
             'branches',
-            'recentRatings',
+            'customersWithRatings',
             'summary',
             'topBranches',
             'needsImprovement',
+            'allBranches',
             'dateFrom',
             'dateTo'
         ));

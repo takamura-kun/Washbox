@@ -7,7 +7,7 @@
     {{-- Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold text-dark mb-1">Edit Service</h2>
+            <h2 class="fw-bold mb-1">Edit Service</h2>
             <p class="text-muted small mb-0">Update laundry service details</p>
         </div>
         <div>
@@ -30,8 +30,8 @@
 
                 {{-- Basic Information --}}
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                    <div class="card-header border-bottom py-3">
+                        <h6 class="mb-0 fw-bold">
                             <i class="bi bi-info-circle me-2" style="color: #3D3B6B;"></i>Basic Information
                         </h6>
                     </div>
@@ -104,8 +104,8 @@
 
                 {{-- Pricing Configuration --}}
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                    <div class="card-header border-bottom py-3">
+                        <h6 class="mb-0 fw-bold">
                             <i class="bi bi-cash-coin me-2" style="color: #3D3B6B;"></i>Pricing Configuration
                         </h6>
                     </div>
@@ -200,8 +200,8 @@
 
                 {{-- Service Details --}}
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h6 class="mb-0 fw-bold text-dark">
+                    <div class="card-header border-bottom py-3">
+                        <h6 class="mb-0 fw-bold">
                             <i class="bi bi-clock-history me-2" style="color: #3D3B6B;"></i>Service Details
                         </h6>
                     </div>
@@ -266,8 +266,8 @@
 
                     {{-- Icon Upload --}}
                     <div class="card border-0 shadow-sm rounded-4 mb-3">
-                        <div class="card-header bg-white border-bottom py-3">
-                            <h6 class="mb-0 fw-bold text-dark">
+                        <div class="card-header border-bottom py-3">
+                            <h6 class="mb-0 fw-bold">
                                 <i class="bi bi-image me-2" style="color: #3D3B6B;"></i>Service Icon (Optional)
                             </h6>
                         </div>
@@ -296,15 +296,15 @@
 
                     {{-- Service Preview --}}
                     <div class="card border-0 shadow-sm rounded-4 mb-3">
-                        <div class="card-header bg-white border-bottom py-3">
-                            <h6 class="mb-0 fw-bold text-dark">
+                        <div class="card-header border-bottom py-3">
+                            <h6 class="mb-0 fw-bold">
                                 <i class="bi bi-eye me-2" style="color: #3D3B6B;"></i>Service Preview
                             </h6>
                         </div>
                         <div class="card-body p-4">
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Service Name:</label>
-                                <div id="previewName" class="text-dark fw-semibold">{{ $service->name }}</div>
+                                <div id="previewName" class="fw-semibold">{{ $service->name }}</div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Service Type:</label>
@@ -366,6 +366,35 @@
         </div>
     </form>
 </div>
+
+@push('styles')
+<style>
+/* Ensure card bodies use theme-aware backgrounds */
+.card-body {
+    background-color: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+.card-header {
+    background-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Fix form elements in cards */
+.card .form-control,
+.card .form-select {
+    background-color: var(--input-bg) !important;
+    color: var(--input-text) !important;
+    border-color: var(--input-border) !important;
+}
+
+.card .input-group-text {
+    background-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--input-border) !important;
+}
+</style>
+@endpush
 
 @push('scripts')
 <script>
@@ -584,11 +613,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-<style>
-.form-check-input:checked { background-color: #3D3B6B; border-color: #3D3B6B; }
-#previewPricing            { font-size: 1.25rem; }
-#iconPreview img           { object-fit: cover; border-radius: 12px; }
-input:disabled             { background-color: #f8f9fa !important; cursor: not-allowed !important; opacity: 0.7 !important; }
-</style>
+
+
 @endpush
 @endsection

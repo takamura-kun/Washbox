@@ -4,10 +4,12 @@ use App\Models\Branch;
 use App\Models\Service;
 use App\Models\Customer;
 use App\Models\DeliveryFee;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use App\Models\PickupRequest;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class PickupRequestController extends Controller
 {
@@ -104,13 +106,42 @@ class PickupRequestController extends Controller
         return back()->with('success','Pickup marked as en route!');
     }
 
+    public function uploadProof(Request $request, $id)
+    {
+        $request->validate(['proof_photo' => 'required|image|mimes:jpeg,png,jpg|max:5120']);
+        
+        $pickup = PickupRequest::findOrFail($id);
+        
+        if (!in_array($pickup->status, ['en_route', 'picked_up'])) {
+            return back()->with('error', 'Pickup must be en route or picked up to upload proof.');
+        }
+        
+        $image = $request->file('proof_photo');
+        $filename = now()->timestamp . '_pickup_' . $pickup->id . '_' . Str::random(8) . '.' . $image->getClientOriginalExtension();
+        $image->storeAs('pickup-proofs', $filename, 'public');
+        
+        $pickup->update([
+            'pickup_proof_photo' => $filename,
+            'proof_uploaded_at' => now(),
+        ]);
+        
+        return back()->with('success', 'Proof photo uploaded successfully! You can now mark as picked up.');
+    }
+
     public function markPickedUp($id)
     {
         $pickup = PickupRequest::findOrFail($id);
         if (!$pickup->canMarkPickedUp()) return back()->with('error','Cannot mark as picked up in current status');
+        
+        if (!$pickup->pickup_proof_photo) {
+            return back()->with('error', 'Please upload proof photo before marking as picked up.');
+        }
+        
         $pickup->markPickedUp();
+        Notification::createPickupProofUploaded($pickup);
+        
         return redirect()->route('admin.laundries.create',['pickup_id'=>$pickup->id])
-            ->with('success','Laundry picked up! Now create the laundry order.');
+            ->with('success','Laundry picked up! Customer has been notified. Now create the laundry order.');
     }
 
     public function cancel(Request $request, $id)

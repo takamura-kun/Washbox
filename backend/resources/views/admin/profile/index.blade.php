@@ -7,9 +7,9 @@
 
     {{-- Profile Header --}}
     <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-        <div class="bg-gradient position-relative" style="background: linear-gradient(135deg, #3D3B6B 0%, #605C9D 100%); min-height: 200px;">
-            <div class="position-absolute bottom-0 start-0 p-4 translate-middle-y ms-4">
-                <div class="d-flex align-items-end">
+        <div class="bg-gradient position-relative" style="background: linear-gradient(135deg, #3D3B6B 0%, #605C9D 100%); min-height: 280px;">
+            <div class="position-absolute bottom-0 start-0 p-4 w-100">
+                <div class="d-flex align-items-end pb-4">
                     <div class="avatar-container position-relative">
                         <div class="avatar-wrapper bg-white p-2 rounded-circle shadow-lg">
                             <div class="avatar-inner bg-gradient-primary rounded-circle d-flex align-items-center justify-content-center"
@@ -21,9 +21,9 @@
                             <i class="bi bi-check text-white" style="font-size: 0.875rem;"></i>
                         </div>
                     </div>
-                    <div class="ms-4 text-white mb-4">
+                    <div class="ms-4 text-white flex-grow-1">
                         <h1 class="fw-bold mb-1 text-white display-6">{{ $user->name }}</h1>
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
                             <span class="badge bg-white text-primary px-3 py-2 rounded-pill fw-semibold">
                                 <i class="bi bi-shield-check me-1"></i> System Administrator
                             </span>

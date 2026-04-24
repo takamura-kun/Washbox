@@ -5,6 +5,50 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('assets/css/laundry.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/dark-mode-fixes.css') }}">
+    <style>
+        .info-card {
+            border-left: 4px solid #3D3B6B;
+            transition: transform 0.2s;
+        }
+        .info-card:hover {
+            transform: translateX(4px);
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .timeline-vertical .timeline-item {
+            position: relative;
+            padding-left: 40px;
+            padding-bottom: 24px;
+        }
+        .timeline-vertical .timeline-item:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 40px;
+            bottom: 0;
+            width: 2px;
+            background: #E5E7EB;
+        }
+        .timeline-vertical .timeline-marker {
+            position: absolute;
+            left: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+    </style>
 @endpush
 
 @section('content')
@@ -173,8 +217,8 @@
                                 <td colspan="2" class="pb-2">
                                     <strong>{{ $laundry->service->name }}</strong>
                                     <div class="small text-muted mt-1">
-                                        @if($laundry->service->service_type === 'special_item')
-                                            {{ $laundry->number_of_loads }} piece{{ $laundry->number_of_loads > 1 ? 's' : '' }} × ₱{{ number_format($laundry->service->price_per_load, 2) }}/piece
+                                        @if($laundry->service->pricing_type === 'per_piece')
+                                            {{ $laundry->number_of_loads }} piece{{ $laundry->number_of_loads > 1 ? 's' : '' }} × ₱{{ number_format($laundry->service->price_per_piece, 2) }}/piece
                                         @else
                                             {{ $laundry->number_of_loads }} load{{ $laundry->number_of_loads > 1 ? 's' : '' }} × ₱{{ number_format($laundry->service->price_per_load, 2) }}/load
                                         @endif
@@ -194,7 +238,7 @@
                                             <i class="bi bi-circle-fill text-primary me-2" style="font-size: 0.5rem;"></i>
                                             Service Load {{ $i }}
                                         </td>
-                                        <td class="text-end">₱{{ number_format($laundry->service->price_per_load, 2) }}</td>
+                                        <td class="text-end">₱{{ number_format($laundry->service->pricing_type === 'per_piece' ? $laundry->service->price_per_piece : $laundry->service->price_per_load, 2) }}</td>
                                     </tr>
                                 @endfor
                                 <tr class="small border-top">
@@ -341,6 +385,88 @@
                         </div>
                     </div>
                 </div>
+            @elseif($laundry->payment_status === 'pending_verification')
+                <div class="alert alert-warning mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-clock-fill me-3 fs-4"></i>
+                        <div>
+                            <strong class="d-block">Payment Verification Pending</strong>
+                            <div class="small mt-1">
+                                Customer has submitted payment proof. Please verify and approve.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Payment Proof Section -->
+            @if($laundry->latestPaymentProof)
+                <div class="table-container mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Payment Proof</h5>
+                        <span class="badge {{ $laundry->latestPaymentProof->status === 'approved' ? 'bg-success' : ($laundry->latestPaymentProof->status === 'rejected' ? 'bg-danger' : 'bg-warning') }} fs-6">
+                            {{ ucfirst($laundry->latestPaymentProof->status) }}
+                        </span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Payment Method</label>
+                            <div class="fw-semibold">{{ ucfirst($laundry->latestPaymentProof->payment_method) }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Amount</label>
+                            <div class="fw-semibold">₱{{ number_format($laundry->latestPaymentProof->amount, 2) }}</div>
+                        </div>
+                        @if($laundry->latestPaymentProof->reference_number)
+                            <div class="col-md-6 mb-3">
+                                <label class="text-muted small">Reference Number</label>
+                                <div class="fw-semibold">{{ $laundry->latestPaymentProof->reference_number }}</div>
+                            </div>
+                        @endif
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Submitted At</label>
+                            <div class="fw-semibold">{{ $laundry->latestPaymentProof->created_at->format('M d, Y h:i A') }}</div>
+                        </div>
+                        @if($laundry->latestPaymentProof->verified_at)
+                            <div class="col-md-6 mb-3">
+                                <label class="text-muted small">Verified At</label>
+                                <div class="fw-semibold">{{ $laundry->latestPaymentProof->verified_at->format('M d, Y h:i A') }}</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="text-muted small">Verified By</label>
+                                <div class="fw-semibold">{{ $laundry->latestPaymentProof->verifiedBy->name ?? 'System' }}</div>
+                            </div>
+                        @endif
+                    </div>
+                    
+                    @if($laundry->latestPaymentProof->proof_image)
+                        <div class="mb-3">
+                            <label class="text-muted small">Payment Proof Image</label>
+                            <div class="mt-2">
+                                <img src="{{ $laundry->latestPaymentProof->proof_image_url }}" 
+                                     alt="Payment Proof" 
+                                     class="img-thumbnail" 
+                                     style="max-width: 300px; cursor: pointer;"
+                                     data-bs-toggle="modal" 
+                                     data-bs-target="#paymentProofModal">
+                            </div>
+                        </div>
+                    @endif
+                    
+                    @if($laundry->latestPaymentProof->admin_notes)
+                        <div class="alert alert-info">
+                            <strong>Admin Notes:</strong> {{ $laundry->latestPaymentProof->admin_notes }}
+                        </div>
+                    @endif
+                    
+                    @if($laundry->latestPaymentProof->status === 'pending')
+                        <div class="d-flex gap-2 mt-3">
+                            <a href="{{ route('admin.payments.verification.show', $laundry->latestPaymentProof) }}" class="btn btn-primary">
+                                <i class="bi bi-eye"></i> Review Payment
+                            </a>
+                        </div>
+                    @endif
+                </div>
             @endif
 
             <!-- Delivery Information -->
@@ -447,28 +573,50 @@
         <div class="col-lg-4">
             <!-- Timeline -->
             <div class="table-container mb-4">
-                <h5 class="mb-3">Laundry Timeline</h5>
+                <h5 class="mb-3">
+                    <i class="bi bi-clock-history me-2 text-primary"></i>
+                    Laundry Timeline
+                </h5>
                 <div class="timeline-vertical">
                     @php
                         $timeline = $laundry->getTimeline();
+                        $stages = [
+                            'received' => ['icon' => 'inbox-fill', 'label' => 'Order Received'],
+                            'processing' => ['icon' => 'gear-fill', 'label' => 'Processing'],
+                            'ready' => ['icon' => 'check-circle-fill', 'label' => 'Ready for Pickup'],
+                            'paid' => ['icon' => 'credit-card-fill', 'label' => 'Payment Completed'],
+                            'completed' => ['icon' => 'check-all', 'label' => 'Order Completed']
+                        ];
                         $currentReached = false;
                     @endphp
-                    @foreach(['received', 'processing', 'ready', 'paid', 'completed'] as $stage)
+                    @foreach($stages as $stage => $config)
                         @php
                             $isActive = $timeline[$stage] !== null;
-                            if (!$isActive) $currentReached = true;
+                            $isPending = !$isActive && !$currentReached;
+                            if (!$isActive && !$currentReached) $currentReached = true;
                         @endphp
-                        <div class="timeline-item {{ $isActive ? 'active' : ($currentReached ? 'pending' : '') }}">
+                        <div class="timeline-item {{ $isActive ? 'active' : ($isPending ? 'current' : 'pending') }}">
                             <div class="timeline-marker {{ $isActive ? 'bg-success' : 'bg-secondary' }}">
-                                <i class="bi bi-{{ $isActive ? 'check' : 'circle' }}"></i>
+                                <i class="bi bi-{{ $isActive ? 'check' : $config['icon'] }}"></i>
                             </div>
                             <div class="timeline-content">
-                                <div class="fw-semibold">{{ ucfirst($stage) }}</div>
-                                @if($isActive)
-                                    <small class="text-muted">{{ $timeline[$stage]->format('M d, Y h:i A') }}</small>
-                                @else
-                                    <small class="text-muted">Pending</small>
-                                @endif
+                                <div class="fw-semibold">
+                                    {{ $config['label'] }}
+                                    @if($isActive)
+                                        <div class="status-icon bg-success text-white ms-auto">
+                                            <i class="bi bi-check"></i>
+                                        </div>
+                                    @endif
+                                </div>
+                                <small class="text-muted">
+                                    @if($isActive)
+                                        <i class="bi bi-calendar-check me-1"></i>
+                                        {{ $timeline[$stage]->format('M d, Y') }} at {{ $timeline[$stage]->format('h:i A') }}
+                                    @else
+                                        <i class="bi bi-clock me-1"></i>
+                                        {{ $isPending ? 'In Progress...' : 'Pending' }}
+                                    @endif
+                                </small>
                             </div>
                         </div>
                     @endforeach
@@ -500,12 +648,18 @@
                         </form>
                     @endif
                     @if($laundry->status === 'ready' && $laundry->payment_status !== 'paid')
-                        <form action="{{ route('admin.laundries.record-payment', $laundry) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="bi bi-currency-dollar"></i> Record Payment
-                            </button>
-                        </form>
+                        @if($laundry->latestPaymentProof && $laundry->latestPaymentProof->status === 'pending')
+                            <a href="{{ route('admin.payments.verification.show', $laundry->latestPaymentProof) }}" class="btn btn-warning w-100">
+                                <i class="bi bi-eye"></i> Review Payment Proof
+                            </a>
+                        @else
+                            <form action="{{ route('admin.laundries.record-payment', $laundry) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-currency-dollar"></i> Record Payment
+                                </button>
+                            </form>
+                        @endif
                     @endif
                     @if($laundry->status === 'paid')
                         <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST" class="status-change-form">
@@ -573,11 +727,7 @@
                     <small class="text-muted">Pricing Type</small>
                     <div class="fw-semibold">
                         @if($laundry->service)
-                            @if($laundry->service->service_type === 'special_item')
-                                Per Piece
-                            @else
-                                Per Load
-                            @endif
+                            {{ ucfirst(str_replace('_', ' ', $laundry->service->pricing_type ?? 'per_load')) }}
                         @else
                             Promotion Fixed Price
                         @endif
@@ -646,6 +796,42 @@
             </div>
         </div>
     </div>
+
+    <!-- Payment Proof Modal -->
+    @if($laundry->latestPaymentProof && $laundry->latestPaymentProof->proof_image)
+        <div class="modal fade" id="paymentProofModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Payment Proof</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img src="{{ $laundry->latestPaymentProof->proof_image_url }}" 
+                             alt="Payment Proof" 
+                             class="img-fluid" 
+                             style="max-height: 70vh;">
+                        <div class="mt-3">
+                            <p class="mb-1"><strong>Amount:</strong> ₱{{ number_format($laundry->latestPaymentProof->amount, 2) }}</p>
+                            <p class="mb-1"><strong>Method:</strong> {{ ucfirst($laundry->latestPaymentProof->payment_method) }}</p>
+                            @if($laundry->latestPaymentProof->reference_number)
+                                <p class="mb-1"><strong>Reference:</strong> {{ $laundry->latestPaymentProof->reference_number }}</p>
+                            @endif
+                            <p class="mb-0"><strong>Submitted:</strong> {{ $laundry->latestPaymentProof->created_at->format('M d, Y h:i A') }}</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        @if($laundry->latestPaymentProof->status === 'pending')
+                            <a href="{{ route('admin.payments.verification.show', $laundry->latestPaymentProof) }}" class="btn btn-primary">
+                                <i class="bi bi-eye"></i> Review & Verify
+                            </a>
+                        @endif
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection
 
 @push('scripts')

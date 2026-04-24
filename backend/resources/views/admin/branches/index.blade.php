@@ -4,14 +4,14 @@
 @section('page-title', 'BRANCH MANAGEMENT')
 
 @section('content')
-<div class="container-fluid px-4 py-4">
+<div class="container-fluid px-4 py-2">
     {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <p class="text-muted small mb-0">Manage your laundry service locations across Negros Oriental</p>
+            <p class="text-muted small mb-0" style="font-size:0.8rem;">Manage your laundry service locations across Negros Oriental</p>
         </div>
         <div>
-            <a href="{{ route('admin.branches.create') }}" class="btn btn-primary shadow-sm" style="background: #3D3B6B; border: none;">
+            <a href="{{ route('admin.branches.create') }}" class="btn btn-primary shadow-sm">
                 <i class="bi bi-plus-circle me-2"></i>Add New Branch
             </a>
             <button class="btn btn-outline-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addBranchModal">
@@ -21,13 +21,13 @@
     </div>
 
     {{-- Stats Overview --}}
-    <div class="row g-3 mb-4">
+    <div class="row g-2 mb-3">
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100" style="background: linear-gradient(135deg, #3D3B6B 0%, #2D2850 100%);">
-                <div class="card-body p-4 text-white">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="bg-white bg-opacity-20 p-3 rounded-3">
-                            <i class="bi bi-building fs-3"></i>
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-primary text-white">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div class="bg-white bg-opacity-20 p-1 rounded-2" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
+                            <i class="bi bi-building" style="font-size:1rem;"></i>
                         </div>
                         @php
                             $activeBranches = $branches->where('is_active', true)->count();
@@ -36,85 +36,85 @@
                         @endphp
                         <span class="badge bg-success">{{ $activePercentage }}%</span>
                     </div>
-                    <h6 class="mb-2 opacity-75">Active Branches</h6>
-                    <h2 class="fw-bold mb-0">{{ $activeBranches }}/{{ $totalBranches }}</h2>
-                    <small class="opacity-75">{{ $branches->where('is_active', false)->count() }} inactive</small>
+                    <h6 class="mb-1 opacity-75" style="font-size:0.7rem;">Active Branches</h6>
+                    <h3 class="fw-bold mb-0" style="font-size:1.5rem;">{{ $activeBranches }}/{{ $totalBranches }}</h3>
+                    <small class="opacity-75" style="font-size: 0.68rem;">{{ $branches->where('is_active', false)->count() }} inactive</small>
                 </div>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-primary border-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="bg-primary bg-opacity-10 p-3 rounded-3">
-                            <i class="bi bi-box-seam fs-3 text-primary"></i>
+            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-primary border-3 stat-card">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div class="bg-primary bg-opacity-10 p-1 rounded-2" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
+                            <i class="bi bi-box-seam text-primary" style="font-size:1rem;"></i>
                         </div>
                     </div>
-                    <h6 class="text-muted mb-2">Total Laundries</h6>
-                    <h2 class="fw-bold mb-0">{{ number_format($total_laundries) }}</h2>
-                    <small class="text-muted">Network-wide</small>
+                    <h6 class="text-muted mb-1" style="font-size:0.7rem;">Total Laundries</h6>
+                    <h3 class="fw-bold mb-0" style="font-size:1.5rem;">{{ number_format($total_laundries) }}</h3>
+                    <small class="text-muted" style="font-size: 0.68rem;">Network-wide</small>
                 </div>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-success border-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="bg-success bg-opacity-10 p-3 rounded-3">
-                            <i class="bi bi-cash-stack fs-3 text-success"></i>
+            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-success border-3 stat-card">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div class="bg-success bg-opacity-10 p-1 rounded-2" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
+                            <i class="bi bi-cash-stack text-success" style="font-size:1rem;"></i>
                         </div>
                     </div>
-                    <h6 class="text-muted mb-2">Total Revenue</h6>
-                    <h2 class="fw-bold mb-0">₱{{ number_format($total_revenue, 2) }}</h2>
-                    <small class="text-muted">Combined earnings</small>
+                    <h6 class="text-muted mb-1" style="font-size:0.7rem;">Total Revenue</h6>
+                    <h3 class="fw-bold mb-0" style="font-size:1.5rem;">₱{{ number_format($total_revenue, 2) }}</h3>
+                    <small class="text-muted" style="font-size: 0.68rem;">Combined earnings</small>
                 </div>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-info border-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="bg-info bg-opacity-10 p-3 rounded-3">
-                            <i class="bi bi-people fs-3 text-info"></i>
+            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-info border-3 stat-card">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div class="bg-info bg-opacity-10 p-1 rounded-2" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
+                            <i class="bi bi-people text-info" style="font-size:1rem;"></i>
                         </div>
                     </div>
-                    <h6 class="text-muted mb-2">Total Staff</h6>
-                    <h2 class="fw-bold mb-0">{{ $branches->sum('staff_count') }}</h2>
-                    <small class="text-muted">All branches</small>
+                    <h6 class="text-muted mb-1" style="font-size:0.7rem;">Total Staff</h6>
+                    <h3 class="fw-bold mb-0" style="font-size:1.5rem;">{{ $total_staff }}</h3>
+                    <small class="text-muted" style="font-size: 0.68rem;">All branches</small>
                 </div>
             </div>
         </div>
     </div>
 
     {{-- Branch Cards --}}
-    <div class="row g-4 mb-4">
+    <div class="row g-3 mb-3">
         @forelse($branches as $branch)
         <div class="col-lg-4 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 branch-card">
+            <div class="card border-0 shadow-sm rounded-4 h-100 branch-card branch-item-card">
                 {{-- Branch Image --}}
-                <div class="position-relative overflow-hidden" style="height: 200px; border-radius: 1rem 1rem 0 0;">
+                <div class="position-relative overflow-hidden" style="height: 160px; border-radius: 1rem 1rem 0 0;">
                     @if($branch->photo_url)
                         <img src="{{ Storage::url($branch->photo_url) }}" class="w-100 h-100" style="object-fit: cover;">
                     @else
-                        <div class="w-100 h-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #3D3B6B 0%, #6366F1 100%);">
+                        <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-primary">
                             <i class="bi bi-building text-white" style="font-size: 4rem; opacity: 0.3;"></i>
                         </div>
                     @endif
 
                     {{-- Status Badge --}}
-                    <span class="badge position-absolute top-0 start-0 m-3 px-3 py-2"
-                        style="background: {{ $branch->is_active ? '#10B981' : '#6B7280' }}; font-size: 0.75rem; font-weight: 600;">
+                    <span class="badge position-absolute top-0 start-0 m-2 px-2 py-1"
+                        style="background: {{ $branch->is_active ? '#10B981' : '#6B7280' }}; font-size: 0.68rem; font-weight: 600;">
                         <i class="bi bi-{{ $branch->is_active ? 'check-circle' : 'pause-circle' }} me-1"></i>
                         {{ $branch->is_active ? 'ACTIVE' : 'INACTIVE' }}
                     </span>
 
                     {{-- Quick Actions --}}
-                    <div class="position-absolute top-0 end-0 m-3">
+                    <div class="position-absolute top-0 end-0 m-2">
                         <div class="dropdown">
-                            <button class="btn btn-light btn-sm rounded-circle" data-bs-toggle="dropdown" style="width: 36px; height: 36px;">
+                            <button class="btn btn-light btn-sm rounded-circle" data-bs-toggle="dropdown" style="width: 32px; height: 32px; padding:0;">
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
@@ -160,25 +160,25 @@
                 </div>
 
                 {{-- Branch Info --}}
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
                         <div class="flex-grow-1">
-                            <h5 class="fw-bold mb-1">{{ $branch->name }}</h5>
-                            <p class="text-muted small mb-0">
+                            <h5 class="fw-bold mb-1" style="font-size:1rem;">{{ $branch->name }}</h5>
+                            <p class="text-muted small mb-0" style="font-size:0.75rem;">
                                 <i class="bi bi-geo-alt-fill me-1"></i>
                                 {{ Str::limit($branch->address, 30) }}, {{ $branch->city }}
                             </p>
                         </div>
-                        <span class="badge bg-light text-dark border">
+                        <span class="badge bg-light text-dark border" style="font-size:0.68rem;">
                             {{ $branch->code ?? 'N/A' }}
                         </span>
                     </div>
 
                     {{-- ── Branch Rating ─────────────────────────────────────── --}}
                     @if($branch->total_ratings > 0)
-                    <div class="branch-rating-box mb-3">
+                    <div class="branch-rating-box mb-2">
                         {{-- Score + stars + count --}}
-                        <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="d-flex align-items-center gap-2 mb-1">
                             <span class="branch-rating-score">{{ $branch->avg_rating }}</span>
                             <div class="d-flex gap-1">
                                 @php $filled = (int) round($branch->avg_rating); @endphp
@@ -207,7 +207,7 @@
                         @endforeach
                     </div>
                     @else
-                    <div class="mb-3">
+                    <div class="mb-2">
                         <span class="text-muted" style="font-size: .78rem; font-style: italic;">
                             <i class="bi bi-star me-1"></i>No ratings yet
                         </span>
@@ -216,43 +216,55 @@
                     {{-- ── End Branch Rating ─────────────────────────────────── --}}
 
                     {{-- Contact Info --}}
-                    <div class="mb-3 pb-3 border-bottom">
-                        <div class="d-flex align-items-center text-muted small mb-2">
-                            <i class="bi bi-telephone-fill me-2" style="color: #3D3B6B;"></i>
+                    <div class="mb-2 pb-2 border-bottom">
+                        <div class="d-flex align-items-center text-muted mb-1" style="font-size:0.75rem;">
+                            <i class="bi bi-telephone-fill me-2 text-primary"></i>
                             <span>{{ $branch->phone ?? 'N/A' }}</span>
                         </div>
                         @if($branch->email)
-                        <div class="d-flex align-items-center text-muted small">
-                            <i class="bi bi-envelope-fill me-2" style="color: #3D3B6B;"></i>
+                        <div class="d-flex align-items-center text-muted mb-1" style="font-size:0.75rem;">
+                            <i class="bi bi-envelope-fill me-2 text-primary"></i>
                             <span>{{ $branch->email }}</span>
                         </div>
                         @endif
                         @if($branch->manager)
-                        <div class="d-flex align-items-center text-muted small mt-2">
-                            <i class="bi bi-person-badge-fill me-2" style="color: #3D3B6B;"></i>
+                        <div class="d-flex align-items-center text-muted mb-1" style="font-size:0.75rem;">
+                            <i class="bi bi-person-badge-fill me-2 text-primary"></i>
                             <span>Manager: {{ $branch->manager }}</span>
                         </div>
                         @endif
+                        {{-- Operating Hours --}}
+                        <div class="d-flex align-items-center text-muted" style="font-size:0.75rem;">
+                            <i class="bi bi-clock-fill me-2 text-primary"></i>
+                            <span class="{{ $branch->isOpen() ? 'text-success' : 'text-danger' }}">
+                                @if($branch->isOpen())
+                                    <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Open Now
+                                @else
+                                    <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Closed
+                                @endif
+                            </span>
+                            <span class="ms-2">{{ $branch->getTodayHoursFormatted() }}</span>
+                        </div>
                     </div>
 
                     {{-- Stats --}}
-                    <div class="row g-2 mb-3">
+                    <div class="row g-2 mb-2">
                         <div class="col-4">
                             <div class="text-center p-2 bg-light rounded">
-                                <div class="fw-bold text-dark">{{ number_format($branch->laundries_mtd ?? 0) }}</div>
-                                <small class="text-muted">MTD Laundries</small>
+                                <div class="fw-bold" style="font-size:0.85rem;">{{ number_format($branch->laundries_mtd ?? 0) }}</div>
+                                <small class="text-muted" style="font-size:0.68rem;">MTD Laundries</small>
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="text-center p-2 bg-light rounded">
-                                <div class="fw-bold text-success">₱{{ number_format($branch->revenue_mtd ?? 0, 0) }}</div>
-                                <small class="text-muted">MTD Revenue</small>
+                                <div class="fw-bold text-success" style="font-size:0.85rem;">₱{{ number_format($branch->revenue_mtd ?? 0, 0) }}</div>
+                                <small class="text-muted" style="font-size:0.68rem;">MTD Revenue</small>
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="text-center p-2 bg-light rounded">
-                                <div class="fw-bold text-primary">{{ $branch->active_staff ?? 0 }}</div>
-                                <small class="text-muted">Active Staff</small>
+                                <div class="fw-bold text-primary" style="font-size:0.85rem;">{{ $branch->active_staff ?? 0 }}</div>
+                                <small class="text-muted" style="font-size:0.68rem;">Active Staff</small>
                             </div>
                         </div>
                     </div>
@@ -260,11 +272,11 @@
                     {{-- Action Buttons --}}
                     <div class="d-flex gap-2">
                         <a href="{{ route('admin.branches.edit', $branch->id) }}"
-                            class="btn btn-outline-secondary btn-sm flex-fill">
+                            class="btn btn-outline-secondary btn-sm flex-fill" style="font-size:0.75rem;padding:0.375rem 0.5rem;">
                             <i class="bi bi-gear me-1"></i> Settings
                         </a>
                         <a href="{{ route('admin.branches.show', $branch->id) }}"
-                            class="btn btn-sm flex-fill text-white" style="background: #3D3B6B;">
+                            class="btn btn-primary btn-sm flex-fill" style="font-size:0.75rem;padding:0.375rem 0.5rem;">
                             <i class="bi bi-bar-chart me-1"></i> Analytics
                         </a>
                     </div>
@@ -273,12 +285,12 @@
         </div>
         @empty
         <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card border-0 shadow-sm rounded-4 empty-state-card">
                 <div class="card-body p-5 text-center">
                     <i class="bi bi-building" style="font-size: 4rem; opacity: 0.2;"></i>
                     <h5 class="fw-bold mt-3">No Branches Yet</h5>
                     <p class="text-muted mb-3">Start by adding your first branch location</p>
-                    <a href="{{ route('admin.branches.create') }}" class="btn btn-primary me-2" style="background: #3D3B6B; border: none;">
+                    <a href="{{ route('admin.branches.create') }}" class="btn btn-primary me-2">
                         <i class="bi bi-plus-circle me-2"></i>Add Your First Branch
                     </a>
                     <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addBranchModal">
@@ -291,20 +303,20 @@
     </div>
 
     {{-- System Health Card --}}
-    <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-body p-4">
+    <div class="card border-0 shadow-sm rounded-4 health-card">
+        <div class="card-body p-3">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-success bg-opacity-10 p-3 rounded-3 me-3">
-                            <i class="bi bi-shield-check fs-2 text-success"></i>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-success bg-opacity-10 p-2 rounded-3 me-3">
+                            <i class="bi bi-shield-check fs-3 text-success"></i>
                         </div>
                         <div>
-                            <h5 class="fw-bold mb-1">System-Wide Health</h5>
-                            <h3 class="fw-bold text-success mb-0">{{ $activePercentage }}% Operational</h3>
+                            <h5 class="fw-bold mb-1" style="font-size:1rem;">System-Wide Health</h5>
+                            <h3 class="fw-bold text-success mb-0" style="font-size:1.5rem;">{{ $activePercentage }}% Operational</h3>
                         </div>
                     </div>
-                    <p class="text-muted mb-0">
+                    <p class="text-muted mb-0" style="font-size:0.8rem;">
                         @if($activePercentage == 100)
                         All branches are currently active with no reported issues. All systems operational and running smoothly.
                         @elseif($activePercentage >= 70)
@@ -315,29 +327,29 @@
                     </p>
                 </div>
                 <div class="col-md-4">
-                    <div class="row g-3">
+                    <div class="row g-2">
                         <div class="col-6">
                             <div class="text-center">
-                                <div class="fw-bold fs-4 text-dark">{{ number_format($total_laundries) }}</div>
-                                <small class="text-muted text-uppercase">Total Laundries</small>
+                                <div class="fw-bold fs-5">{{ number_format($total_laundries) }}</div>
+                                <small class="text-muted text-uppercase" style="font-size:0.68rem;">Total Laundries</small>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="text-center">
-                                <div class="fw-bold fs-4 text-success">₱{{ number_format($total_revenue / 1000, 1) }}k</div>
-                                <small class="text-muted text-uppercase">Total Revenue</small>
+                                <div class="fw-bold fs-5 text-success">₱{{ number_format($total_revenue / 1000, 1) }}k</div>
+                                <small class="text-muted text-uppercase" style="font-size:0.68rem;">Total Revenue</small>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="text-center">
-                                <div class="fw-bold fs-4 text-primary">{{ $totalBranches }}</div>
-                                <small class="text-muted text-uppercase">Branches</small>
+                                <div class="fw-bold fs-5 text-primary">{{ $totalBranches }}</div>
+                                <small class="text-muted text-uppercase" style="font-size:0.68rem;">Branches</small>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="text-center">
-                                <div class="fw-bold fs-4 text-info">{{ $branches->sum('staff_count') }}</div>
-                                <small class="text-muted text-uppercase">Staff</small>
+                                <div class="fw-bold fs-5 text-info">{{ $total_staff }}</div>
+                                <small class="text-muted text-uppercase" style="font-size:0.68rem;">Staff</small>
                             </div>
                         </div>
                     </div>
@@ -439,7 +451,7 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="background: #3D3B6B; border: none;">
+                    <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-circle me-2"></i>Create Branch
                     </button>
                 </div>
@@ -491,6 +503,61 @@ document.addEventListener('DOMContentLoaded', function() {
 
 @push('styles')
 <style>
+    /* Force card backgrounds for light mode */
+    .stat-card,
+    .branch-item-card,
+    .empty-state-card,
+    .health-card {
+        background-color: #ffffff;
+        color: #000000;
+    }
+
+    .stat-card .card-body,
+    .branch-item-card .card-body,
+    .empty-state-card .card-body,
+    .health-card .card-body {
+        background-color: #ffffff;
+    }
+
+    /* Dark theme overrides */
+    [data-theme="dark"] .stat-card,
+    [data-theme="dark"] .branch-item-card,
+    [data-theme="dark"] .empty-state-card,
+    [data-theme="dark"] .health-card {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+
+    [data-theme="dark"] .stat-card .card-body,
+    [data-theme="dark"] .branch-item-card .card-body,
+    [data-theme="dark"] .empty-state-card .card-body,
+    [data-theme="dark"] .health-card .card-body {
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+    }
+
+    [data-theme="dark"] .stat-card h2,
+    [data-theme="dark"] .stat-card h5,
+    [data-theme="dark"] .stat-card h6,
+    [data-theme="dark"] .stat-card .fw-bold,
+    [data-theme="dark"] .branch-item-card h5,
+    [data-theme="dark"] .branch-item-card .fw-bold,
+    [data-theme="dark"] .empty-state-card h5,
+    [data-theme="dark"] .health-card h5 {
+        color: #f1f5f9 !important;
+    }
+
+    [data-theme="dark"] .bg-light {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    [data-theme="dark"] .badge.bg-light {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: #e2e8f0 !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
     .branch-card {
         transition: transform 0.2s, box-shadow 0.2s;
     }
@@ -503,26 +570,6 @@ document.addEventListener('DOMContentLoaded', function() {
     .badge {
         font-weight: 600;
         letter-spacing: 0.5px;
-    }
-
-    .bg-light:hover {
-        background-color: #E5E7EB !important;
-    }
-
-    .dropdown-item:hover {
-        background-color: #f8f9fa;
-    }
-
-    .dropdown-item.text-danger:hover {
-        background-color: rgba(220, 53, 69, 0.1);
-    }
-
-    .dropdown-item.text-warning:hover {
-        background-color: rgba(255, 193, 7, 0.1);
-    }
-
-    .dropdown-item.text-success:hover {
-        background-color: rgba(25, 135, 84, 0.1);
     }
 
     /* ── Branch Rating Block ───────────────────────────── */
@@ -548,7 +595,6 @@ document.addEventListener('DOMContentLoaded', function() {
     .branch-star-lbl {
         font-size: .65rem;
         font-weight: 700;
-        color: #64748b;
         width: 20px;
         text-align: right;
         flex-shrink: 0;
@@ -558,11 +604,26 @@ document.addEventListener('DOMContentLoaded', function() {
         gap: 2px;
     }
 
+    [data-theme="light"] .branch-star-lbl {
+        color: #64748b;
+    }
+
+    [data-theme="dark"] .branch-star-lbl {
+        color: #94a3b8;
+    }
+
     .branch-bar-track {
         height: 6px;
         border-radius: 99px;
-        background: #e2e8f0;
         overflow: hidden;
+    }
+
+    [data-theme="light"] .branch-bar-track {
+        background: #e2e8f0;
+    }
+
+    [data-theme="dark"] .branch-bar-track {
+        background: #334155;
     }
 
     .branch-bar-fill {
@@ -574,14 +635,17 @@ document.addEventListener('DOMContentLoaded', function() {
     .branch-bar-count {
         font-size: .65rem;
         font-weight: 700;
-        color: #94a3b8;
         width: 16px;
         text-align: right;
         flex-shrink: 0;
     }
 
-    [data-theme="dark"] .branch-bar-track {
-        background: #334155;
+    [data-theme="light"] .branch-bar-count {
+        color: #94a3b8;
+    }
+
+    [data-theme="dark"] .branch-bar-count {
+        color: #64748b;
     }
 </style>
 @endpush
