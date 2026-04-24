@@ -429,6 +429,32 @@
     color: #0f172a !important;
 }
 
+/* ── Light mode explicit overrides (force visibility) ──────────────── */
+[data-theme="light"] .pk-stat-card {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+[data-theme="light"] .pk-stat-label {
+    color: #64748b !important;
+}
+[data-theme="light"] .pk-stat-value {
+    color: #0f172a !important;
+}
+[data-theme="light"] .pk-filter-card {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+[data-theme="light"] .pk-filter-card .form-label {
+    color: #64748b !important;
+}
+[data-theme="light"] .pk-filter-card .form-control,
+[data-theme="light"] .pk-filter-card .form-select {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
 [data-theme="dark"] .pk-table-card .table td span[style],
 [data-theme="dark"] .pk-table-card .table td div[style] {
     color: #f1f5f9 !important;
