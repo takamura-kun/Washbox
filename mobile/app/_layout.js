@@ -93,6 +93,15 @@ function RootLayoutNav() {
       {/* Auth Group - Login/Register */}
       <Stack.Screen name="(auth)" />
       
+      {/* 2FA Verification */}
+      <Stack.Screen
+        name="(auth)/verify-2fa"
+        options={{
+          presentation: 'card',
+          animation: 'slide_from_right',
+        }}
+      />
+      
       {/* Main Tabs - Home, Orders, Profile */}
       <Stack.Screen name="(tabs)" />
       

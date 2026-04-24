@@ -118,47 +118,28 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      console.log('Attempting login to:', `${API_BASE_URL}/v1/login`);
-      console.log('Email:', email.trim());
-      
       const response = await fetch(`${API_BASE_URL}/v1/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password: password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
-      console.log('Response status:', response.status);
       const data = await response.json();
-      console.log('Response data:', JSON.stringify(data, null, 2));
 
-      // Handle 2FA requirement
       if (data.requires_2fa) {
-        Alert.alert(
-          '2FA Required',
-          data.message || 'A verification code has been sent to your email.',
-          [{ text: 'OK' }]
-        );
+        router.push({ pathname: '/(auth)/verify-2fa', params: { email: email.trim(), password } });
         setLoading(false);
         return;
       }
 
       if (response.ok && data.success) {
-        console.log('Login successful, saving token...');
         await login(data.data.token, data.data.customer);
-
-        // Register device for push notifications, passing the auth token
-        // so the FCM token gets saved to the backend. Fire-and-forget.
-        registerForPushNotifications(data.data.token).catch(console.error);
+        registerForPushNotifications(data.data.token).catch(() => {});
       } else {
-        console.error('Login failed:', data.message);
         Alert.alert('Login Failed', data.message || 'Invalid credentials. Please check your email and password.');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert(
-        'Connection Error',
-        `Unable to connect to server at ${API_BASE_URL}. Please check your internet connection and try again.\n\nError: ${error.message}`
-      );
+      Alert.alert('Connection Error', 'Unable to connect to server. Please check your internet connection and try again.');
     } finally {
       setLoading(false);
     }

@@ -23,12 +23,15 @@ class Customer extends Authenticatable
         'registration_type',
         'address',
         'latitude',
-         'branch_id',
+        'branch_id',
         'longitude',
         'preferred_branch_id',
         'registered_by',
         'profile_photo',
         'is_active',
+        'two_factor_enabled',
+        'two_factor_code',
+        'two_factor_expires_at',
     ];
 
     protected $hidden = [
@@ -40,6 +43,8 @@ class Customer extends Authenticatable
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
         'is_active' => 'boolean',
+        'two_factor_enabled' => 'boolean',
+        'two_factor_expires_at' => 'datetime',
     ];
 
     /**

@@ -46,6 +46,10 @@ const COLORS = {
 export default function PrivacySecurityScreen() {
   const { logout } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [togglingTwoFactor, setTogglingTwoFactor] = useState(false);
+  const [showDisable2FAModal, setShowDisable2FAModal] = useState(false);
+  const [disable2FAPassword, setDisable2FAPassword] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -80,7 +84,69 @@ export default function PrivacySecurityScreen() {
 
   useEffect(() => {
     loadNotificationSettings();
+    loadTwoFactorStatus();
   }, []);
+
+  const loadTwoFactorStatus = async () => {
+    try {
+      const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
+      const response = await fetch(`${API_BASE_URL}/v1/user`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      const data = await response.json();
+      if (data.success) setTwoFactorEnabled(data.data.customer.two_factor_enabled ?? false);
+    } catch {}
+  };
+
+  const confirmDisable2FA = async () => {
+    if (!disable2FAPassword) { Alert.alert('Error', 'Please enter your password.'); return; }
+    setTogglingTwoFactor(true);
+    try {
+      const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
+      const response = await fetch(`${API_BASE_URL}/v1/2fa/disable`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: disable2FAPassword }),
+      });
+      const data = await response.json();
+      if (response.ok) { setTwoFactorEnabled(false); setShowDisable2FAModal(false); setDisable2FAPassword(''); Alert.alert('Disabled', '2FA has been turned off.'); }
+      else Alert.alert('Error', data.message || 'Failed to disable 2FA.');
+    } catch { Alert.alert('Error', 'Connection error. Please try again.'); }
+    finally { setTogglingTwoFactor(false); }
+  };
+
+  const handleToggle2FA = async () => {
+    if (togglingTwoFactor) return;
+    if (twoFactorEnabled) {
+      setDisable2FAPassword('');
+      setShowDisable2FAModal(true);
+    } else {
+      Alert.alert(
+        'Enable 2FA',
+        'A verification code will be sent to your email every time you log in. Enable this?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Enable',
+            onPress: async () => {
+              setTogglingTwoFactor(true);
+              try {
+                const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
+                const response = await fetch(`${API_BASE_URL}/v1/2fa/enable`, {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+                });
+                const data = await response.json();
+                if (response.ok) { setTwoFactorEnabled(true); Alert.alert('Enabled', '2FA is now active on your account.'); }
+                else Alert.alert('Error', data.message || 'Failed to enable 2FA.');
+              } catch { Alert.alert('Error', 'Connection error. Please try again.'); }
+              finally { setTogglingTwoFactor(false); }
+            },
+          },
+        ]
+      );
+    }
+  };
 
   const loadNotificationSettings = async () => {
     try {
@@ -268,6 +334,14 @@ export default function PrivacySecurityScreen() {
       color: COLORS.primary,
       action: () => setShowPasswordModal(true),
     },
+    {
+      icon: 'shield-checkmark-outline',
+      title: 'Two-Factor Authentication',
+      subtitle: twoFactorEnabled ? 'Email code required at login' : 'Add an extra layer of security',
+      color: COLORS.success,
+      action: handleToggle2FA,
+      toggle: true,
+    },
   ];
 
   const privacyItems = [
@@ -331,7 +405,19 @@ export default function PrivacySecurityScreen() {
         </View>
         <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+      {item.toggle ? (
+        togglingTwoFactor
+          ? <ActivityIndicator size="small" color={COLORS.primary} />
+          : <Switch
+              value={twoFactorEnabled}
+              onValueChange={item.action}
+              trackColor={{ false: COLORS.border, true: COLORS.success + '60' }}
+              thumbColor={twoFactorEnabled ? COLORS.success : COLORS.textMuted}
+              ios_backgroundColor={COLORS.border}
+            />
+      ) : (
+        <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+      )}
     </TouchableOpacity>
   );
 
@@ -614,6 +700,45 @@ export default function PrivacySecurityScreen() {
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
           </ScrollView>
+        </View>
+      </Modal>
+      {/* Disable 2FA Modal */}
+      <Modal
+        visible={showDisable2FAModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowDisable2FAModal(false)}
+      >
+        <View style={styles.overlayBackdrop}>
+          <View style={styles.overlayCard}>
+            <Text style={styles.overlayTitle}>Disable 2FA</Text>
+            <Text style={styles.overlaySubtitle}>Enter your password to confirm.</Text>
+            <View style={styles.passwordInputContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                value={disable2FAPassword}
+                onChangeText={setDisable2FAPassword}
+                placeholder="Your password"
+                placeholderTextColor={COLORS.textMuted}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.submitButton, { marginTop: 16, marginBottom: 8 }]}
+              onPress={confirmDisable2FA}
+              disabled={togglingTwoFactor}
+            >
+              <LinearGradient colors={COLORS.gradientDanger} style={styles.submitGradient}>
+                {togglingTwoFactor
+                  ? <ActivityIndicator color={COLORS.textPrimary} />
+                  : <Text style={styles.submitText}>Confirm Disable</Text>}
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setShowDisable2FAModal(false)} disabled={togglingTwoFactor}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </View>
@@ -902,5 +1027,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.textSecondary,
+  },
+  overlayBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  overlayCard: {
+    backgroundColor: COLORS.cardDark,
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  overlayTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 6,
+  },
+  overlaySubtitle: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 16,
   },
 });
