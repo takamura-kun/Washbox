@@ -42,8 +42,8 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [errors, setErrors] = useState({});
-  const [showTermsModal, setShowTermsModal] = useState(true);
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(true);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -52,6 +52,16 @@ export default function RegisterScreen() {
   const logoPulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    // Check if terms were previously accepted
+    const checkTermsAcceptance = async () => {
+      const accepted = await AsyncStorage.getItem('@washbox:terms_accepted');
+      if (!accepted) {
+        setShowTermsModal(true);
+        setTermsAccepted(false);
+      }
+    };
+    checkTermsAcceptance();
+
     fetchBranches();
     
     Animated.parallel([
@@ -209,15 +219,15 @@ export default function RegisterScreen() {
       <TermsModal
         visible={showTermsModal}
         onClose={() => router.back()}
-        onAccept={() => {
+        onAccept={async () => {
+          await AsyncStorage.setItem('@washbox:terms_accepted', 'true');
           setTermsAccepted(true);
           setShowTermsModal(false);
         }}
         showAcceptButton={true}
       />
 
-      {/* Register Form - Show after terms accepted */}
-      {termsAccepted && (
+      {/* Register Form */}
       <LinearGradient
         colors={['#0A0E27', '#1A1F3A', '#0A0E27']}
         style={styles.container}
@@ -548,7 +558,6 @@ export default function RegisterScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
-      )}
     </>
   );
 }

@@ -7,20 +7,25 @@
     <style>
         .customer-card {
             transition: transform 0.2s, box-shadow 0.2s;
+            background: var(--card-bg) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
         }
         .customer-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
         }
-        /* Light mode */
-        [data-theme="light"] .customer-card {
-            background-color: #ffffff !important;
-            color: #111827 !important;
+        .card {
+            background: var(--card-bg) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
         }
-        /* Dark mode */
-        [data-theme="dark"] .customer-card {
-            background-color: #1F2937 !important;
-            color: #F9FAFB !important;
+        .card-body {
+            background: var(--card-bg) !important;
+            color: var(--text-primary) !important;
+        }
+        .border-top {
+            border-color: var(--border-color) !important;
         }
     </style>
 @endpush
@@ -30,7 +35,7 @@
     {{-- Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4 page-header">
         <div>
-            <p class="text-muted mb-0">Manage walk-in and mobile app registered customers across all branches.</p>
+            <p class="mb-0" style="color: var(--text-secondary);">Manage walk-in and mobile app registered customers across all branches.</p>
         </div>
         <a href="{{ route('admin.customers.create') }}" class="btn btn-primary shadow-sm px-4">
             <i class="bi bi-person-plus-fill me-2"></i>Create New Customer
@@ -40,25 +45,22 @@
     {{-- Stats Cards --}}
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="d-flex align-items-center">
-                <div class="stat-icon primary">
-                    <i class="bi bi-people"></i>
-                </div>
+            <div class="d-flex align-items-start justify-content-between">
                 <div class="flex-grow-1">
                     <div class="stat-label">Total Customers</div>
                     <div class="stat-value">{{ number_format($stats['total']) }}</div>
                     <div class="stat-trend up">
-                        <i class="bi bi-arrow-up"></i> +{{ number_format($stats['new_today']) }} today
+                        <i class="bi bi-plus-circle"></i> {{ number_format($stats['new_today']) }} new today
                     </div>
+                </div>
+                <div class="stat-icon primary">
+                    <i class="bi bi-people-fill"></i>
                 </div>
             </div>
         </div>
 
         <div class="stat-card">
-            <div class="d-flex align-items-center">
-                <div class="stat-icon secondary">
-                    <i class="bi bi-person"></i>
-                </div>
+            <div class="d-flex align-items-start justify-content-between">
                 <div class="flex-grow-1">
                     <div class="stat-label">Walk-in Customers</div>
                     <div class="stat-value">{{ number_format($stats['walk_in']) }}</div>
@@ -66,14 +68,14 @@
                         {{ number_format(($stats['walk_in'] / max($stats['total'], 1)) * 100, 1) }}% of total
                     </div>
                 </div>
+                <div class="stat-icon warning">
+                    <i class="bi bi-person-fill"></i>
+                </div>
             </div>
         </div>
 
         <div class="stat-card">
-            <div class="d-flex align-items-center">
-                <div class="stat-icon success">
-                    <i class="bi bi-person-check"></i>
-                </div>
+            <div class="d-flex align-items-start justify-content-between">
                 <div class="flex-grow-1">
                     <div class="stat-label">Mobile App Users</div>
                     <div class="stat-value">{{ number_format($stats['self_registered']) }}</div>
@@ -81,20 +83,27 @@
                         {{ number_format(($stats['self_registered'] / max($stats['total'], 1)) * 100, 1) }}% of total
                     </div>
                 </div>
+                <div class="stat-icon success">
+                    <i class="bi bi-phone-fill"></i>
+                </div>
             </div>
         </div>
 
         <div class="stat-card">
-            <div class="d-flex align-items-center">
-                <div class="stat-icon warning">
-                    <i class="bi bi-person-plus"></i>
-                </div>
+            <div class="d-flex align-items-start justify-content-between">
                 <div class="flex-grow-1">
                     <div class="stat-label">New Today</div>
                     <div class="stat-value">{{ number_format($stats['new_today']) }}</div>
-                    <div class="stat-trend up">
-                        <i class="bi bi-graph-up"></i> New registrations
+                    <div class="stat-trend">
+                        @if($stats['new_today'] > 0)
+                            <i class="bi bi-graph-up-arrow"></i> Growing
+                        @else
+                            <i class="bi bi-dash-circle"></i> No new signups
+                        @endif
                     </div>
+                </div>
+                <div class="stat-icon secondary">
+                    <i class="bi bi-person-plus-fill"></i>
                 </div>
             </div>
         </div>
@@ -210,77 +219,77 @@
         <div class="row g-3">
             @foreach($customers as $customer)
             <div class="col-md-6 col-lg-4 col-xl-3">
-                <div class="card border-0 shadow-sm rounded-4 h-100 customer-card">
-                    <div class="card-body p-3">
-                        <div class="d-flex align-items-start mb-3">
+                <div class="card border-0 shadow-sm rounded-3 h-100 customer-card">
+                    <div class="card-body p-2" style="font-size: 0.813rem;">
+                        <div class="d-flex align-items-start mb-2">
                             @if($customer->profile_photo_url)
-                                <img src="{{ $customer->profile_photo_url }}" alt="{{ $customer->name }}" class="rounded-circle me-3" style="width: 56px; height: 56px; object-fit: cover;">
+                                <img src="{{ $customer->profile_photo_url }}" alt="{{ $customer->name }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
                             @else
-                                <div class="rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px; background: linear-gradient(135deg, #2D2B5F, #FF5C35); color: white; font-weight: 700; font-size: 1.25rem;">
+                                <div class="rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: linear-gradient(135deg, #2D2B5F, #FF5C35); color: white; font-weight: 600; font-size: 0.813rem;">
                                     {{ strtoupper(substr($customer->name, 0, 1)) }}
                                 </div>
                             @endif
                             <div class="flex-grow-1 min-w-0">
-                                <div class="fw-bold text-truncate" style="font-size: 0.95rem;">{{ $customer->name }}</div>
-                                <small class="text-muted">#CUST-{{ str_pad($customer->id, 4, '0', STR_PAD_LEFT) }}</small>
-                                <div class="mt-1">
+                                <div class="fw-semibold text-truncate" style="font-size: 0.813rem; line-height: 1.2;">{{ $customer->name }}</div>
+                                <small style="color: var(--text-secondary); font-size: 0.688rem;">#CUST-{{ str_pad($customer->id, 4, '0', STR_PAD_LEFT) }}</small>
+                                <div style="margin-top: 0.25rem;">
                                     @if($customer->registration_type == 'walk_in')
-                                        <span class="badge bg-secondary bg-opacity-10 text-secondary" style="font-size: 0.7rem;">
-                                            <i class="bi bi-person"></i> Walk-in
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary" style="font-size: 0.625rem; padding: 0.125rem 0.375rem;">
+                                            <i class="bi bi-person" style="font-size: 0.625rem;"></i> Walk-in
                                         </span>
                                     @else
-                                        <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size: 0.7rem;">
-                                            <i class="bi bi-phone"></i> Mobile
+                                        <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size: 0.625rem; padding: 0.125rem 0.375rem;">
+                                            <i class="bi bi-phone" style="font-size: 0.625rem;"></i> Mobile
                                         </span>
                                     @endif
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bi bi-telephone me-2 text-muted" style="font-size: 0.85rem;"></i>
-                                <small class="text-truncate">{{ $customer->phone }}</small>
+                        <div class="mb-2" style="font-size: 0.688rem;">
+                            <div class="d-flex align-items-center" style="margin-bottom: 0.25rem;">
+                                <i class="bi bi-telephone me-1" style="color: var(--text-secondary); font-size: 0.688rem;"></i>
+                                <small class="text-truncate" style="color: var(--text-secondary); font-size: 0.688rem;">{{ $customer->phone }}</small>
                             </div>
                             @if($customer->email)
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-envelope me-2 text-muted" style="font-size: 0.85rem;"></i>
-                                    <small class="text-truncate">{{ Str::limit($customer->email, 25) }}</small>
+                                <div class="d-flex align-items-center" style="margin-bottom: 0.25rem;">
+                                    <i class="bi bi-envelope me-1" style="color: var(--text-secondary); font-size: 0.688rem;"></i>
+                                    <small class="text-truncate" style="color: var(--text-secondary); font-size: 0.688rem;">{{ Str::limit($customer->email, 22) }}</small>
                                 </div>
                             @endif
                             @if($customer->preferredBranch)
-                                <div class="d-flex align-items-center mt-1">
-                                    <i class="bi bi-geo-alt me-2 text-muted" style="font-size: 0.85rem;"></i>
-                                    <small class="text-truncate">{{ $customer->preferredBranch->name }}</small>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-geo-alt me-1" style="color: var(--text-secondary); font-size: 0.688rem;"></i>
+                                    <small class="text-truncate" style="color: var(--text-secondary); font-size: 0.688rem;">{{ $customer->preferredBranch->name }}</small>
                                 </div>
                             @endif
                         </div>
-                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top" style="margin-top: 0.5rem;">
                             <div>
-                                <small class="text-muted d-block">Laundries</small>
-                                <strong style="font-size: 1.1rem;">{{ $customer->laundries_count ?? $customer->laundries()->count() }}</strong>
+                                <small class="d-block" style="color: var(--text-secondary); font-size: 0.625rem;">Laundries</small>
+                                <strong style="font-size: 0.875rem;">{{ $customer->laundries_count ?? $customer->laundries()->count() }}</strong>
                             </div>
                             <div class="text-end">
-                                <small class="text-muted d-block">Total Spent</small>
-                                <strong class="text-success" style="font-size: 0.95rem;">₱{{ number_format($customer->getTotalSpent(), 0) }}</strong>
+                                <small class="d-block" style="color: var(--text-secondary); font-size: 0.625rem;">Spent</small>
+                                <strong class="text-success" style="font-size: 0.813rem;">₱{{ number_format($customer->getTotalSpent(), 0) }}</strong>
                             </div>
                             <div>
                                 @if($customer->is_active)
-                                    <span class="badge bg-success" style="font-size: 0.7rem;">
-                                        <i class="bi bi-check-circle"></i> Active
+                                    <span class="badge bg-success" style="font-size: 0.625rem; padding: 0.125rem 0.375rem;">
+                                        <i class="bi bi-check-circle" style="font-size: 0.625rem;"></i>
                                     </span>
                                 @else
-                                    <span class="badge bg-danger" style="font-size: 0.7rem;">
-                                        <i class="bi bi-x-circle"></i> Inactive
+                                    <span class="badge bg-danger" style="font-size: 0.625rem; padding: 0.125rem 0.375rem;">
+                                        <i class="bi bi-x-circle" style="font-size: 0.625rem;"></i>
                                     </span>
                                 @endif
                             </div>
                         </div>
-                        <div class="d-flex gap-2 mt-3">
-                            <a href="{{ route('admin.customers.show', $customer) }}" class="btn btn-sm btn-outline-primary flex-fill">
-                                <i class="bi bi-eye"></i> View
+                        <div class="d-flex gap-1" style="margin-top: 0.5rem;">
+                            <a href="{{ route('admin.customers.show', $customer) }}" class="btn btn-sm btn-outline-primary flex-fill" style="font-size: 0.688rem; padding: 0.25rem 0.5rem;">
+                                <i class="bi bi-eye" style="font-size: 0.688rem;"></i> View
                             </a>
-                            <a href="{{ route('admin.customers.edit', $customer) }}" class="btn btn-sm btn-outline-secondary flex-fill">
-                                <i class="bi bi-pencil"></i> Edit
+                            <a href="{{ route('admin.customers.edit', $customer) }}" class="btn btn-sm btn-outline-secondary flex-fill" style="font-size: 0.688rem; padding: 0.25rem 0.5rem;">
+                                <i class="bi bi-pencil" style="font-size: 0.688rem;"></i> Edit
                             </a>
                         </div>
                     </div>
@@ -294,7 +303,7 @@
             <div class="card border-0 shadow-sm rounded-4 mt-3">
                 <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <small class="text-muted">
+                        <small style="color: var(--text-secondary);">
                             Showing {{ $customers->firstItem() }} to {{ $customers->lastItem() }} of {{ $customers->total() }} customers
                         </small>
                         {{ $customers->links() }}

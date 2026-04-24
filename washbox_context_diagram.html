@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WashBox Context Diagram</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/svg.js/3.2.0/svg.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        svg {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .legend {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WashBox Context Diagram</h1>
+        <svg id="diagram" width="1200" height="900" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="legend">
+            <strong>Legend:</strong> Boxes = External Entities | Circle = WashBox System | Arrows = Data Flows
+        </div>
+    </div>
+
+    <script>
+        const svg = SVG('#diagram');
+        svg.attr('style', 'border: 1px solid #ccc; background-color: white;');
+
+        // Helper functions
+        function drawBox(x, y, width, height, title) {
+            const group = svg.group();
+            group.rect(width, height)
+                .attr({ x: x, y: y, fill: 'white', stroke: 'black', 'stroke-width': 2 });
+            group.text(title)
+                .attr({ x: x + width/2, y: y + height/2, 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': 14, 'font-weight': 'bold' });
+            return group;
+        }
+
+        function drawCircle(x, y, radius, title) {
+            const group = svg.group();
+            group.circle(radius * 2)
+                .attr({ cx: x, cy: y, fill: 'white', stroke: 'black', 'stroke-width': 2 });
+
+            // Split title into multiple lines
+            const lines = title.split('\n');
+            const text = group.text(lines[0])
+                .attr({ x: x, y: y - 15, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 'bold' });
+
+            for (let i = 1; i < lines.length; i++) {
+                group.text(lines[i])
+                    .attr({ x: x, y: y - 15 + (i * 15), 'text-anchor': 'middle', 'font-size': 12 });
+            }
+
+            return group;
+        }
+
+        function drawArrow(x1, y1, x2, y2, label = '', curved = false) {
+            const line = svg.path(`M ${x1} ${y1} L ${x2} ${y2}`)
+                .attr({ stroke: 'black', 'stroke-width': 1.5, fill: 'none', 'marker-end': 'url(#arrowhead)' });
+
+            if (label) {
+                const midX = (x1 + x2) / 2;
+                const midY = (y1 + y2) / 2;
+                svg.text(label)
+                    .attr({ x: midX, y: midY - 8, 'text-anchor': 'middle', 'font-size': 10, 'fill': 'darkblue' });
+            }
+        }
+
+        // Arrow marker definition
+        svg.defs().append(svg.marker('arrowhead', 10, 10)
+            .path('M 0 0 L 10 5 L 0 10 Z')
+            .attr({ fill: 'black' }));
+
+        // Main system circle
+        const centerX = 600;
+        const centerY = 450;
+        const radius = 150;
+
+        drawCircle(centerX, centerY, radius, 'WASHBOX\nLaundry Management\nPlatform');
+
+        // External entities
+        // Top left - Cashier/Branch Staff
+        drawBox(50, 80, 120, 80, 'Cashier/\nBranch Staff');
+        drawArrow(110, 160, centerX - 130, centerY - 80, 'Order Data', false);
+        drawArrow(centerX - 130, centerY - 80, 110, 160, 'Order Status', false);
+
+        // Top center - Firebase
+        drawBox(540, 30, 120, 70, 'Firebase\nNotifications');
+        drawArrow(600, 100, centerX, centerY - radius, 'Push Events', false);
+        drawArrow(centerX, centerY - radius, 600, 100, 'Notifications', false);
+
+        // Left - Customer
+        drawBox(30, 350, 110, 80, 'Customer\n(Mobile App)');
+        drawArrow(140, 390, centerX - radius, centerY, 'Order Details', false);
+        drawArrow(centerX - radius, centerY, 140, 390, 'Status & Invoice', false);
+
+        // Bottom left - Pickup/Delivery
+        drawBox(50, 700, 120, 80, 'Delivery\nPersonnel');
+        drawArrow(110, 700, centerX - 120, centerY + 100, 'Location/Proof', false);
+        drawArrow(centerX - 120, centerY + 100, 110, 700, 'Route/Assignment', false);
+
+        // Bottom center - GCash
+        drawBox(500, 750, 130, 70, 'GCash\nPayment System');
+        drawArrow(570, 750, centerX, centerY + radius, 'Payment Proof', false);
+        drawArrow(centerX, centerY + radius, 570, 750, 'Verification', false);
+
+        // Bottom right - OSRM/Maps
+        drawBox(1050, 700, 120, 80, 'OSRM/Maps\nRouting Service');
+        drawArrow(1050, 750, centerX + radius + 50, centerY + 50, 'Coordinates', false);
+        drawArrow(centerX + radius + 50, centerY + 50, 1050, 750, 'Routes/ETA', false);
+
+        // Right - Admin
+        drawBox(1030, 150, 110, 80, 'Admin\nUsers');
+        drawArrow(centerX + radius, centerY - 50, 1030, 190, 'Config/Settings', false);
+        drawArrow(1030, 190, centerX + radius, centerY - 50, 'Reports/Logs', false);
+
+        // Right center - Manager
+        drawBox(1030, 380, 110, 80, 'Branch\nManager');
+        drawArrow(centerX + radius, centerY, 1030, 420, 'Inventory/Data', false);
+        drawArrow(1030, 420, centerX + radius, centerY, 'Analytics', false);
+
+        // Title below
+        svg.text('Figure: WashBox Context Diagram')
+            .attr({ x: 600, y: 880, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 'bold' });
+    </script>
+</body>
+</html>

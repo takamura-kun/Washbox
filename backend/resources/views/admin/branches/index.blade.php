@@ -14,9 +14,7 @@
             <a href="{{ route('admin.branches.create') }}" class="btn btn-primary shadow-sm">
                 <i class="bi bi-plus-circle me-2"></i>Add New Branch
             </a>
-            <button class="btn btn-outline-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addBranchModal">
-                <i class="bi bi-plus-lg me-2"></i>Quick Add
-            </button>
+
         </div>
     </div>
 
@@ -157,6 +155,53 @@
                             </ul>
                         </div>
                     </div>
+
+                    {{-- Analytics Widget Overlay --}}
+                    <div class="position-absolute bottom-0 end-0 m-2">
+                        <div class="card shadow-sm" style="background: white; border-radius: 8px; border: none; min-width: 140px;">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h6 class="mb-0 fw-bold" style="font-size: 0.7rem; color: #333;">Analytics</h6>
+                                    <a href="{{ route('admin.branches.analytics', $branch->id) }}" class="text-decoration-none" style="font-size: 0.65rem; color: #ff5c35;">View →</a>
+                                </div>
+                                <div class="d-flex flex-column gap-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div style="flex: 1;">
+                                            <div style="height: 2px; background: #e9ecef; border-radius: 2px; overflow: hidden;">
+                                                <div style="height: 100%; width: {{ min(($branch->laundries_mtd / 100) * 100, 100) }}%; background: linear-gradient(90deg, #ff5c35, #ff8c42); border-radius: 2px;"></div>
+                                            </div>
+                                        </div>
+                                        <div class="ms-2 text-end">
+                                            <div class="fw-bold" style="font-size: 0.75rem; color: #333;">{{ $branch->laundries_mtd ?? 0 }}</div>
+                                            <div style="font-size: 0.55rem; color: #6c757d;">Orders</div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div style="flex: 1;">
+                                            <div style="height: 2px; background: #e9ecef; border-radius: 2px; overflow: hidden;">
+                                                <div style="height: 100%; width: {{ min(($branch->revenue_mtd / 50000) * 100, 100) }}%; background: linear-gradient(90deg, #28a745, #5cb85c); border-radius: 2px;"></div>
+                                            </div>
+                                        </div>
+                                        <div class="ms-2 text-end">
+                                            <div class="fw-bold" style="font-size: 0.75rem; color: #333;">₱{{ number_format($branch->revenue_mtd ?? 0, 0) }}</div>
+                                            <div style="font-size: 0.55rem; color: #6c757d;">Revenue</div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div style="flex: 1;">
+                                            <div style="height: 2px; background: #e9ecef; border-radius: 2px; overflow: hidden;">
+                                                <div style="height: 100%; width: {{ min(($branch->active_staff / 10) * 100, 100) }}%; background: linear-gradient(90deg, #17a2b8, #5bc0de); border-radius: 2px;"></div>
+                                            </div>
+                                        </div>
+                                        <div class="ms-2 text-end">
+                                            <div class="fw-bold" style="font-size: 0.75rem; color: #333;">{{ $branch->active_staff ?? 0 }}</div>
+                                            <div style="font-size: 0.55rem; color: #6c757d;">Staff</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Branch Info --}}
@@ -271,13 +316,13 @@
 
                     {{-- Action Buttons --}}
                     <div class="d-flex gap-2">
+                        <a href="{{ route('admin.branches.analytics', $branch->id) }}"
+                            class="btn btn-outline-primary btn-sm flex-fill" style="font-size:0.75rem;padding:0.375rem 0.5rem;">
+                            <i class="bi bi-graph-up me-1"></i> Analytics
+                        </a>
                         <a href="{{ route('admin.branches.edit', $branch->id) }}"
                             class="btn btn-outline-secondary btn-sm flex-fill" style="font-size:0.75rem;padding:0.375rem 0.5rem;">
                             <i class="bi bi-gear me-1"></i> Settings
-                        </a>
-                        <a href="{{ route('admin.branches.show', $branch->id) }}"
-                            class="btn btn-primary btn-sm flex-fill" style="font-size:0.75rem;padding:0.375rem 0.5rem;">
-                            <i class="bi bi-bar-chart me-1"></i> Analytics
                         </a>
                     </div>
                 </div>
@@ -293,9 +338,7 @@
                     <a href="{{ route('admin.branches.create') }}" class="btn btn-primary me-2">
                         <i class="bi bi-plus-circle me-2"></i>Add Your First Branch
                     </a>
-                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addBranchModal">
-                        <i class="bi bi-plus-lg me-2"></i>Quick Add
-                    </button>
+
                 </div>
             </div>
         </div>
@@ -359,106 +402,11 @@
     </div>
 </div>
 
-{{-- Quick Add Branch Modal --}}
-<div class="modal fade" id="addBranchModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow rounded-4">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">Quick Add Branch</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ route('admin.branches.store') }}" method="POST">
-                @csrf
-                <div class="modal-body p-4">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Branch Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                                   value="{{ old('name') }}" placeholder="e.g., WashBox Sibulan" required>
-                            @error('name')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Branch Code <span class="text-danger">*</span></label>
-                            <input type="text" name="code" class="form-control @error('code') is-invalid @enderror"
-                                   value="{{ old('code') }}" placeholder="e.g., SBL" required maxlength="10">
-                            <small class="text-muted">Unique 3-10 letter code</small>
-                            @error('code')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Address <span class="text-danger">*</span></label>
-                            <textarea name="address" class="form-control @error('address') is-invalid @enderror"
-                                      rows="2" placeholder="Full street address" required>{{ old('address') }}</textarea>
-                            @error('address')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">City <span class="text-danger">*</span></label>
-                            <input type="text" name="city" class="form-control @error('city') is-invalid @enderror"
-                                   value="{{ old('city') }}" placeholder="e.g., Sibulan" required>
-                            @error('city')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Province <span class="text-danger">*</span></label>
-                            <input type="text" name="province" class="form-control @error('province') is-invalid @enderror"
-                                   value="{{ old('province', 'Negros Oriental') }}" placeholder="e.g., Negros Oriental" required>
-                            @error('province')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Phone Number <span class="text-danger">*</span></label>
-                            <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror"
-                                   value="{{ old('phone') }}" placeholder="e.g., 09171234567" required>
-                            @error('phone')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Email Address</label>
-                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
-                                   value="{{ old('email') }}" placeholder="e.g., branch@washbox.com">
-                            @error('email')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Status</label>
-                            <select class="form-select @error('is_active') is-invalid @enderror" name="is_active">
-                                <option value="1" {{ old('is_active', 1) ? 'selected' : '' }}>Active</option>
-                                <option value="0" {{ !old('is_active', 1) ? 'selected' : '' }}>Inactive</option>
-                            </select>
-                            <small class="text-muted">Inactive branches won't appear in mobile app</small>
-                            @error('is_active')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Branch Manager</label>
-                            <input type="text" name="manager" class="form-control @error('manager') is-invalid @enderror"
-                                   value="{{ old('manager') }}" placeholder="Optional">
-                            @error('manager')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle me-2"></i>Create Branch
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+{{-- Floating Action Button --}}
+<button class="btn btn-primary shadow-lg" id="fabButton" data-bs-toggle="modal" data-bs-target="#addBranchModal"
+    style="position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 0;">
+    <i class="bi bi-plus-lg" style="font-size: 1.5rem;"></i>
+</button>
 
 @push('scripts')
 <script>

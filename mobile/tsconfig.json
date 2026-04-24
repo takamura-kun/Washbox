@@ -1,7 +1,9 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "allowJs": true,
     "strict": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
@@ -9,9 +11,11 @@
     }
   },
   "include": [
+    "**/*.js",
+    "**/*.jsx",
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-, "app/(auth)/login.js", "app/(auth)/register.js", "app/(tabs)/menu.js", "app/(tabs)/index.js", "app/(tabs)/_layout.js", "app/_layout.js", "app/modal.js"  ]
+  ]
 }

@@ -141,9 +141,10 @@ class RouteManager {
         }
 
         const pickupIds = appState.getSelectedPickupIds();
+        const branchId = document.getElementById('routeBranchFilter')?.value || null;
 
         try {
-            const routeData = await apiClient.optimizeRoute(pickupIds);
+            const routeData = await apiClient.optimizeRoute(pickupIds, branchId);
             this.drawMultiStopRoute(routeData);
             this.showMultiRouteSummary(routeData);
             appState.setActiveRoute(routeData);
@@ -478,6 +479,12 @@ class RouteManager {
      */
     showSingleRouteDetails(routeData, pickupId) {
         let detailsPanel = document.getElementById("routeDetailsPanel");
+        
+        if (!detailsPanel) {
+            console.warn("Route details panel not found in DOM");
+            showToast("Route details panel not available", "warning");
+            return;
+        }
 
         detailsPanel.innerHTML = `
             <div class="card border-0 shadow-sm">

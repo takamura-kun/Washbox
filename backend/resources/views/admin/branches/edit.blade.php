@@ -871,6 +871,17 @@
                                 </div>
                             </div>
 
+                            <div class="col-12">
+                                <div class="alert alert-info mt-3">
+                                    <h6 class="fw-bold mb-2"><i class="bi bi-shield-lock me-2"></i>Branch Login Credentials</h6>
+                                    <p class="mb-2 small"><strong>Username:</strong> {{ $branch->username ?? 'Not set' }}</p>
+                                    <p class="mb-0 small text-muted">All staff at this branch use these credentials to login. To change the password, use the button below.</p>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
+                                        <i class="bi bi-key me-1"></i>Reset Branch Password
+                                    </button>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -1258,3 +1269,36 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+
+{{-- Password Reset Modal --}}
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('admin.branches.reset-password', $branch) }}" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-key me-2"></i>Reset Branch Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        This will reset the password for <strong>{{ $branch->name }}</strong>. All staff at this branch will need to use the new password to login.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">New Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="Minimum 8 characters" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Confirm Password</label>
+                        <input type="password" name="password_confirmation" class="form-control" placeholder="Re-enter password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-1"></i>Reset Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

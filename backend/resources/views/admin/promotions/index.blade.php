@@ -27,11 +27,7 @@
                 </li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
-                    <a class="dropdown-item py-2" href="{{ route('admin.promotions.create', ['mode' => 'simple']) }}">
-                        <i class="bi bi-percent text-success me-2"></i>
-                        <strong>Simple Discount</strong>
-                        <small class="d-block text-muted ms-4">Percentage or fixed discount (20% OFF, etc.)</small>
-                    </a>
+
                 </li>
             </ul>
         </div>
@@ -146,7 +142,7 @@
                         : ($promo->color_theme == 'green'
                             ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
                             : 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)'));
-                            
+
                 // Calculate status
                 $status = 'Active';
                 if (!$promo->is_active) {
@@ -169,13 +165,13 @@
                 };
             @endphp
             <div class="promotion-row" data-active="{{ $promo->is_active ? '1' : '0' }}" data-id="{{ $promo->id }}">
-                <div class="card promotion-card border-0 shadow-sm h-100 {{ !$promo->is_active ? 'opacity-75' : '' }}" 
+                <div class="card promotion-card border-0 shadow-sm h-100 {{ !$promo->is_active ? 'opacity-75' : '' }}"
                      style="@if($promo->banner_image) background: url('{{ $promo->banner_image_url }}') center/cover; @elseif($isPosterPromo) background: {{ $colorGradient }}; @endif">
-                    
+
                     @if($promo->banner_image)
                     <div class="promo-image-overlay"></div>
                     @endif
-                    
+
                     <div class="promotion-header" style="@if($promo->banner_image || $isPosterPromo) background: transparent; border-bottom: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 1; @else border-left: 5px solid {{ $statusColor }}; @endif">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
@@ -216,7 +212,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="promotion-body" @if($promo->banner_image || $isPosterPromo) style="background: transparent; position: relative; z-index: 1;" @endif>
                         @if($promo->branch)
                             <div class="inclusion-item" @if($promo->banner_image || $isPosterPromo) style="border-bottom: 1px dashed rgba(255,255,255,0.2); color: rgba(255,255,255,0.9);" @endif>
@@ -229,19 +225,19 @@
                                 <span>All branches</span>
                             </div>
                         @endif
-                        
+
                         <div class="inclusion-item" @if($promo->banner_image || $isPosterPromo) style="border-bottom: 1px dashed rgba(255,255,255,0.2); color: rgba(255,255,255,0.9);" @endif>
                             <i class="bi bi-calendar-event inclusion-icon" style="color: {{ ($promo->banner_image || $isPosterPromo) ? '#F59E0B' : '#F59E0B' }};"></i>
                             <span>{{ $promo->start_date->format('M d') }} - {{ $promo->end_date->format('M d, Y') }}</span>
                         </div>
-                        
+
                         @if($promo->min_amount > 0)
                             <div class="inclusion-item" @if($promo->banner_image || $isPosterPromo) style="border-bottom: 1px dashed rgba(255,255,255,0.2); color: rgba(255,255,255,0.9);" @endif>
                                 <i class="bi bi-cash inclusion-icon" style="color: {{ ($promo->banner_image || $isPosterPromo) ? '#8B5CF6' : '#8B5CF6' }};"></i>
                                 <span>Min ₱{{ number_format($promo->min_amount, 0) }}</span>
                             </div>
                         @endif
-                        
+
                         @if($promo->description)
                             <div class="inclusion-item" @if($promo->banner_image || $isPosterPromo) style="border-bottom: 1px dashed rgba(255,255,255,0.2); color: rgba(255,255,255,0.9);" @endif>
                                 <i class="bi bi-info-circle-fill inclusion-icon" style="color: {{ ($promo->banner_image || $isPosterPromo) ? '#0EA5E9' : '#0d6efd' }};"></i>
@@ -249,7 +245,7 @@
                             </div>
                         @endif
                     </div>
-                    
+
                     <div class="promotion-footer" @if($promo->banner_image || $isPosterPromo) style="background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 1;" @endif>
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center gap-2">

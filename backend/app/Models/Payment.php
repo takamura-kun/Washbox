@@ -25,7 +25,7 @@ class Payment extends Model
 
     public function laundry(): BelongsTo
     {
-        return $this->belongsTo(Laundry::class);
+        return $this->belongsTo(Laundry::class, 'laundries_id');
     }
 
     public function receivedBy(): BelongsTo

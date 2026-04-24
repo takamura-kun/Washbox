@@ -8,6 +8,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Customer extends Authenticatable
 {
@@ -39,12 +40,29 @@ class Customer extends Authenticatable
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
         'is_active' => 'boolean',
-        'password' => 'hashed',
     ];
+
+    /**
+     * Get the customer's password attribute (automatically hashed).
+     */
+    protected function password(): Attribute
+    {
+        return Attribute::make(
+            set: fn (string $value) => bcrypt($value),
+        );
+    }
 
     // ========================================================================
     // RELATIONSHIPS
     // ========================================================================
+
+    /**
+     * Registered branch for this customer
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
 
     /**
      * Preferred branch for this customer
@@ -185,10 +203,12 @@ class Customer extends Authenticatable
      */
     public function scopeSearch($query, string $search)
     {
-        return $query->where(function($q) use ($search) {
-            $q->where('name', 'like', "%{$search}%")
-              ->orWhere('phone', 'like', "%{$search}%")
-              ->orWhere('email', 'like', "%{$search}%");
+        $searchTerm = '%' . $search . '%';
+        
+        return $query->where(function($q) use ($searchTerm) {
+            $q->where('name', 'like', $searchTerm)
+              ->orWhere('phone', 'like', $searchTerm)
+              ->orWhere('email', 'like', $searchTerm);
         });
     }
 

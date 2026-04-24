@@ -663,12 +663,7 @@ export default function MenuScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Menu</Text>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          onPress={() => router.push('/notifications')}
-        >
-          <Ionicons name="settings-outline" size={22} color={COLORS.textPrimary} />
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView

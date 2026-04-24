@@ -9,49 +9,57 @@
 
 /* ── CSS Custom Properties ────────────────────────────────────── */
 :root {
-    /* Brand */
-    --brand:         #2D2B5F;
-    --brand-mid:     #3D3B7F;
-    --brand-light:   #5B58B8;
-    --accent:        #F97316;
-    --accent-soft:   rgba(249,115,22,0.12);
+    /* Typography */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
 
-    /* Surface (light mode) */
-    --bg:            #F1F4F9;
+    /* Brand — Professional Corporate Navy */
+    --brand:         #1F2937;
+    --brand-mid:     #374151;
+    --brand-light:   #4B5563;
+    --accent:        #06B6D4;
+    --accent-soft:   rgba(6,182,212,0.12);
+
+    /* Surface (light mode) — Clean & Modern */
+    --bg:            #F8FAFC;
     --surface:       #FFFFFF;
-    --surface-2:     #F7F9FC;
-    --surface-3:     #EFF2F8;
-    --border:        #E3E8F0;
-    --border-2:      #D4DCE8;
+    --surface-2:     #F9FAFB;
+    --surface-3:     #F3F4F6;
+    --border:        #E5E7EB;
+    --border-2:      #D1D5DB;
 
-    /* Text (light mode) */
-    --text-1:        #0D1321;
-    --text-2:        #3D4A5C;
-    --text-3:        #7D8FA9;
-    --text-4:        #A8B6C8;
+    /* Text (light mode) — High Contrast */
+    --text-1:        #111827;
+    --text-2:        #374151;
+    --text-3:        #6B7280;
+    --text-4:        #9CA3AF;
 
-    /* Semantic */
-    --blue:          #2563EB;
-    --blue-soft:     rgba(37,99,235,0.09);
-    --indigo:        #4F46E5;
-    --cyan:          #0891B2;
-    --green:         #059669;
-    --green-soft:    rgba(5,150,105,0.09);
-    --warning:       #D97706;
-    --warning-soft:  rgba(217,119,6,0.10);
-    --danger:        #DC2626;
-    --danger-soft:   rgba(220,38,38,0.09);
-    --purple:        #7C3AED;
-    --purple-soft:   rgba(124,58,237,0.10);
+    /* Semantic — Professional Palette */
+    --blue:          #0EA5E9;
+    --blue-soft:     rgba(14,165,233,0.09);
+    --indigo:        #6366F1;
+    --cyan:          #06B6D4;
+    --green:         #10B981;
+    --green-soft:    rgba(16,185,129,0.09);
+    --warning:       #F59E0B;
+    --warning-soft:  rgba(245,158,11,0.10);
+    --danger:        #EF4444;
+    --danger-soft:   rgba(239,68,68,0.09);
+    --purple:        #8B5CF6;
+    --purple-soft:   rgba(139,92,246,0.10);
     --orange:        #F97316;
-    --pink:          #DB2777;
+    --pink:          #EC4899;
 
-    /* Shadows */
-    --shadow-xs: 0 1px 2px rgba(13,19,33,0.05);
-    --shadow-sm: 0 2px 6px rgba(13,19,33,0.07), 0 1px 2px rgba(13,19,33,0.04);
-    --shadow-md: 0 4px 16px rgba(13,19,33,0.09), 0 2px 4px rgba(13,19,33,0.05);
-    --shadow-lg: 0 12px 40px rgba(13,19,33,0.12), 0 4px 10px rgba(13,19,33,0.06);
-    --shadow-xl: 0 24px 60px rgba(13,19,33,0.16), 0 8px 16px rgba(13,19,33,0.08);
+    /* Shadows — Elevated & Clean */
+    --shadow-xs: 0 1px 3px rgba(0,0,0,0.05);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.03);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 12px 48px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
+    --shadow-xl: 0 24px 60px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08);
 
     /* Radius */
     --r-sm:  8px;
@@ -136,9 +144,9 @@
 /* ── Reset / Base ─────────────────────────────────────────────── */
 body {
     background: var(--bg);
-    font-family: 'Outfit', system-ui, sans-serif;
+    font-family: var(--font-family);
     color: var(--text-1);
-    font-size: 0.9375rem;
+    font-size: var(--font-size-sm);
     line-height: 1.5;
 }
 
@@ -157,32 +165,34 @@ body {
 /* ── Dashboard Wrapper ────────────────────────────────────────── */
 .dashboard-modern-wrapper {
     padding: 1.5rem 1.75rem 3rem;
-    font-size: 0.9375rem;
+    font-size: var(--font-size-sm);
 }
 
-/* ── Glass Header ─────────────────────────────────────────────── */
+/* ── Glass Header — Professional Executive ──────────────────────── */
 .glass-header {
-    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-mid) 40%, #1E3A8A 100%);
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-mid) 50%, #1F3A5F 100%);
     border-radius: var(--r-xl);
-    padding: 1.25rem 1.75rem;
-    border: none;
+    padding: 2rem 2.5rem;
+    border: 1px solid rgba(255,255,255,0.1);
     position: relative;
     overflow: hidden;
+    box-shadow: 0 20px 40px rgba(31,41,55,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .glass-header::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Ccircle cx='30' cy='30' r='1' fill='rgba(255,255,255,0.05)'/%3E%3C/g%3E%3C/svg%3E") repeat;
+    background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Ccircle cx='50' cy='50' r='1' fill='rgba(255,255,255,0.08)'/%3E%3C/g%3E%3C/svg%3E") repeat;
     pointer-events: none;
+    opacity: 0.4;
 }
 
 .header-gradient-bg {
     position: absolute;
-    top: -60px; right: -60px;
-    width: 260px; height: 260px;
-    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    top: -80px; right: -80px;
+    width: 320px; height: 320px;
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
     border-radius: 50%;
     pointer-events: none;
 }
@@ -262,13 +272,13 @@ body {
 }
 
 .card-header-modern h6 {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     font-weight: 700;
     color: var(--text-1);
     margin: 0;
 }
 
-.card-header-modern small { color: var(--text-3); font-size: 0.78rem; }
+.card-header-modern small { color: var(--text-3); font-size: var(--font-size-xs); }
 
 .card-body-modern {
     padding: var(--p-card);
@@ -347,33 +357,34 @@ body {
 
 .alert-action { flex-shrink: 0; }
 
-/* ── KPI Cards ────────────────────────────────────────────────── */
+/* ── KPI Cards — Dashboard Metrics ────────────────────────────── */
 .kpi-card-modern {
-    background: var(--surface);
+    background: linear-gradient(135deg, var(--surface) 0%, rgba(255,255,255,0.5) 100%);
     border-radius: var(--r-lg);
     border: 1px solid var(--border);
     padding: var(--p-card);
     box-shadow: var(--shadow-xs);
-    transition: transform var(--t), box-shadow var(--t), border-color var(--t);
+    transition: all var(--t) cubic-bezier(0.4, 0, 0.2, 1);
     height: 100%;
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(8px);
 }
 
 .kpi-card-modern::after {
     content: '';
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: 2px;
+    height: 3px;
     background: transparent;
     transition: background var(--t);
     border-radius: 0 0 var(--r-lg) var(--r-lg);
 }
 
 .kpi-card-modern:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-    border-color: var(--border-2);
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--brand-light);
 }
 
 .kpi-card-modern:hover::after { background: var(--brand-light); }
@@ -541,6 +552,73 @@ body {
 
 .carousel-progress { width: 100%; height: 2px; background: var(--border); border-radius: 2px; margin-top: 0.875rem; overflow: hidden; }
 .carousel-progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--brand), var(--brand-light)); border-radius: 2px; }
+
+/* ── Professional Enhancements ─────────────────────────────────── */
+.dashboard-modern-wrapper {
+    background: var(--bg);
+    border-radius: var(--r-xl);
+}
+
+/* Subtle animations */
+@keyframes slideInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.row > div:nth-child(1) { animation: slideInUp 0.4s ease-out; }
+.row > div:nth-child(2) { animation: slideInUp 0.5s ease-out; }
+.row > div:nth-child(3) { animation: slideInUp 0.6s ease-out; }
+.row > div:nth-child(4) { animation: slideInUp 0.7s ease-out; }
+
+/* Card elevation states */
+.kpi-card-modern { position: relative; }
+.kpi-card-modern::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--r-lg);
+    background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity var(--t);
+    pointer-events: none;
+}
+
+.kpi-card-modern:hover::before { opacity: 1; }
+
+/* Enhanced badge styling */
+.badge {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 0.75rem !important;
+    border-radius: 6px !important;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+/* Typography improvements */
+h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.5px;
+}
+
+.fw-bold { font-weight: 700 !important; }
+.fw-800 { font-weight: 800 !important; }
+.fw-600 { font-weight: 600 !important; }
+
+/* Card separation */
+.card {
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-xs) !important;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-sm) !important;
+    transition: box-shadow var(--t);
+}
 
 /* ── Filters ──────────────────────────────────────────────────── */
 .modern-select {
@@ -710,8 +788,8 @@ body {
 /* ── Pipeline ─────────────────────────────────────────────────── */
 .pipeline-item-modern { padding: 0.5rem 0; }
 .status-dot-modern { width: 9px; height: 9px; border-radius: 50%; margin-right: 9px; flex-shrink: 0; }
-.pipeline-label-modern { font-weight: 600; color: var(--text-1); font-size: 0.825rem; }
-.pipeline-value-modern { font-weight: 700; color: var(--text-1); font-size: 0.825rem; font-family: 'DM Mono', monospace; }
+.pipeline-label-modern { font-weight: 600; color: var(--text-1); font-size: var(--font-size-sm); }
+.pipeline-value-modern { font-weight: 700; color: var(--text-1); font-size: var(--font-size-sm); font-family: 'DM Mono', monospace; }
 .progress-bar-modern { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; margin-top: 4px; }
 .progress-fill-modern { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
 
@@ -1307,3 +1385,63 @@ body {
 [data-theme="dark"] .metric-tile-modern small { color: var(--text-3); }
 [data-theme="dark"] .alert-text-modern { color: var(--text-2); }
 [data-theme="dark"] .alert-title-modern { color: var(--text-1); }
+
+/* ── Laundry Pipeline Stages ──────────────────────────────────── */
+.pipeline-stage {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.pipeline-stage:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.pipeline-icon {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 8px;
+    background: #dbeafe;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pipeline-count {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 4px;
+}
+
+.pipeline-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #3b82f6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Dark mode pipeline */
+[data-theme="dark"] .pipeline-stage {
+    background: var(--surface-2);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .pipeline-icon {
+    background: var(--surface-3);
+}
+
+[data-theme="dark"] .pipeline-count {
+    color: var(--text-1);
+}
+
+[data-theme="dark"] .pipeline-label {
+    color: var(--text-2);
+}

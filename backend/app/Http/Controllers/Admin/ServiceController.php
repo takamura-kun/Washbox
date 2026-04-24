@@ -35,7 +35,7 @@ class ServiceController extends Controller
                 'name'            => 'required|string|max:255',
                 'description'     => 'nullable|string',
                 'min_weight'      => 'nullable|numeric|min:0',
-                'max_weight'      => 'nullable|numeric|min:0',
+                'max_weight'      => 'nullable|numeric|min:0|max:100',
                 'service_type'    => 'nullable|string|max:255',
                 'service_type_id' => 'nullable|exists:service_types,id',
                 'category'        => 'required|string|in:drop_off,self_service,addon',
@@ -54,7 +54,11 @@ class ServiceController extends Controller
                 $rules['price_per_piece'] = 'nullable|numeric|min:0';
             }
 
-            $request->validate($rules);
+            $messages = [
+                'max_weight.max' => 'Maximum kg exceeded the max limit.',
+            ];
+
+            $request->validate($rules, $messages);
 
             $iconPath = null;
             if ($request->hasFile('icon')) {
@@ -75,21 +79,41 @@ class ServiceController extends Controller
                 ?? $request->name;
 
             $service = Service::create([
-                'name'            => $request->name,
-                'description'     => $request->description,
-                'price_per_piece' => $pricePerPiece,
-                'price_per_load'  => $pricePerLoad,
-                'min_weight'      => $request->min_weight,
-                'max_weight'      => $request->max_weight,
-                'service_type'    => $serviceTypeText,
-                'service_type_id' => $request->service_type_id,
-                'pricing_type'    => $request->pricing_type,
-                'turnaround_time' => $request->turnaround_time,
-                'slug'            => $request->slug ?? Str::slug($request->name),
-                'icon_path'       => $iconPath,
-                'is_active'       => $request->is_active ?? true,
-                'category'        => $request->category,
+                'name'                        => $request->name,
+                'description'                 => $request->description,
+                'price_per_piece'             => $pricePerPiece,
+                'price_per_load'              => $pricePerLoad,
+                'min_weight'                  => $request->min_weight,
+                'max_weight'                  => $request->max_weight,
+                'allow_excess_weight'         => $request->boolean('allow_excess_weight'),
+                'excess_weight_charge_per_kg' => $request->boolean('allow_excess_weight') ? $request->excess_weight_charge_per_kg : null,
+                'service_type'                => $serviceTypeText,
+                'service_type_id'             => $request->service_type_id,
+                'pricing_type'                => $request->pricing_type,
+                'turnaround_time'             => $request->turnaround_time,
+                'slug'                        => $request->slug ?? Str::slug($request->name),
+                'icon_path'                   => $iconPath,
+                'is_active'                   => $request->is_active ?? true,
+                'category'                    => $request->category,
             ]);
+
+            // Attach supplies if provided
+            if ($request->has('supplies') && is_string($request->supplies)) {
+                $supplies = json_decode($request->supplies, true);
+                if (is_array($supplies)) {
+                    $pivotData = [];
+                    foreach ($supplies as $supply) {
+                        if (isset($supply['supply_id']) && isset($supply['quantity_required'])) {
+                            $pivotData[$supply['supply_id']] = [
+                                'quantity_required' => $supply['quantity_required']
+                            ];
+                        }
+                    }
+                    if (!empty($pivotData)) {
+                        $service->supplies()->attach($pivotData);
+                    }
+                }
+            }
 
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([
@@ -170,7 +194,7 @@ class ServiceController extends Controller
             'name'            => 'required|string|max:255',
             'description'     => 'nullable|string',
             'min_weight'      => 'nullable|numeric|min:0',
-            'max_weight'      => 'nullable|numeric|min:0',
+            'max_weight'      => 'nullable|numeric|min:0|max:100',
             'service_type'    => 'nullable|string|max:255',
             'service_type_id' => 'nullable|exists:service_types,id',
             'category'        => 'required|string|in:drop_off,self_service,addon',
@@ -189,7 +213,11 @@ class ServiceController extends Controller
             $rules['price_per_piece'] = 'nullable|numeric|min:0';
         }
 
-        $request->validate($rules);
+        $messages = [
+            'max_weight.max' => 'Maximum kg exceeded the max limit.',
+        ];
+
+        $request->validate($rules, $messages);
 
         if ($request->hasFile('icon')) {
             if ($service->icon_path) {
@@ -213,20 +241,43 @@ class ServiceController extends Controller
             ?? $request->name;
 
         $service->update([
-            'name'            => $request->name,
-            'description'     => $request->description,
-            'price_per_piece' => $pricePerPiece,
-            'price_per_load'  => $pricePerLoad,
-            'min_weight'      => $request->min_weight,
-            'max_weight'      => $request->max_weight,
-            'service_type'    => $serviceTypeText,
-            'service_type_id' => $request->service_type_id ?? $service->service_type_id,
-            'pricing_type'    => $request->pricing_type,
-            'turnaround_time' => $request->turnaround_time,
-            'slug'            => $request->slug ?? Str::slug($request->name),
-            'is_active'       => $request->is_active ?? true,
-            'category'        => $request->category,
+            'name'                        => $request->name,
+            'description'                 => $request->description,
+            'price_per_piece'             => $pricePerPiece,
+            'price_per_load'              => $pricePerLoad,
+            'min_weight'                  => $request->min_weight,
+            'max_weight'                  => $request->max_weight,
+            'allow_excess_weight'         => $request->boolean('allow_excess_weight'),
+            'excess_weight_charge_per_kg' => $request->boolean('allow_excess_weight') ? $request->excess_weight_charge_per_kg : null,
+            'service_type'                => $serviceTypeText,
+            'service_type_id'             => $request->service_type_id ?? $service->service_type_id,
+            'pricing_type'                => $request->pricing_type,
+            'turnaround_time'             => $request->turnaround_time,
+            'slug'                        => $request->slug ?? Str::slug($request->name),
+            'is_active'                   => $request->is_active ?? true,
+            'category'                    => $request->category,
         ]);
+
+        // Update supplies if provided
+        if ($request->has('supplies') && is_string($request->supplies)) {
+            $supplies = json_decode($request->supplies, true);
+            if (is_array($supplies)) {
+                // Detach all existing supplies
+                $service->supplies()->detach();
+                // Attach new supplies
+                $pivotData = [];
+                foreach ($supplies as $supply) {
+                    if (isset($supply['supply_id']) && isset($supply['quantity_required'])) {
+                        $pivotData[$supply['supply_id']] = [
+                            'quantity_required' => $supply['quantity_required']
+                        ];
+                    }
+                }
+                if (!empty($pivotData)) {
+                    $service->supplies()->attach($pivotData);
+                }
+            }
+        }
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -239,8 +290,6 @@ class ServiceController extends Controller
         return redirect()->route('admin.services.index')
             ->with('success', 'Service updated successfully!');
     }
-
-    // Toggle service active status
     public function toggleStatus(Request $request, $id)
     {
         try {

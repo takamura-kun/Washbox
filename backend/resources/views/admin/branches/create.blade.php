@@ -127,6 +127,37 @@
                     </div>
                 </div>
 
+                <h5 class="fw-bold mb-3 mt-4"><i class="bi bi-shield-lock me-2"></i>Branch Login Credentials</h5>
+                <div class="alert alert-info py-2 mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <small>These credentials will be used by all staff at this branch to access the system.</small>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm @error('username') is-invalid @enderror"
+                               name="username" value="{{ old('username') }}" required placeholder="e.g., sbl, dgt, bai">
+                        <small class="text-muted">Lowercase, 3-10 characters</small>
+                        @error('username')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control form-control-sm @error('password') is-invalid @enderror"
+                               name="password" required placeholder="Minimum 8 characters">
+                        @error('password')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control form-control-sm"
+                               name="password_confirmation" required placeholder="Re-enter password">
+                    </div>
+                </div>
+
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Status</label>

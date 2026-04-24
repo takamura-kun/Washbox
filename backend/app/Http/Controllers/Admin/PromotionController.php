@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Branch;
 use App\Models\Promotion;
+use App\Models\PromotionItem;
+use App\Models\InventoryItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -40,13 +42,14 @@ class PromotionController extends Controller
     public function create(Request $request)
     {
         $branches = Branch::where('is_active', true)->get();
+        $inventoryItems = InventoryItem::where('is_active', true)->orderBy('name')->get();
         $mode = $request->query('mode', 'simple');
 
         // Route to different creation forms
         return match($mode) {
-            'poster' => view('admin.promotions.create-poster', compact('branches')),
-            'fixed-price' => view('admin.promotions.create-fixed-price', compact('branches')),
-            default => view('admin.promotions.create', compact('branches')),
+            'poster' => view('admin.promotions.create-poster', compact('branches', 'inventoryItems')),
+            'fixed-price' => view('admin.promotions.create-fixed-price', compact('branches', 'inventoryItems')),
+            default => view('admin.promotions.create', compact('branches', 'inventoryItems')),
         };
     }
 
@@ -219,7 +222,12 @@ class PromotionController extends Controller
             $data['banner_image'] = $request->file('background_image')->store('promotions/backgrounds', 'public');
         }
 
-        Promotion::create($data);
+        $promotion = Promotion::create($data);
+
+        // Handle inventory items
+        if ($request->has('inventory_items')) {
+            $this->syncPromotionItems($promotion, $request->input('inventory_items', []));
+        }
 
         return redirect()->route('admin.promotions.index')
             ->with('success', 'Poster promotion created successfully!');
@@ -230,19 +238,20 @@ class PromotionController extends Controller
      */
     public function edit($id)
     {
-        $promotion = Promotion::findOrFail($id);
+        $promotion = Promotion::with('promotionItems.inventoryItem')->findOrFail($id);
         $branches = Branch::where('is_active', true)->get();
+        $inventoryItems = InventoryItem::where('is_active', true)->orderBy('name')->get();
 
         // Route to appropriate edit view
         if ($promotion->isPosterPromotion()) {
-            return view('admin.promotions.edit-poster', compact('promotion', 'branches'));
+            return view('admin.promotions.edit-poster', compact('promotion', 'branches', 'inventoryItems'));
         }
 
         if ($promotion->isFixedPricePromotion() && $promotion->type !== 'poster_promo') {
-            return view('admin.promotions.edit-fixed-price', compact('promotion', 'branches'));
+            return view('admin.promotions.edit-fixed-price', compact('promotion', 'branches', 'inventoryItems'));
         }
 
-        return view('admin.promotions.edit', compact('promotion', 'branches'));
+        return view('admin.promotions.edit', compact('promotion', 'branches', 'inventoryItems'));
     }
 
     /**
@@ -399,6 +408,11 @@ class PromotionController extends Controller
 
         $promotion->update($data);
 
+        // Handle inventory items
+        if ($request->has('inventory_items')) {
+            $this->syncPromotionItems($promotion, $request->input('inventory_items', []));
+        }
+
         return redirect()->route('admin.promotions.index')
             ->with('success', 'Poster promotion updated successfully!');
     }
@@ -458,5 +472,80 @@ class PromotionController extends Controller
 
         return redirect()->route('admin.promotions.index')
             ->with('success', "Promotion {$status} successfully!");
+    }
+
+    /**
+     * Sync promotion inventory items
+     */
+    private function syncPromotionItems(Promotion $promotion, array $items): void
+    {
+        // Delete existing items
+        $promotion->promotionItems()->delete();
+
+        // Add new items
+        foreach ($items as $item) {
+            if (!empty($item['inventory_item_id']) && !empty($item['quantity'])) {
+                PromotionItem::create([
+                    'promotion_id' => $promotion->id,
+                    'inventory_item_id' => $item['inventory_item_id'],
+                    'quantity_per_use' => $item['quantity'],
+                    'is_active' => true,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Manage promotion items (AJAX)
+     */
+    public function manageItems($id)
+    {
+        $promotion = Promotion::with('promotionItems.inventoryItem')->findOrFail($id);
+        $inventoryItems = InventoryItem::where('is_active', true)->orderBy('name')->get();
+
+        return view('admin.promotions.manage-items', compact('promotion', 'inventoryItems'));
+    }
+
+    /**
+     * Add item to promotion (AJAX)
+     */
+    public function addItem(Request $request, $id)
+    {
+        $request->validate([
+            'inventory_item_id' => 'required|exists:inventory_items,id',
+            'quantity_per_use' => 'required|numeric|min:0.01',
+        ]);
+
+        $promotion = Promotion::findOrFail($id);
+
+        $item = PromotionItem::create([
+            'promotion_id' => $promotion->id,
+            'inventory_item_id' => $request->inventory_item_id,
+            'quantity_per_use' => $request->quantity_per_use,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Item added successfully',
+            'item' => $item->load('inventoryItem'),
+        ]);
+    }
+
+    /**
+     * Remove item from promotion (AJAX)
+     */
+    public function removeItem($promotionId, $itemId)
+    {
+        $item = PromotionItem::where('promotion_id', $promotionId)
+            ->where('id', $itemId)
+            ->firstOrFail();
+
+        $item->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Item removed successfully',
+        ]);
     }
 }

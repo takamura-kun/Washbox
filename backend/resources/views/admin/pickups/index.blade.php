@@ -154,6 +154,9 @@
                                     @if($pickup->contact_phone ?? $pickup->phone_number)
                                         <small class="text-muted">{{ $pickup->contact_phone ?? $pickup->phone_number }}</small>
                                     @endif
+                                    @if($pickup->status === 'pending' && $pickup->customer->email)
+                                        <small class="text-muted d-block">{{ $pickup->customer->email }}</small>
+                                    @endif
                                 </div>
                             </div>
                             <div class="d-flex align-items-start mb-2">
@@ -172,7 +175,15 @@
                             </div>
                             <div class="d-flex align-items-center mb-2">
                                 <i class="bi bi-shop me-2 text-muted"></i>
-                                <span class="badge bg-secondary">{{ $pickup->branch->name }}</span>
+                                <div class="flex-grow-1">
+                                    <span class="badge bg-secondary">{{ $pickup->branch->name }}</span>
+                                    @if($pickup->status === 'pending' && ($pickup->branch->address ?? null))
+                                        <small class="text-muted d-block mt-1">{{ Str::limit($pickup->branch->address, 60) }}</small>
+                                    @endif
+                                    @if($pickup->status === 'pending' && ($pickup->branch->phone ?? null))
+                                        <small class="text-muted d-block"><i class="bi bi-telephone me-1"></i>{{ $pickup->branch->phone }}</small>
+                                    @endif
+                                </div>
                             </div>
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-calendar-event me-2 text-muted"></i>

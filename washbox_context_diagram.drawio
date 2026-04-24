@@ -1,0 +1,129 @@
+<mxfile host="app.diagrams.net" modified="2025-04-22T00:00:00.000Z" agent="Claude" version="24.0.0" type="device">
+  <diagram id="washbox-context" name="WashBox Context Diagram">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- System boundary -->
+        <mxCell id="boundary" value="" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="1300" height="850" as="geometry"/>
+        </mxCell>
+
+        <!-- Central System Circle -->
+        <mxCell id="system" value="WASHBOX&#xa;Laundry Management&#xa;Platform&#xa;&#xa;• Order Management&#xa;• Payment Processing&#xa;• Inventory Control&#xa;• Route Optimization&#xa;• Notifications&#xa;• Analytics" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeWidth=3;fillColor=#E8F4F8;" vertex="1" parent="1">
+          <mxGeometry x="550" y="300" width="300" height="300" as="geometry"/>
+        </mxCell>
+
+        <!-- CUSTOMERS (Top Left) -->
+        <mxCell id="customer" value="CUSTOMER&#xa;(Mobile App)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fillColor=#FFE6E6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="250" width="130" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c1" value="Order Details" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.2;entryY=0.4;exitX=1;exitY=0.4;fontSize=10;" edge="1" parent="1" source="customer" target="system">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c2" value="Order Status, Invoice" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.2;exitY=0.6;entryX=1;entryY=0.6;fontSize=10;" edge="1" parent="1" source="system" target="customer">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- BRANCH STAFF (Left) -->
+        <mxCell id="staff" value="BRANCH STAFF&#xa;(Cashier/Desk)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fillColor=#FFF4E6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="480" width="130" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s1" value="Payment Info, Order Processing" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.1;entryY=0.7;exitX=1;exitY=0.5;fontSize=10;" edge="1" parent="1" source="staff" target="system">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s2" value="Order Queue, Payment Status" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.1;exitY=0.3;entryX=1;entryY=0.5;fontSize=10;" edge="1" parent="1" source="system" target="staff">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- DELIVERY PERSONNEL (Bottom Left) -->
+        <mxCell id="delivery" value="DELIVERY PERSONNEL&#xa;(Mobile App)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fillColor=#E6F3FF;" vertex="1" parent="1">
+          <mxGeometry x="80" y="700" width="130" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="d1" value="GPS Location, Proof Photos" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.15;entryY=0.9;exitX=1;exitY=0.5;fontSize=10;" edge="1" parent="1" source="delivery" target="system">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="d2" value="Route/Assignment, ETA" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.15;exitY=0.1;entryX=1;entryY=0.5;fontSize=10;" edge="1" parent="1" source="system" target="delivery">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- FIREBASE (Top) -->
+        <mxCell id="firebase" value="FIREBASE&#xa;Cloud Messaging&#xa;(Push Notifications)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fillColor=#F0E6FF;" vertex="1" parent="1">
+          <mxGeometry x="550" y="80" width="150" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="f1" value="Notification Events" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;exitX=0.5;exitY=1;fontSize=10;" edge="1" parent="1" source="system" target="firebase">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="f2" value="Push Delivery Status" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;fontSize=10;" edge="1" parent="1" source="firebase" target="system">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- GCASH (Bottom) -->
+        <mxCell id="gcash" value="GCash&#xa;Payment Gateway&#xa;(Payment Verification)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fillColor=#FFE6F0;" vertex="1" parent="1">
+          <mxGeometry x="550" y="750" width="150" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="g1" value="Payment Proof, Transaction" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;exitX=0.5;exitY=0;fontSize=10;" edge="1" parent="1" source="gcash" target="system">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="g2" value="Verification Result" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontSize=10;" edge="1" parent="1" source="system" target="gcash">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- OSRM / GOOGLE MAPS (Bottom Right) -->
+        <mxCell id="maps" value="OSRM / Google Maps&#xa;(Route Optimization)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fillColor=#E6FFE6;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="700" width="130" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="m1" value="Route Requests, Coords" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.85;entryY=0.9;exitX=1;exitY=0.5;fontSize=10;" edge="1" parent="1" source="system" target="maps">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="m2" value="Optimized Routes, Distance" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.85;exitY=0.1;entryX=1;entryY=0.5;fontSize=10;" edge="1" parent="1" source="maps" target="system">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ADMIN (Top Right) -->
+        <mxCell id="admin" value="ADMIN USERS&#xa;(Web Dashboard)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fillColor=#FFF9E6;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="250" width="130" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a1" value="Config, Settings" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.8;entryY=0.3;exitX=0;exitY=0.5;fontSize=10;" edge="1" parent="1" source="admin" target="system">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a2" value="Reports, Analytics, Logs" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.8;exitY=0.7;entryX=0;entryY=0.5;fontSize=10;" edge="1" parent="1" source="system" target="admin">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- MANAGER (Right) -->
+        <mxCell id="manager" value="BRANCH MANAGER&#xa;(Web Portal)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;fillColor=#F0FFE6;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="480" width="130" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="mb1" value="Inventory, Branch Data" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.85;entryY=0.6;exitX=0;exitY=0.5;fontSize=10;" edge="1" parent="1" source="manager" target="system">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="mb2" value="Orders, Performance, Trends" style="edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.85;exitY=0.4;entryX=0;entryY=0.5;fontSize=10;" edge="1" parent="1" source="system" target="manager">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Title -->
+        <mxCell id="title" value="Figure: WashBox Context Diagram" style="text;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="50" y="920" width="1300" height="30" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

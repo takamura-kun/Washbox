@@ -30,24 +30,23 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [filter, setFilter] = useState('all'); // all, unread
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     fetchNotifications();
   }, [filter]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (!isRefresh) setLoading(true);
 
       const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
       if (!token) {
-        Alert.alert('Error', 'Please login to view notifications');
-        router.replace('/login');
+        router.replace('/(auth)/login');
         return;
       }
 
-      const url = filter === 'unread' 
+      const url = filter === 'unread'
         ? `${API_BASE_URL}/v1/notifications?unread_only=true`
         : `${API_BASE_URL}/v1/notifications`;
 
@@ -60,26 +59,24 @@ export default function NotificationsScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.data.notifications) {
+        if (data.success && data.data?.notifications) {
           setNotifications(data.data.notifications);
         }
       } else if (response.status === 401) {
-        Alert.alert('Session Expired', 'Please login again');
         await AsyncStorage.removeItem(STORAGE_KEYS.TOKEN);
-        router.replace('/login');
+        router.replace('/(auth)/login');
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      Alert.alert('Error', 'Failed to load notifications');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const onRefresh = async () => {
+  const onRefresh = () => {
     setRefreshing(true);
-    await fetchNotifications();
-    setRefreshing(false);
+    fetchNotifications(true);
   };
 
   const markAsRead = async (notificationId) => {
@@ -126,13 +123,10 @@ export default function NotificationsScreen() {
       );
 
       if (response.ok) {
-        // Refresh notifications
-        await fetchNotifications();
-        Alert.alert('Success', 'All notifications marked as read');
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true, read_at: new Date().toISOString() })));
       }
     } catch (error) {
       console.error('Error marking all as read:', error);
-      Alert.alert('Error', 'Failed to mark all as read');
     }
   };
 
@@ -402,8 +396,11 @@ export default function NotificationsScreen() {
                   !notification.is_read && styles.notificationUnread,
                 ]}
                 onPress={() => {
-                  if (!notification.is_read) {
-                    markAsRead(notification.id);
+                  if (!notification.is_read) markAsRead(notification.id);
+                  if (notification.pickup_request_id) {
+                    router.push(`/pickups/${notification.pickup_request_id}`);
+                  } else if (notification.laundries_id) {
+                    router.push(`/laundries/${notification.laundries_id}`);
                   }
                 }}
                 onLongPress={() => {

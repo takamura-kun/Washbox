@@ -210,16 +210,21 @@ class PerformanceMonitor {
             });
         }
 
-        // Custom analytics endpoint
-        if (this.shouldReportToServer(entry)) {
-            this.sendToServer(entry);
-        }
+        // Custom analytics endpoint - disabled to prevent fetch errors
+        // if (this.shouldReportToServer(entry)) {
+        //     this.sendToServer(entry);
+        // }
     }
 
     /**
      * Send performance data to server
      */
     async sendToServer(entry) {
+        // Skip sending on login/auth pages to prevent redirect loops
+        if (window.location.pathname.includes('/login') || window.location.pathname.includes('/forgot-password')) {
+            return;
+        }
+
         try {
             await fetch('/api/performance', {
                 method: 'POST',

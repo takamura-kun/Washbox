@@ -29,25 +29,86 @@ class LaundryNotificationService
     {
         if (!SystemSetting::get('enable_push_notifications', true)) return;
 
-        // FCM token lives on the Customer model
-        $token = optional($laundry->customer)->fcm_token;
-
-        if (empty($token)) {
-            Log::info("No FCM token for customer on Laundry #{$laundry->id} (Tracking: {$laundry->tracking_number})");
+        // Skip if no customer
+        if (!$laundry->customer_id) {
+            Log::info("No customer for Laundry #{$laundry->id}, skipping notification");
             return;
         }
 
         $tracking = $laundry->tracking_number ?? "#{$laundry->id}";
         $branch   = optional($laundry->branch)->name ?? 'our branch';
 
-        match ($newStatus) {
-            'received'   => $this->fcm->notifyOrderReceived($token, $tracking, $branch),
-            'ready'      => $this->fcm->notifyLaundryReady($token, $tracking, $branch),
-            'paid'       => $this->notifyPaymentReceived($token, $tracking),
-            'completed'  => $this->fcm->notifyOrderCompleted($token, $tracking),
-            'cancelled'  => $this->notifyCancelled($token, $tracking),
-            default      => null, // 'processing' — no notification needed, just in-progress
+        // Send FCM push notification
+        $token = optional($laundry->customer)->fcm_token;
+        if (!empty($token)) {
+            match ($newStatus) {
+                'received'   => $this->fcm->notifyOrderReceived($token, $tracking, $branch),
+                'ready'      => $this->fcm->notifyLaundryReady($token, $tracking, $branch),
+                'paid'       => $this->notifyPaymentReceived($token, $tracking),
+                'completed'  => $this->fcm->notifyOrderCompleted($token, $tracking),
+                'cancelled'  => $this->notifyCancelled($token, $tracking),
+                default      => null, // 'processing' — no notification needed
+            };
+        }
+
+        // Create database notification record for mobile app notifications screen
+        $this->createDatabaseNotification($laundry, $newStatus, $tracking, $branch);
+    }
+
+    /**
+     * Create database notification record
+     */
+    private function createDatabaseNotification(Laundry $laundry, string $status, string $tracking, string $branch): void
+    {
+        $notificationData = match ($status) {
+            'received' => [
+                'type' => 'laundry_received',
+                'title' => 'Laundry Received',
+                'body' => "Your laundry #{$tracking} has been received at {$branch} and is being processed.",
+            ],
+            'processing' => [
+                'type' => 'laundry_processing',
+                'title' => 'Laundry Being Processed',
+                'body' => "Your laundry #{$tracking} is now being processed.",
+            ],
+            'ready' => [
+                'type' => 'laundry_ready',
+                'title' => '✅ Laundry Ready!',
+                'body' => "Your laundry #{$tracking} is clean and ready for pickup at {$branch}.",
+            ],
+            'paid' => [
+                'type' => 'payment_received',
+                'title' => '💳 Payment Confirmed!',
+                'body' => "Payment for Laundry #{$tracking} has been received. Thank you!",
+            ],
+            'completed' => [
+                'type' => 'laundry_completed',
+                'title' => '🎉 Order Completed!',
+                'body' => "Order #{$tracking} has been completed. Thank you for choosing WashBox!",
+            ],
+            'cancelled' => [
+                'type' => 'laundry_cancelled',
+                'title' => '❌ Order Cancelled',
+                'body' => "Laundry #{$tracking} has been cancelled. Please contact us if this was a mistake.",
+            ],
+            default => null,
         };
+
+        if ($notificationData) {
+            NotificationService::sendToCustomer(
+                $laundry->customer_id,
+                $notificationData['type'],
+                $notificationData['title'],
+                $notificationData['body'],
+                $laundry->id,
+                null,
+                [
+                    'laundry_id' => $laundry->id,
+                    'tracking_number' => $tracking,
+                    'status' => $status,
+                ]
+            );
+        }
     }
 
     /**

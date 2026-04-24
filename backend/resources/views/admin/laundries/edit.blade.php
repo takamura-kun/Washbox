@@ -39,6 +39,55 @@
         </div>
     @endif
 
+    {{-- Weight Validation Warning Alert --}}
+    @if($errors->has('weight_warning'))
+        <div class="alert alert-warning alert-dismissible fade show border-2 border-warning mb-3" role="alert" style="z-index: 1050; position: relative;">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.25rem; color: #ff6b6b; flex-shrink: 0;"></i>
+                <div style="flex: 1;">
+                    @php
+                        $warningMsg = $errors->first('weight_warning');
+                        $isMinimum = str_contains($warningMsg, 'minimum') || str_contains($warningMsg, 'Not in minimum');
+                    @endphp
+                    <h5 class="alert-heading mb-2">
+                        @if($isMinimum)
+                            ⚠️ Minimum Weight Required
+                        @else
+                            ⚠️ Maximum Weight Exceeded
+                        @endif
+                    </h5>
+                    <p class="mb-2">{{ $warningMsg }}</p>
+                    <hr class="my-2">
+                    <p class="mb-0 small">
+                        <strong>Solution:</strong>
+                        @if($isMinimum)
+                            Please add more laundry to meet the minimum weight requirement.
+                        @else
+                            Please adjust the weight to meet the service requirements or split the laundry into multiple loads.
+                        @endif
+                    </p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="flex-shrink: 0;"></button>
+            </div>
+        </div>
+    @endif
+
+    {{-- Error Alert --}}
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle me-2"></i>
+            <strong>Please fix the following errors:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach($errors->all() as $error)
+                    @if($error !== $errors->first('weight_warning'))
+                        <li>{{ $error }}</li>
+                    @endif
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <form action="{{ route('admin.laundries.update', $laundry) }}" method="POST" id="laundryForm">
         @csrf
         @method('PUT')

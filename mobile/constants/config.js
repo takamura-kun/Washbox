@@ -1,8 +1,15 @@
-export const API_BASE_URL = 'http://192.168.1.9:8000/api';
+// Auto-detect API URL based on platform
+const getAPIBaseURL = () => {
+  // Use environment variable if set
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
 
+  // Fallback to the development machine's LAN IP for Expo Go testing.
+  return 'http://192.168.1.9:8000/api';
+};
 
-//export const API_BASE_URL = 'http://192.168.99.172:8000/api';
-//export const API_BASE_URL = 'http:///localhost:8000/api';
+export const API_BASE_URL = getAPIBaseURL();
 
 // App Configuration
 export const APP_NAME = 'WashBox';
@@ -86,12 +93,12 @@ export const ENDPOINTS = {
   ADDRESSES: '/v1/addresses',
 };
 
-// Storage Keys
+// Storage Keys - Configuration constants for AsyncStorage keys
 export const STORAGE_KEYS = {
-  TOKEN: 'token',
-  CUSTOMER: 'customer',
-  PREFERRED_BRANCH: 'preferred_branch',
-  DEVICE_TOKEN: 'device_token',
+  TOKEN: '@washbox:auth_token',
+  CUSTOMER: '@washbox:customer_data',
+  PREFERRED_BRANCH: '@washbox:preferred_branch',
+  DEVICE_TOKEN: '@washbox:device_token',
 };
 
 // Validation Rules
@@ -152,15 +159,8 @@ export default {
 };
 
 export const MAP_CONFIG = {
-  // Use different tile URLs based on environment
-  tileUrl: process.env.NODE_ENV === 'production' 
-    ? 'https://your-tile-server/{z}/{x}/{y}.png'
-    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-  
-  // Cache tiles locally
+  tileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   cacheEnabled: true,
-  cacheMaxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  
-  // Attribution (required by OSM)
+  cacheMaxAge: 7 * 24 * 60 * 60 * 1000,
   attributionText: '© OpenStreetMap contributors',
 };

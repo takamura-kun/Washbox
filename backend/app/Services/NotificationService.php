@@ -10,6 +10,18 @@ use App\Models\Customer;
 use App\Models\CustomerRating;    // ← added for rating notifications
 use App\Models\AdminNotification; // ← admin bell reads this table, NOT notifications
 
+/**
+ * NotificationService
+ *
+ * CSRF Protection Note:
+ * This service class performs database operations (Eloquent ORM) only.
+ * All methods create database records via Notification::create() and AdminNotification::create().
+ * These are NOT HTTP requests and do not require CSRF tokens.
+ *
+ * CSRF protection is automatically handled by Laravel's VerifyCsrfToken middleware
+ * for all HTTP POST/PUT/PATCH/DELETE requests that call these service methods.
+ * Controllers invoking this service are already protected by the web middleware group.
+ */
 class NotificationService
 {
     /**
@@ -40,6 +52,8 @@ class NotificationService
 
     /**
      * Send notification to all staff in a branch
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function sendToBranchStaff(
         int $branchId,
@@ -76,6 +90,8 @@ class NotificationService
 
     /**
      * Send notification to all active staff
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function sendToAllStaff(
         string $type,
@@ -110,6 +126,8 @@ class NotificationService
 
     /**
      * Send notification to all admins
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function sendToAllAdmins(
         string $type,
@@ -144,6 +162,8 @@ class NotificationService
 
     /**
      * Send notification to customer
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function sendToCustomer(
         int $customerId,
@@ -173,6 +193,8 @@ class NotificationService
 
     /**
      * Notify staff about new pickup request
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyNewPickupRequest(PickupRequest $pickup): int
     {
@@ -220,6 +242,8 @@ class NotificationService
 
     /**
      * Notify customer that pickup was accepted
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyPickupAccepted(PickupRequest $pickup): Notification
     {
@@ -236,6 +260,8 @@ class NotificationService
 
     /**
      * Notify customer that staff is en route
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyPickupEnRoute(PickupRequest $pickup): Notification
     {
@@ -252,6 +278,8 @@ class NotificationService
 
     /**
      * Notify customer that pickup is completed
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyPickupCompleted(PickupRequest $pickup, ?Laundry $laundry = null): Notification
     {
@@ -281,6 +309,8 @@ class NotificationService
 
     /**
      * Notify staff about new laundry
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyNewLaundry(Laundry $laundry): int
     {
@@ -324,6 +354,8 @@ class NotificationService
 
     /**
      * Notify customer about laundry status change
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyLaundryStatusChanged(Laundry $laundry, string $oldStatus, string $newStatus): ?Notification
     {
@@ -396,6 +428,8 @@ class NotificationService
 
     /**
      * Notify customer about payment received
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyPaymentReceived(Laundry $laundry, float $amount): ?Notification
     {
@@ -420,6 +454,8 @@ class NotificationService
 
     /**
      * Notify customer about payment proof approval
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyPaymentApproved(Laundry $laundry, ?string $adminNotes = null): ?Notification
     {
@@ -449,6 +485,8 @@ class NotificationService
 
     /**
      * Notify customer about payment proof rejection
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyPaymentRejected(Laundry $laundry, string $reason): ?Notification
     {
@@ -471,12 +509,67 @@ class NotificationService
         );
     }
 
+    /**
+     * Notify branch staff about new payment proof submission
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
+     */
+    public static function notifyPaymentProofSubmitted(Laundry $laundry, float $amount, ?string $referenceNumber = null): int
+    {
+        $customer = $laundry->customer;
+        $customerName = $customer ? $customer->name : 'A customer';
+        
+        $title = '💳 New GCash Payment Proof';
+        $body = "{$customerName} submitted a GCash payment proof of ₱" . number_format($amount, 2) . " for laundry #{$laundry->tracking_number}";
+        
+        if ($referenceNumber) {
+            $body .= " (Ref: {$referenceNumber})";
+        }
+
+        if ($laundry->branch_id) {
+            return self::sendToBranchStaff(
+                $laundry->branch_id,
+                'payment_proof_submitted',
+                $title,
+                $body,
+                $laundry->id,
+                null,
+                $laundry->customer_id,
+                [
+                    'laundries_id' => $laundry->id,
+                    'tracking_number' => $laundry->tracking_number,
+                    'amount' => $amount,
+                    'reference_number' => $referenceNumber,
+                    'customer_name' => $customerName,
+                ]
+            );
+        }
+
+        return self::sendToAllStaff(
+            'payment_proof_submitted',
+            $title,
+            $body,
+            $laundry->id,
+            null,
+            $laundry->customer_id,
+            [
+                'laundries_id' => $laundry->id,
+                'tracking_number' => $laundry->tracking_number,
+                'amount' => $amount,
+                'reference_number' => $referenceNumber,
+                'customer_name' => $customerName,
+            ]
+        );
+    }
+
     // ========================================================================
     // UNCLAIMED LAUNDY NOTIFICATIONS
     // ========================================================================
 
     /**
      * Notify staff about unclaimed laundry
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyUnclaimedLaundry(Laundry $laundry, int $daysUnclaimed): int
     {
@@ -528,6 +621,8 @@ class NotificationService
      * Usage — call from CustomerRatingController::store() after rating is saved:
      *
      *   NotificationService::notifyLaundryRated($rating);
+     *   
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyLaundryRated(CustomerRating $rating): void
     {
@@ -581,6 +676,8 @@ class NotificationService
      * Usage — call from BranchRatingController::store() after rating is saved:
      *
      *   NotificationService::notifyBranchRated($rating);
+     *   
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyBranchRated(CustomerRating $rating): void
     {

@@ -1,4 +1,4 @@
-// maps.js - Map management and functionality
+// maps.js - Map management and functionality with offline support
 
 import { MAP_CONFIG, STATUS_COLORS, BRANCH_COLORS } from './config.js';
 import { appState } from './state.js';
@@ -8,6 +8,59 @@ import { apiClient } from './api.js';
 class MapManager {
     constructor() {
         this.searchResultMarker = null;
+        this.currentTileLayer = null;
+    }
+
+    /**
+     * Add tile layer with fallback support for offline mode
+     */
+    addTileLayerWithFallback(map) {
+        if (!map) {
+            console.error('Map instance is null or undefined');
+            return null;
+        }
+
+        const tileUrls = [
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png'
+        ];
+
+        try {
+            let tileLayer = L.tileLayer(tileUrls[0], {
+                attribution: MAP_CONFIG.TILE_ATTRIBUTION || 'OpenStreetMap contributors',
+                maxZoom: MAP_CONFIG.MAX_ZOOM || 19,
+                minZoom: MAP_CONFIG.MIN_ZOOM || 2,
+                errorTileUrl: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect fill="%23f0f0f0" width="256" height="256"/><text x="128" y="128" text-anchor="middle" dy=".3em" font-size="12" fill="%23999">Offline</text></svg>'
+            });
+
+            tileLayer.on('tileerror', (error) => {
+                console.warn('Primary tile server unavailable, attempting fallback');
+                try {
+                    if (this.currentTileLayer && map.hasLayer(this.currentTileLayer)) {
+                        map.removeLayer(this.currentTileLayer);
+                    }
+                    
+                    const cdnLayer = L.tileLayer(tileUrls[1], {
+                        attribution: MAP_CONFIG.TILE_ATTRIBUTION || 'OpenStreetMap contributors',
+                        maxZoom: MAP_CONFIG.MAX_ZOOM || 19,
+                        minZoom: MAP_CONFIG.MIN_ZOOM || 2
+                    }).addTo(map);
+                    
+                    this.currentTileLayer = cdnLayer;
+                    console.log('Switched to fallback tile server');
+                } catch (e) {
+                    console.error('Error switching tile servers:', e);
+                }
+            });
+
+            tileLayer.addTo(map);
+            this.currentTileLayer = tileLayer;
+            return tileLayer;
+        } catch (error) {
+            console.error('Error adding tile layer:', error);
+            return null;
+        }
     }
 
     /**
@@ -16,28 +69,47 @@ class MapManager {
     initLogisticsMap() {
         const container = document.getElementById("logisticsMap");
         if (!container) {
-            console.error("Map container not found");
+            console.error("Map container 'logisticsMap' not found in DOM");
             return;
         }
 
+        console.log('Initializing logistics map...', {
+            containerWidth: container.offsetWidth,
+            containerHeight: container.offsetHeight,
+            containerVisible: container.offsetParent !== null
+        });
+
         // Clear existing map
         if (appState.logisticsMapInstance) {
-            appState.logisticsMapInstance.remove();
+            try {
+                appState.logisticsMapInstance.remove();
+            } catch (e) {
+                console.warn("Could not remove existing map instance", e);
+            }
             appState.logisticsMapInstance = null;
         }
 
         try {
-            // Initialize map
-            appState.logisticsMapInstance = L.map("logisticsMap").setView(
+            // Check if Leaflet is loaded
+            if (typeof L === 'undefined') {
+                console.error('Leaflet library not loaded');
+                container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#dc2626;"><i class="bi bi-exclamation-triangle me-2"></i>Map library not loaded</div>';
+                return;
+            }
+
+            // Initialize map with error handling
+            appState.logisticsMapInstance = L.map("logisticsMap", {
+                preferCanvas: true,
+                zoomControl: true
+            }).setView(
                 appState.mapCenter, 
                 appState.mapZoom
             );
 
-            // Add tiles
-            L.tileLayer(MAP_CONFIG.TILE_URL, {
-                attribution: MAP_CONFIG.TILE_ATTRIBUTION,
-                maxZoom: MAP_CONFIG.MAX_ZOOM,
-            }).addTo(appState.logisticsMapInstance);
+            console.log('Map instance created successfully');
+
+            // Add tiles with fallback support
+            this.addTileLayerWithFallback(appState.logisticsMapInstance);
 
             // Initialize marker cluster
             appState.pickupCluster = L.markerClusterGroup({ chunkedLoading: true });
@@ -56,9 +128,25 @@ class MapManager {
             // Load pickup data
             this.loadPickupsAndRender();
 
-            console.log("✅ Logistics map initialized successfully");
+            // Trigger map resize multiple times to ensure proper rendering
+            // This fixes the issue where map doesn't display in small containers
+            const resizeMap = () => {
+                if (appState.logisticsMapInstance) {
+                    appState.logisticsMapInstance.invalidateSize();
+                    console.log('Map resized');
+                }
+            };
+            
+            setTimeout(resizeMap, 100);
+            setTimeout(resizeMap, 300);
+            setTimeout(resizeMap, 500);
+            setTimeout(resizeMap, 1000);
+
+            console.log("Logistics map initialized successfully");
         } catch (error) {
-            console.error("❌ Error initializing logistics map:", error);
+            console.error("Error initializing logistics map:", error);
+            console.error("Stack:", error.stack);
+            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#dc2626;"><i class="bi bi-exclamation-triangle me-2"></i>Failed to initialize map</div>';
         }
     }
 
@@ -67,24 +155,37 @@ class MapManager {
      */
     setupModalMap() {
         const modalEl = document.getElementById("mapModal");
-        if (modalEl) {
-            modalEl.addEventListener("shown.bs.modal", () => {
+        if (!modalEl) {
+            console.warn("Map modal not found in DOM");
+            return;
+        }
+
+        modalEl.addEventListener("shown.bs.modal", () => {
+            try {
+                const modalMapContainer = document.getElementById("modalLogisticsMap");
+                if (!modalMapContainer) {
+                    console.error("Modal map container not found");
+                    return;
+                }
+
                 if (!appState.modalMapInstance) {
-                    appState.modalMapInstance = L.map("modalLogisticsMap").setView(
+                    appState.modalMapInstance = L.map("modalLogisticsMap", {
+                        preferCanvas: true,
+                        zoomControl: true
+                    }).setView(
                         appState.mapCenter,
                         appState.mapZoom
                     );
-                    L.tileLayer(MAP_CONFIG.TILE_URL, {
-                        attribution: MAP_CONFIG.TILE_ATTRIBUTION,
-                    }).addTo(appState.modalMapInstance);
+                    this.addTileLayerWithFallback(appState.modalMapInstance);
                 }
 
                 // Sync markers - optimized with minimal delay
                 const syncMarkers = () => {
-                    // Use setTimeout with 0 delay to avoid blocking
                     setTimeout(() => {
-                        appState.modalMapInstance.invalidateSize();
-                        this.syncModalMapMarkers();
+                        if (appState.modalMapInstance) {
+                            appState.modalMapInstance.invalidateSize();
+                            this.syncModalMapMarkers();
+                        }
                     }, 0);
                 };
                 
@@ -94,8 +195,11 @@ class MapManager {
                 } else {
                     syncMarkers();
                 }
-            });
-        }
+            } catch (error) {
+                console.error("Error setting up modal map:", error);
+                console.error("Stack:", error.stack);
+            }
+        });
     }
 
     /**
@@ -403,7 +507,7 @@ class MapManager {
                 </p>
                 <hr class="my-2">
                 <div class="d-grid gap-2">
-                    <button class="btn btn-sm btn-success" onclick="createPickupAtLocation(${lat}, ${lon}, '${address.replace(/'/g, "\\'")}')">
+                    <button class="btn btn-sm btn-success" onclick="createPickupAtLocation(${lat}, ${lon}, '${address.replace(/'/g, "\\'")}'">
                         <i class="bi bi-plus-circle me-1"></i> Create Pickup Here
                     </button>
                     <button class="btn btn-sm btn-primary" onclick="getRouteToSearchLocation(${lat}, ${lon})">
@@ -458,7 +562,7 @@ class MapManager {
         });
 
         // Re-add tile layer
-        L.tileLayer(MAP_CONFIG.TILE_URL).addTo(appState.modalMapInstance);
+        this.addTileLayerWithFallback(appState.modalMapInstance);
 
         // Add branch markers
         this.addBranchesToModalMap();

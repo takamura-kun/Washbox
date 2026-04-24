@@ -360,7 +360,7 @@ export default function WelcomeScreen() {
   const renderFeedback = useCallback(({ item: fb }) => (
     <View style={[styles.flatCard, styles.feedCard]}>
       <StarRow rating={fb.rating} />
-      <Text style={styles.feedQuoteMark}>"</Text>
+      <Text style={styles.feedQuoteMark}>&quot;</Text>
       <Text style={styles.feedText}>{fb.comment}</Text>
       <View style={styles.feedAuthorRow}>
         <View style={[styles.feedAvatar, { backgroundColor: C.sky }]}>

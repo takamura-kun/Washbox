@@ -17,7 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
          $middleware->append(\App\Http\Middleware\CheckMaintenanceMode::class);
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
-            'staff' => \App\Http\Middleware\StaffMiddleware::class,
+            'branch' => \App\Http\Middleware\BranchMiddleware::class,
+            'staff' => \App\Http\Middleware\BranchMiddleware::class, // Redirect to branch middleware
             'customer'=> \App\Http\Middleware\CustomerMiddleware::class,
         ]);
         
@@ -26,10 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('admin/*')) {
                 return route('admin.login');
             }
-            if ($request->is('staff/*')) {
-                return route('staff.login');
+            if ($request->is('branch/*') || $request->is('staff/*')) {
+                return route('branch.login');
             }
-            return route('welcome');
+            return route('admin.login');
         });
     })
     ->withExceptions(function (Exceptions $exceptions) {

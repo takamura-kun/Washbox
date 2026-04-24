@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { API_BASE_URL, STORAGE_KEYS, ENDPOINTS } from '../constants/config';
+import { LocationService } from '../services/locationService';
 
 const COLORS = {
   background: '#0A0E27',
@@ -57,6 +58,8 @@ export default function SavedAddressesScreen() {
   const [editingAddress, setEditingAddress] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [geotagging, setGeotagging] = useState(false);
+
   // Form state
   const [formData, setFormData] = useState({
     label: 'Home',
@@ -66,6 +69,8 @@ export default function SavedAddressesScreen() {
     city: '',
     province: '',
     postal_code: '',
+    latitude: null,
+    longitude: null,
     contact_person: '',
     contact_phone: '',
     delivery_notes: '',
@@ -117,6 +122,8 @@ export default function SavedAddressesScreen() {
       city: '',
       province: '',
       postal_code: '',
+      latitude: null,
+      longitude: null,
       contact_person: '',
       contact_phone: '',
       delivery_notes: '',
@@ -134,11 +141,29 @@ export default function SavedAddressesScreen() {
       city: address.city,
       province: address.province,
       postal_code: address.postal_code || '',
+      latitude: address.latitude || null,
+      longitude: address.longitude || null,
       contact_person: address.contact_person || '',
       contact_phone: address.contact_phone || '',
       delivery_notes: address.delivery_notes || '',
     });
     setShowAddModal(true);
+  };
+
+  const handleGeotag = async () => {
+    try {
+      setGeotagging(true);
+      const location = await LocationService.getCurrentLocation();
+      setFormData(prev => ({
+        ...prev,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      }));
+    } catch (error) {
+      Alert.alert('Error', 'Could not get current location. Please enable location services.');
+    } finally {
+      setGeotagging(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -500,6 +525,30 @@ export default function SavedAddressesScreen() {
               </View>
             </View>
 
+            {/* Geotag */}
+            <Text style={styles.fieldLabel}>Geotag (Coordinates)</Text>
+            <TouchableOpacity
+              style={styles.geotagButton}
+              onPress={handleGeotag}
+              disabled={geotagging}
+            >
+              {geotagging ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : (
+                <Ionicons name="locate" size={18} color={formData.latitude ? COLORS.success : COLORS.primary} />
+              )}
+              <Text style={[styles.geotagText, formData.latitude && { color: COLORS.success }]}>
+                {formData.latitude
+                  ? `${parseFloat(formData.latitude).toFixed(5)}, ${parseFloat(formData.longitude).toFixed(5)}`
+                  : 'Tap to use current location'}
+              </Text>
+              {formData.latitude && (
+                <TouchableOpacity onPress={() => setFormData(prev => ({ ...prev, latitude: null, longitude: null }))}>
+                  <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                </TouchableOpacity>
+              )}
+            </TouchableOpacity>
+
             {/* Postal Code */}
             <Text style={styles.fieldLabel}>Postal Code</Text>
             <TextInput
@@ -830,6 +879,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  geotagButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.cardDark,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  geotagText: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
   // Submit Button
   submitButton: {
     marginTop: 32,

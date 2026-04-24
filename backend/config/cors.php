@@ -23,8 +23,12 @@ return [
         'http://localhost:3000',           // React/Next.js development
         'http://localhost:8080',           // Vue development
         'http://localhost:19006',          // Expo development
+        'http://localhost:8081',           // Expo web development
+        'http://localhost:8000',           // Laravel backend
         'http://192.168.1.9:8000',         // Local network testing
+        'http://192.168.1.9:8081',         // Expo mobile on local network
         'exp://192.168.1.9:8081',          // Expo mobile app
+        'exp://localhost:8081',            // Expo mobile localhost
         // Add your production domains here:
         // 'https://washbox.com',
         // 'https://admin.washbox.com',

@@ -18,6 +18,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, STORAGE_KEYS } from '../../constants/config';
+import PromotionModal from '../../components/PromotionModal';
+import ServiceDetailsModal from '../../components/ServiceDetailsModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -139,7 +141,12 @@ export default function HomeScreen() {
   // Data
   const [customer, setCustomer] = useState(null);
   const [laundries, setLaundries] = useState([]);
+  const [services, setServices] = useState([]);
+  const [selectedService, setSelectedService] = useState(null);
+  const [showServiceModal, setShowServiceModal] = useState(false);
   const [promotions, setPromotions] = useState([]);
+  const [showPromo, setShowPromo] = useState(false);
+  const [activePromo, setActivePromo] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [stats, setStats] = useState({
     totalLaundries: 0,
@@ -156,6 +163,7 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchAllData();
   }, []);
+
 
   useEffect(() => {
     if (!loading) {
@@ -174,6 +182,7 @@ export default function HomeScreen() {
       await Promise.all([
         fetchCustomer(),
         fetchLaundries(),
+        fetchServices(),
         fetchPromotions(),
         fetchNotificationCount(),
         fetchStats(),
@@ -237,16 +246,40 @@ export default function HomeScreen() {
     }
   };
 
-  const fetchPromotions = async () => {
+  const fetchServices = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/v1/promotions`, {
+      const response = await fetch(`${API_BASE_URL}/v1/services`, {
         headers: { 'Accept': 'application/json' },
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.data.promotions) {
+        if (data.success && data.data) {
+          // Map services and ensure image URLs are properly formatted
+          const servicesWithImages = data.data.map(service => ({
+            ...service,
+            image_url: service.image_url || service.icon_url || null
+          }));
+          setServices(servicesWithImages);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    }
+  };
+
+
+  const fetchPromotions = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/v1/promotions/featured`, {
+        headers: { 'Accept': 'application/json' },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data.promotions && data.data.promotions.length > 0) {
           setPromotions(data.data.promotions);
+          setActivePromo(data.data.promotions[0]);
         }
       }
     } catch (error) {
@@ -328,6 +361,30 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+
+      <PromotionModal
+        visible={showPromo}
+        promotion={activePromo}
+        onClose={() => setShowPromo(false)}
+      />
+
+      <ServiceDetailsModal
+        visible={showServiceModal}
+        service={selectedService}
+        onClose={() => setShowServiceModal(false)}
+        onBookNow={(service) => {
+          // Navigate to pickup/booking screen with selected service
+          router.push({
+            pathname: '/(tabs)/pickup',
+            params: {
+              serviceId: service.id,
+              serviceName: service.name,
+              servicePrice: service.price_per_kilo || service.price_per_load || 0,
+              servicePriceType: service.price_per_kilo ? 'per_kilo' : 'per_load',
+            }
+          });
+        }}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -448,6 +505,133 @@ export default function HomeScreen() {
               />
             </View>
           </View>
+
+
+          {/* ═══════════════════════════════════════
+              SERVICES OFFER
+          ═══════════════════════════════════════ */}
+          {services.length > 0 && (
+            <View style={styles.servicesOfferSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Our Services</Text>
+                <TouchableOpacity
+                  style={styles.seeAllButton}
+                  onPress={() => router.push('/services')}
+                >
+                  <Text style={styles.seeAllText}>See All</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.servicesScrollContent}
+              >
+                {services.map((service, index) => (
+                  <TouchableOpacity
+                    key={service.id || index}
+                    style={styles.serviceOfferCard}
+                    onPress={() => {
+                      setSelectedService(service);
+                      setShowServiceModal(true);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    {/* Background Image */}
+                    {service.image_url && (
+                      <>
+                        <Image
+                          source={{ uri: service.image_url }}
+                          style={styles.serviceOfferBgImage}
+                          resizeMode="cover"
+                        />
+                        {/* Dark overlay for better text readability */}
+                        <View style={styles.serviceOfferOverlay} />
+                      </>
+                    )}
+                    
+                    <LinearGradient
+                      colors={[
+                        service.image_url ? 'rgba(6,8,26,0.7)' : (
+                          index % 4 === 0 ? COLORS.primarySoft : 
+                          index % 4 === 1 ? COLORS.secondaryGlow : 
+                          index % 4 === 2 ? COLORS.successGlow : 
+                          COLORS.accentGlow
+                        ),
+                        service.image_url ? 'rgba(6,8,26,0.95)' : COLORS.surface
+                      ]}
+                      style={styles.serviceOfferGradient}
+                    >
+                      <View style={[
+                        styles.serviceOfferIconContainer,
+                        {
+                          backgroundColor: index % 4 === 0 ? COLORS.primarySoft : 
+                                         index % 4 === 1 ? COLORS.secondaryGlow : 
+                                         index % 4 === 2 ? COLORS.successGlow : 
+                                         COLORS.accentGlow
+                        }
+                      ]}>
+                        <Ionicons
+                          name={
+                            service.name?.toLowerCase().includes('wash') ? 'water-outline' :
+                            service.name?.toLowerCase().includes('dry') ? 'sunny-outline' :
+                            service.name?.toLowerCase().includes('iron') ? 'flame-outline' :
+                            service.name?.toLowerCase().includes('fold') ? 'layers-outline' :
+                            'shirt-outline'
+                          }
+                          size={32}
+                          color={
+                            index % 4 === 0 ? COLORS.primary : 
+                            index % 4 === 1 ? COLORS.secondary : 
+                            index % 4 === 2 ? COLORS.success : 
+                            COLORS.accent
+                          }
+                        />
+                      </View>
+
+                      <Text style={styles.serviceOfferName} numberOfLines={1}>
+                        {service.name}
+                      </Text>
+                      
+                      {service.description && (
+                        <Text style={styles.serviceOfferDesc} numberOfLines={2}>
+                          {service.description}
+                        </Text>
+                      )}
+
+                      <View style={styles.serviceOfferFooter}>
+                        {service.price_per_kilo && (
+                          <View style={styles.serviceOfferPriceTag}>
+                            <Ionicons name="pricetag" size={14} color={COLORS.primary} />
+                            <Text style={styles.serviceOfferPrice}>
+                              ₱{parseFloat(service.price_per_kilo).toFixed(2)}/kg
+                            </Text>
+                          </View>
+                        )}
+                        {service.price_per_load && (
+                          <View style={styles.serviceOfferPriceTag}>
+                            <Ionicons name="pricetag" size={14} color={COLORS.primary} />
+                            <Text style={styles.serviceOfferPrice}>
+                              ₱{parseFloat(service.price_per_load).toFixed(2)}/load
+                            </Text>
+                          </View>
+                        )}
+                        {service.turnaround_time && (
+                          <View style={styles.serviceOfferTimeTag}>
+                            <Ionicons name="time-outline" size={12} color={COLORS.textMuted} />
+                            <Text style={styles.serviceOfferTime}>
+                              {service.turnaround_time}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
 
           {/* ═══════════════════════════════════════
@@ -997,7 +1181,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 24,
   },
-  sectionTitle: {
+  sectionTitleBase: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.textPrimary,
@@ -1007,6 +1191,110 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+
+  // Services Offer Section
+  servicesOfferSection: {
+    paddingTop: 24,
+    paddingBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  servicesScrollContent: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  serviceOfferCard: {
+    width: 280,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+    position: 'relative',
+  },
+  serviceOfferBgImage: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    top: 0,
+    left: 0,
+  },
+  serviceOfferOverlay: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(6,8,26,0.4)',
+  },
+  serviceOfferGradient: {
+    padding: 20,
+    minHeight: 180,
+  },
+  serviceOfferIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  serviceOfferName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
+  serviceOfferDesc: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  serviceOfferFooter: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 'auto',
+  },
+  serviceOfferPriceTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.primarySoft,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '20',
+  },
+  serviceOfferPrice: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  serviceOfferTimeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.surfaceLight,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  serviceOfferTime: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+  },
+
   serviceCard: {
     flex: 1,
     backgroundColor: COLORS.surface,
@@ -1063,13 +1351,7 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 28,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 14,
-  },
+
   sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1086,7 +1368,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     letterSpacing: -0.2,
   },
-  seeAllButton: {
+ seeAllButton : {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,

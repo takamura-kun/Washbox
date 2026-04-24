@@ -49,6 +49,7 @@ class RouteOptimizer {
             
             console.log(`📋 Loaded ${this.vehicleProfiles.size} vehicle profiles`);
         } catch (error) {
+            console.log('Using default vehicle profile (vehicle API not available)');
             this.setDefaultVehicleProfile();
         }
     }
@@ -103,7 +104,8 @@ class RouteOptimizer {
             });
             
         } catch (error) {
-            // Silently use time-based traffic estimation
+            // Silently use time-based traffic estimation (traffic API not available)
+            console.log('Using time-based traffic estimation (traffic API not available)');
         }
     }
 

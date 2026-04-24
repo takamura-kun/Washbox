@@ -6,36 +6,8 @@
 /* Import Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-/* ============================================ */
-/* CSS VARIABLES FOR LIGHT AND DARK MODES */
-/* ============================================ */
-:root {
-    /* Light mode variables (default) */
-    --card-bg: #ffffff;
-    --bg-color: #f8fafc;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border-color: #e2e8f0;
-    --primary-color: #2D2B5F;
-    --accent-color: #FF5C35;
-    --success-color: #10B981;
-    --warning-color: #F59E0B;
-    --danger-color: #EF4444;
-    --info-color: #3B82F6;
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    --table-hover: rgba(45, 43, 95, 0.02);
-}
-
-[data-theme="dark"] {
-    /* Dark mode overrides */
-    --card-bg: #1e293b;
-    --bg-color: #0f172a;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --border-color: #334155;
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    --table-hover: rgba(255, 255, 255, 0.05);
-}
+/* Note: CSS variables are inherited from layout.css */
+/* Do not redefine variables here to avoid conflicts */
 
 /* ============================================ */
 /* METRIC CARDS */
@@ -279,6 +251,150 @@
 .unclaimed-table tbody tr.row-warning-row {
     background: rgba(245, 158, 11, 0.05) !important;
     border-left: 4px solid #F59E0B;
+}
+
+/* ============================================ */
+/* TABLE STYLES */
+/* ============================================ */
+.unclaimed-table-card {
+    background: var(--card-bg) !important;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.unclaimed-table-header {
+    background: var(--bg-color) !important;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-primary) !important;
+}
+
+.unclaimed-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg) !important;
+}
+
+.unclaimed-table thead th {
+    background: var(--bg-color) !important;
+    color: var(--text-secondary) !important;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.unclaimed-table tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+    color: var(--text-primary) !important;
+    background: var(--card-bg) !important;
+}
+
+.unclaimed-table tbody tr {
+    background: var(--card-bg) !important;
+    transition: all 0.3s ease;
+}
+
+.unclaimed-table tbody tr:hover {
+    background: var(--table-hover) !important;
+}
+
+.unclaimed-table tbody tr.row-critical {
+    background: rgba(239, 68, 68, 0.05) !important;
+    border-left: 4px solid #EF4444;
+}
+
+.unclaimed-table tbody tr.row-warning-row {
+    background: rgba(245, 158, 11, 0.05) !important;
+    border-left: 4px solid #F59E0B;
+}
+
+/* Override admin.css card styles for unclaimed pages */
+.card {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+.card-header {
+    background: var(--bg-color) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+.card-body {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+.card-body p,
+.card-body label,
+.card-body h5,
+.card-body h6 {
+    color: var(--text-primary) !important;
+}
+
+.card-body .text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.card-body .fw-bold {
+    color: var(--text-primary) !important;
+}
+
+.card-body hr {
+    border-color: var(--border-color) !important;
+}
+
+.card-body .border-bottom {
+    border-color: var(--border-color) !important;
+}
+
+.card-body .border-top {
+    border-color: var(--border-color) !important;
+}
+
+.card-body table {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+.card-body table td {
+    color: var(--text-primary) !important;
+    background: var(--card-bg) !important;
+}
+
+.card-body table .text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.card-body .bg-warning {
+    background: rgba(245, 158, 11, 0.1) !important;
+}
+
+.card-body .bg-warning .text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.card-body .bg-warning .text-warning {
+    color: #F59E0B !important;
+}
+
+.card-body .bg-warning .fw-bold {
+    color: var(--text-primary) !important;
+}
+
+.card-body .bg-warning .text-danger {
+    color: #EF4444 !important;
 }
 
 /* Force proper backgrounds based on theme */
@@ -579,6 +695,103 @@
     padding: 1rem 1.5rem;
     margin-bottom: 1.5rem;
     box-shadow: var(--shadow);
+}
+
+/* ============================================ */
+/* RESPONSIVE DESIGN */
+/* ============================================ */
+
+/* Light mode explicit overrides */
+body[data-theme="light"] .card,
+body .card {
+    background: #FFFFFF !important;
+    border-color: #E5E7EB !important;
+}
+
+body[data-theme="light"] .card-header,
+body .card-header {
+    background: #F9FAFB !important;
+    border-color: #E5E7EB !important;
+}
+
+body[data-theme="light"] .card-body,
+body .card-body {
+    background: #FFFFFF !important;
+}
+
+body[data-theme="light"] .card-body p,
+body .card-body p {
+    color: #111827 !important;
+}
+
+body[data-theme="light"] .card-body label,
+body .card-body label {
+    color: #6B7280 !important;
+}
+
+body[data-theme="light"] .card-body h5,
+body[data-theme="light"] .card-body h6,
+body .card-body h5,
+body .card-body h6 {
+    color: #111827 !important;
+}
+
+body[data-theme="light"] .card-body .text-muted,
+body .card-body .text-muted {
+    color: #6B7280 !important;
+}
+
+body[data-theme="light"] .card-body .fw-bold,
+body .card-body .fw-bold {
+    color: #111827 !important;
+}
+
+body[data-theme="light"] .card-body hr,
+body .card-body hr {
+    border-color: #E5E7EB !important;
+}
+
+body[data-theme="light"] .card-body table,
+body .card-body table {
+    background: #FFFFFF !important;
+    color: #111827 !important;
+}
+
+body[data-theme="light"] .card-body table td,
+body .card-body table td {
+    color: #111827 !important;
+    background: #FFFFFF !important;
+    border-color: #E5E7EB !important;
+}
+
+body[data-theme="light"] .card-body table .text-muted,
+body .card-body table .text-muted {
+    color: #6B7280 !important;
+}
+
+body[data-theme="light"] .card-body .bg-warning,
+body .card-body .bg-warning {
+    background: rgba(245, 158, 11, 0.1) !important;
+}
+
+body[data-theme="light"] .card-body .bg-warning .text-muted,
+body .card-body .bg-warning .text-muted {
+    color: #6B7280 !important;
+}
+
+body[data-theme="light"] .card-body .bg-warning .text-warning,
+body .card-body .bg-warning .text-warning {
+    color: #F59E0B !important;
+}
+
+body[data-theme="light"] .card-body .bg-warning .fw-bold,
+body .card-body .bg-warning .fw-bold {
+    color: #111827 !important;
+}
+
+body[data-theme="light"] .card-body .bg-warning .text-danger,
+body .card-body .bg-warning .text-danger {
+    color: #EF4444 !important;
 }
 
 /* ============================================ */

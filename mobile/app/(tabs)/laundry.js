@@ -9,11 +9,15 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, STORAGE_KEYS } from '../../constants/config';
+
+// Import notification utilities - only in development builds, not Expo Go
+let Notifications = null;
 
 const COLORS = {
   background: '#0A1128',
@@ -40,6 +44,41 @@ export default function LaundriesScreen() {
 
   useEffect(() => {
     fetchLaundries();     
+    
+    // Set up notification listener for real-time updates (only in development builds)
+    let notificationSubscription;
+    if (Platform.OS !== 'web') {
+      try {
+        // Dynamically import expo-notifications only if available
+        const NotificationsModule = require('expo-notifications');
+        if (NotificationsModule) {
+          notificationSubscription = NotificationsModule.addNotificationReceivedListener(notification => {
+            const data = notification.request.content.data;
+            console.log('[Laundry] Notification received:', data?.type);
+            
+            // Auto-refresh when laundry status changes
+            if (data?.type && (
+              data.type.includes('laundry_') || 
+              data.type.includes('payment_') ||
+              data.type.includes('pickup_') ||
+              data.type.includes('delivery_')
+            )) {
+              console.log('[Laundry] Status update detected, refreshing...');
+              fetchLaundries();
+            }
+          });
+        }
+      } catch (e) {
+        // Notifications not available (Expo Go SDK 53+), silently continue
+        console.log('[Laundry] Push notifications not available in Expo Go');
+      }
+    }
+    
+    return () => {
+      if (notificationSubscription) {
+        notificationSubscription.remove();
+      }
+    };
   }, []);
 
   // Filter laundries when tab or search changes

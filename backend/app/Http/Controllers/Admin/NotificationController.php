@@ -131,9 +131,17 @@ class NotificationController extends Controller
      */
     public function deleteAllRead()
     {
-        AdminNotification::read()->delete();
+        $deleted = AdminNotification::read()->delete();
 
-        return back()->with('success', 'All read notifications deleted');
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Deleted {$deleted} read notifications",
+                'deleted_count' => $deleted,
+            ]);
+        }
+
+        return back()->with('success', "Deleted {$deleted} read notifications");
     }
 
     /**

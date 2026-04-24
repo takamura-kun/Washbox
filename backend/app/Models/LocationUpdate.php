@@ -44,21 +44,21 @@ class LocationUpdate extends Model
     // Scopes
     public function scopeForPickup($query, $pickupId)
     {
-        return $query->where('pickup_request_id', $pickupId);
+        return $query->where('pickup_request_id', '=', (int) $pickupId);
     }
 
     public function scopeStaffOnly($query)
     {
-        return $query->where('user_type', 'staff');
+        return $query->whereIn('user_type', ['staff']);
     }
 
     public function scopeCustomerOnly($query)
     {
-        return $query->where('user_type', 'customer');
+        return $query->whereIn('user_type', ['customer']);
     }
 
     public function scopeRecent($query, $minutes = 30)
     {
-        return $query->where('timestamp', '>=', now()->subMinutes($minutes));
+        return $query->where('timestamp', '>=', now()->subMinutes((int) $minutes));
     }
 }

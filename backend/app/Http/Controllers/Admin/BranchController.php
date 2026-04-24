@@ -31,10 +31,16 @@ class BranchController extends Controller
             }])
             ->get()
             ->map(function($branch) {
-                // Calculate MTD revenue
-                $branch->revenue_mtd = laundry::where('branch_id', $branch->id)
+                // Calculate MTD revenue (laundry + retail)
+                $laundryRevenue = laundry::where('branch_id', $branch->id)
                     ->whereMonth('created_at', Carbon::now()->month)
                     ->sum('total_amount');
+                
+                $retailRevenue = \App\Models\RetailSale::where('branch_id', $branch->id)
+                    ->whereMonth('created_at', Carbon::now()->month)
+                    ->sum('total_amount');
+                
+                $branch->revenue_mtd = $laundryRevenue + $retailRevenue;
 
                 // Count active staff
                 $branch->active_staff = User::where('branch_id', $branch->id)
@@ -57,7 +63,9 @@ class BranchController extends Controller
 
         // Calculate network-wide statistics
         $total_laundries = Laundry::count();
-        $total_revenue = Laundry::sum('total_amount');
+        $laundry_revenue = Laundry::sum('total_amount');
+        $retail_revenue = \App\Models\RetailSale::sum('total_amount');
+        $total_revenue = $laundry_revenue + $retail_revenue;
         $total_staff = $branches->sum('active_staff');
 
         return view('admin.branches.index', compact('branches', 'total_laundries', 'total_revenue', 'total_staff'));
@@ -80,6 +88,8 @@ class BranchController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:10|unique:branches,code',
+            'username' => 'required|string|max:50|unique:branches,username',
+            'password' => 'required|string|min:8|confirmed',
             'address' => 'required|string',
             'city' => 'required|string|max:255',
             'province' => 'required|string|max:255',
@@ -90,10 +100,29 @@ class BranchController extends Controller
             'longitude' => 'nullable|numeric',
             'operating_hours' => 'nullable|string|max:500',
             'is_active' => 'nullable|boolean',
-            'gcash_account_name' => 'nullable|string|max:255',
-            'gcash_account_number' => 'nullable|string|max:20',
+            'gcash_number' => 'nullable|string|max:20',
+            'gcash_name' => 'nullable|string|max:255',
             'gcash_qr_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
+
+        // Map manager to manager_name for database
+        if (isset($validated['manager'])) {
+            $validated['manager_name'] = $validated['manager'];
+            unset($validated['manager']);
+        }
+
+        // Map gcash fields to database column names
+        if (isset($validated['gcash_name'])) {
+            $validated['gcash_account_name'] = $validated['gcash_name'];
+            unset($validated['gcash_name']);
+        }
+        if (isset($validated['gcash_number'])) {
+            $validated['gcash_account_number'] = $validated['gcash_number'];
+            unset($validated['gcash_number']);
+        }
+
+        // Hash the password
+        $validated['password'] = bcrypt($validated['password']);
 
         // Set is_active (default to true if not provided)
         $validated['is_active'] = $request->has('is_active') ? true : false;
@@ -131,12 +160,14 @@ class BranchController extends Controller
         $stats = [
             'total_laundries' => $branch->laundries()->count(),
             'completed_laundries' => $branch->laundries()->where('status', 'completed')->count(),
-            'total_revenue' => $branch->laundries()->sum('total_amount'),
+            'laundry_revenue' => $branch->laundries()->sum('total_amount'),
+            'retail_revenue' => \App\Models\RetailSale::where('branch_id', $branch->id)->sum('total_amount'),
+            'total_revenue' => $branch->laundries()->sum('total_amount') + \App\Models\RetailSale::where('branch_id', $branch->id)->sum('total_amount'),
             'avg_laundry_value' => $branch->laundries()->avg('total_amount') ?? 0,
             'staff_count' => $branch->staff()->count(),
             'active_staff' => $branch->staff()->where('is_active', true)->count(),
             'laundries_mtd' => $branch->laundries()->whereMonth('created_at', Carbon::now()->month)->count(),
-            'revenue_mtd' => $branch->laundries()->whereMonth('created_at', Carbon::now()->month)->sum('total_amount'),
+            'revenue_mtd' => $branch->laundries()->whereMonth('created_at', Carbon::now()->month)->sum('total_amount') + \App\Models\RetailSale::where('branch_id', $branch->id)->whereMonth('created_at', Carbon::now()->month)->sum('total_amount'),
         ];
 
         // Recent laundries
@@ -161,7 +192,9 @@ class BranchController extends Controller
 
         // Add MTD stats for display
         $branch->laundries_mtd = $branch->laundries()->whereMonth('created_at', Carbon::now()->month)->count();
-        $branch->revenue_mtd = $branch->laundries()->whereMonth('created_at', Carbon::now()->month)->sum('total_amount');
+        $laundryRevenueMtd = $branch->laundries()->whereMonth('created_at', Carbon::now()->month)->sum('total_amount');
+        $retailRevenueMtd = \App\Models\RetailSale::where('branch_id', $branch->id)->whereMonth('created_at', Carbon::now()->month)->sum('total_amount');
+        $branch->revenue_mtd = $laundryRevenueMtd + $retailRevenueMtd;
         $branch->active_staff = User::where('branch_id', $branch->id)
             ->where('role', 'staff')
             ->where('is_active', true)
@@ -191,10 +224,26 @@ class BranchController extends Controller
             'hours.*.open' => 'nullable|string',
             'hours.*.close' => 'nullable|string',
             'hours.*.enabled' => 'nullable|boolean',
-            'gcash_account_name' => 'nullable|string|max:255',
-            'gcash_account_number' => 'nullable|string|max:20',
+            'gcash_number' => 'nullable|string|max:20',
+            'gcash_name' => 'nullable|string|max:255',
             'gcash_qr_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
+
+        // Map manager to manager_name for database
+        if (isset($validated['manager'])) {
+            $validated['manager_name'] = $validated['manager'];
+            unset($validated['manager']);
+        }
+
+        // Map gcash fields to database column names
+        if (isset($validated['gcash_name'])) {
+            $validated['gcash_account_name'] = $validated['gcash_name'];
+            unset($validated['gcash_name']);
+        }
+        if (isset($validated['gcash_number'])) {
+            $validated['gcash_account_number'] = $validated['gcash_number'];
+            unset($validated['gcash_number']);
+        }
 
         // Update is_active status
         $validated['is_active'] = $request->has('is_active') ? true : false;
@@ -306,6 +355,23 @@ class BranchController extends Controller
     }
 
     /**
+     * Reset branch password
+     */
+    public function resetPassword(Request $request, Branch $branch)
+    {
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $branch->update([
+            'password' => bcrypt($request->password),
+        ]);
+
+        return redirect()->route('admin.branches.edit', $branch)
+            ->with('success', 'Branch password reset successfully!');
+    }
+
+    /**
      * Get branch staff
      */
     public function staff(Branch $branch)
@@ -328,73 +394,137 @@ class BranchController extends Controller
     /**
      * Get branch analytics
      */
-    public function analytics(Branch $branch)
+    public function analytics(Branch $branch, Request $request)
     {
-        // Get last 6 months of data
-        $months = [];
-        $laundriesData = [];
-        $revenueData = [];
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth());
+        $endDate = $request->input('end_date', Carbon::now());
+        
+        $startDate = Carbon::parse($startDate)->startOfDay();
+        $endDate = Carbon::parse($endDate)->endOfDay();
 
-        for ($i = 5; $i >= 0; $i--) {
-            $month = Carbon::now()->subMonths($i);
-            $monthName = $month->format('M Y');
+        // KPI Statistics
+        $laundries = $branch->laundries()
+            ->whereBetween('created_at', [$startDate, $endDate]);
+        
+        $stats = [
+            'total_laundries' => $laundries->count(),
+            'completed_laundries' => (clone $laundries)->where('status', 'completed')->count(),
+            'laundry_revenue' => $laundries->sum('total_amount'),
+            'retail_sales' => \App\Models\RetailSale::where('branch_id', $branch->id)
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->sum('total_amount'),
+            'retail_count' => \App\Models\RetailSale::where('branch_id', $branch->id)
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->count(),
+            'total_customers' => $laundries->distinct('customer_id')->count('customer_id'),
+            'total_expenses' => \App\Models\Expense::where('branch_id', $branch->id)
+                ->whereBetween('expense_date', [$startDate, $endDate])
+                ->sum('amount'),
+            'expense_count' => \App\Models\Expense::where('branch_id', $branch->id)
+                ->whereBetween('expense_date', [$startDate, $endDate])
+                ->count(),
+        ];
+        
+        $stats['total_revenue'] = $stats['laundry_revenue'] + $stats['retail_sales'];
+        $stats['total_profit'] = $stats['total_revenue'] - $stats['total_expenses'];
+        $stats['profit_margin'] = $stats['total_revenue'] > 0 
+            ? round(($stats['total_profit'] / $stats['total_revenue']) * 100, 1) 
+            : 0;
 
-            $laundriesCount = $branch->laundries()
-                ->whereMonth('created_at', $month->month)
-                ->whereYear('created_at', $month->year)
-                ->count();
-
-            $revenue = $branch->laundries()
-                ->whereMonth('created_at', $month->month)
-                ->whereYear('created_at', $month->year)
-                ->sum('total_amount');
-
-            $months[] = $monthName;
-            $laundriesData[] = $laundriesCount;
-            $revenueData[] = $revenue;
-        }
-
-        // Get daily data for current month
+        // Revenue Trend (Daily)
         $days = [];
-        $dailyLaundries = [];
-        $dailyRevenue = [];
-
-        for ($i = 6; $i >= 0; $i--) {
-            $day = Carbon::now()->subDays($i);
-            $dayName = $day->format('D');
-
-            $laundriesCount = $branch->laundries()
-                ->whereDate('created_at', $day->toDateString())
-                ->count();
-
-            $revenue = $branch->laundries()
-                ->whereDate('created_at', $day->toDateString())
+        $laundryRevenue = [];
+        $retailRevenue = [];
+        
+        $period = Carbon::parse($startDate);
+        while ($period <= $endDate) {
+            $days[] = $period->format('M d');
+            
+            $laundryRevenue[] = $branch->laundries()
+                ->whereDate('created_at', $period)
                 ->sum('total_amount');
-
-            $days[] = $dayName;
-            $dailyLaundries[] = $laundriesCount;
-            $dailyRevenue[] = $revenue;
+            
+            $retailRevenue[] = \App\Models\RetailSale::where('branch_id', $branch->id)
+                ->whereDate('created_at', $period)
+                ->sum('total_amount');
+            
+            $period->addDay();
         }
 
-        // Top services
-        $topServices = $branch->laundries()
+        // Service Performance
+        $servicePerformance = $branch->laundries()
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->with('service')
-            ->selectRaw('service_id, count(*) as laundry_count, sum(total_amount) as revenue')
+            ->select('service_id')
+            ->selectRaw('COUNT(*) as order_count')
+            ->selectRaw('SUM(total_amount) as revenue')
             ->groupBy('service_id')
-            ->orderByDesc('laundry_count')
-            ->take(5)
+            ->orderByDesc('order_count')
             ->get();
 
-        return view('admin.branches.analytics', compact(
-            'branch',
-            'months',
-            'laundriesData',
-            'revenueData',
-            'days',
-            'dailyLaundries',
-            'dailyRevenue',
-            'topServices'
-        ));
+        // Daily Orders
+        $dailyOrders = [];
+        $period = Carbon::parse($startDate);
+        while ($period <= $endDate) {
+            $dailyOrders[] = $branch->laundries()
+                ->whereDate('created_at', $period)
+                ->count();
+            $period->addDay();
+        }
+
+        // Expense Categories
+        $expenseCategories = \App\Models\Expense::where('branch_id', $branch->id)
+            ->whereBetween('expense_date', [$startDate, $endDate])
+            ->with('category')
+            ->select('expense_category_id')
+            ->selectRaw('SUM(amount) as total')
+            ->groupBy('expense_category_id')
+            ->orderByDesc('total')
+            ->get();
+
+        // Top Customers
+        $topCustomers = \App\Models\Customer::whereHas('laundries', function($q) use ($branch, $startDate, $endDate) {
+                $q->where('branch_id', $branch->id)
+                  ->whereBetween('created_at', [$startDate, $endDate]);
+            })
+            ->withCount(['laundries as order_count' => function($q) use ($branch, $startDate, $endDate) {
+                $q->where('branch_id', $branch->id)
+                  ->whereBetween('created_at', [$startDate, $endDate]);
+            }])
+            ->withSum(['laundries as total_spent' => function($q) use ($branch, $startDate, $endDate) {
+                $q->where('branch_id', $branch->id)
+                  ->whereBetween('created_at', [$startDate, $endDate]);
+            }], 'total_amount')
+            ->orderByDesc('total_spent')
+            ->take(10)
+            ->get();
+
+        // Chart Data
+        $chartData = [
+            'revenueTrend' => [
+                'labels' => $days,
+                'laundry' => $laundryRevenue,
+                'retail' => $retailRevenue,
+            ],
+            'revenueBreakdown' => [
+                'laundry' => $stats['laundry_revenue'],
+                'retail' => $stats['retail_sales'],
+            ],
+            'servicePerformance' => [
+                'labels' => $servicePerformance->pluck('service.name')->toArray(),
+                'orders' => $servicePerformance->pluck('order_count')->toArray(),
+            ],
+            'dailyOrders' => [
+                'labels' => $days,
+                'data' => $dailyOrders,
+            ],
+            'expenseCategories' => [
+                'labels' => $expenseCategories->pluck('category.name')->toArray(),
+                'data' => $expenseCategories->pluck('total')->toArray(),
+            ],
+        ];
+
+        return view('admin.branches.analytics', compact('branch', 'stats', 'chartData', 'topCustomers'));
     }
 
     /**

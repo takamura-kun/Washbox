@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Admin Login - WashBox</title>
     <link href="{{ asset('assets/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('assets/bootstrap-icons/font/bootstrap-icons.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/bootstrap-icons/bootstrap-icons.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/login.css') }}">
 </head>
 <body class="admin-bg">
@@ -147,9 +147,9 @@
 
                 <div class="text-center mt-3">
                     <p class="mb-0">
-                        <span class="role-switch-link">Staff member?</span>
-                        <a href="{{ route('staff.login') }}" class="role-switch-link fw-bold ms-1">
-                            Go to Staff Login →
+                        <span class="role-switch-link">Branch staff?</span>
+                        <a href="{{ route('branch.login') }}" class="role-switch-link fw-bold ms-1">
+                            Go to Branch Login →
                         </a>
                     </p>
                 </div>

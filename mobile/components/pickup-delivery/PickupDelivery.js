@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Alert, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import OSMMap from '../common/OSMMap';
 import { LocationService } from '../../services/locationService';
@@ -29,6 +29,11 @@ const PickupDeliveryMap = ({
   const [eta, setEta] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
+  const [tappedLocation, setTappedLocation] = useState(null); // Track tapped location
+  const [centerLocation, setCenterLocation] = useState(null); // Track map center for pin
+  const [showAddressEditModal, setShowAddressEditModal] = useState(false);
+  const [editableAddress, setEditableAddress] = useState('');
+  const [userInputAddress, setUserInputAddress] = useState(''); // Store user's typed address
 
   useEffect(() => {
     initializeMap();
@@ -108,6 +113,95 @@ const PickupDeliveryMap = ({
     onLocationSelect?.(marker);
   };
 
+  const handleMapPress = async (event) => {
+    if (!interactive) return;
+    
+    // react-native-maps provides coordinate in event.nativeEvent
+    const coordinate = event?.nativeEvent?.coordinate;
+    
+    if (!coordinate) {
+      console.log('No coordinate from map press event');
+      return;
+    }
+    
+    console.log('Map tapped at:', coordinate);
+    
+    // Get address from coordinates (reverse geocoding)
+    let address = 'Selected Location';
+    try {
+      address = await LocationService.getAddressFromCoordinate(coordinate);
+    } catch (error) {
+      console.error('Error getting address:', error);
+    }
+    
+    // Store the tapped location with geotag data
+    const geotaggedLocation = {
+      ...coordinate,
+      timestamp: new Date().toISOString(),
+      accuracy: 'manual', // User tapped on map
+      address,
+    };
+    
+    setTappedLocation(geotaggedLocation);
+    
+    // Create a marker object for the tapped location with geotag info
+    const marker = {
+      coordinate,
+      title: address,
+      type: 'pickup',
+      geotag: geotaggedLocation,
+    };
+    
+    setSelectedMarker(marker);
+    onLocationSelect?.(marker);
+  };
+
+  const handleRegionChange = (newRegion) => {
+    setRegion(newRegion);
+    // Track center for the center pin feature
+    if (newRegion && interactive) {
+      setCenterLocation({
+        latitude: newRegion.latitude,
+        longitude: newRegion.longitude,
+      });
+    }
+  };
+
+  const handleConfirmCenterLocation = async () => {
+    if (!centerLocation) return;
+    
+    console.log('Center location confirmed:', centerLocation);
+    
+    // Get address from coordinates (reverse geocoding)
+    let address = 'Selected Location';
+    try {
+      address = await LocationService.getAddressFromCoordinate(centerLocation);
+    } catch (error) {
+      console.error('Error getting address:', error);
+    }
+    
+    // Store as tapped location with geotag data
+    const geotaggedLocation = {
+      ...centerLocation,
+      timestamp: new Date().toISOString(),
+      accuracy: 'manual', // User manually selected
+      address,
+    };
+    
+    setTappedLocation(geotaggedLocation);
+    
+    // Create marker with geotag info
+    const marker = {
+      coordinate: centerLocation,
+      title: address,
+      type: 'pickup',
+      geotag: geotaggedLocation,
+    };
+    
+    setSelectedMarker(marker);
+    onLocationSelect?.(marker);
+  };
+
   const handleCenterUser = async () => {
     try {
       const location = await LocationService.getCurrentLocation();
@@ -145,8 +239,19 @@ const PickupDeliveryMap = ({
       });
     }
 
+    // Show tapped location marker if exists
+    if (tappedLocation) {
+      markers.push({
+        coordinate: tappedLocation,
+        title: 'Selected Location',
+        type: 'pickup',
+        customIcon: true,
+        isActive: true,
+      });
+    }
+
     // Pickup marker — always shown when available
-    if (pickupLocation) {
+    if (pickupLocation && !tappedLocation) {
       markers.push({
         coordinate: pickupLocation,
         title: 'Pickup Location',
@@ -228,11 +333,235 @@ const PickupDeliveryMap = ({
         polylines={getPolylines()}
         circles={getCircles()}
         onMarkerPress={handleMarkerPress}
-        onRegionChange={setRegion}
+        onMapPress={handleMapPress}
+        onRegionChange={handleRegionChange}
         zoomEnabled={interactive}
         scrollEnabled={interactive}
         style={styles.map}
       />
+
+      {/* Center Pin with Edit Icon - Tap to input address */}
+      {interactive && !tappedLocation && (
+        <View style={styles.centerPinContainer} pointerEvents="box-none">
+          <TouchableOpacity 
+            style={styles.centerPin}
+            onPress={() => {
+              console.log('Pin icon tapped, opening address input');
+              setEditableAddress(userInputAddress || '');
+              setShowAddressEditModal(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.pinIconWrapper}>
+              <Ionicons name="location" size={40} color="#10B981" />
+              <View style={styles.pinEditBadge}>
+                <Ionicons name="pencil" size={14} color="#FFF" />
+              </View>
+            </View>
+          </TouchableOpacity>
+          <View style={styles.centerPinShadow} pointerEvents="none" />
+        </View>
+      )}
+
+      {/* Live Coordinates Display and Pin Button */}
+      {interactive && centerLocation && !tappedLocation && (
+        <View style={styles.confirmCenterWrapper}>
+          <View style={styles.geotagInfo}>
+            <View style={styles.geotagRow}>
+              <Ionicons name="navigate" size={14} color="#10B981" />
+              <Text style={styles.geotagText}>
+                {centerLocation.latitude.toFixed(6)}, {centerLocation.longitude.toFixed(6)}
+              </Text>
+            </View>
+            {userInputAddress ? (
+              <View style={styles.geotagRow}>
+                <Ionicons name="document-text" size={14} color="#0EA5E9" />
+                <Text style={styles.addressPreview} numberOfLines={1}>
+                  {userInputAddress}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.geotagRow}>
+                <Ionicons name="hand-left-outline" size={14} color="#94A3B8" />
+                <Text style={styles.geotagSubtext}>Tap pin icon to enter address</Text>
+              </View>
+            )}
+          </View>
+          
+          {userInputAddress && (
+            <TouchableOpacity 
+              style={styles.confirmCenterButton}
+              onPress={() => {
+                if (!centerLocation || !userInputAddress) return;
+                
+                console.log('Pin This Location tapped:', {
+                  address: userInputAddress,
+                  coordinates: centerLocation,
+                });
+                
+                // Create geotagged location with user's manually typed address
+                const geotaggedLocation = {
+                  latitude: centerLocation.latitude,
+                  longitude: centerLocation.longitude,
+                  timestamp: new Date().toISOString(),
+                  accuracy: 'manual',
+                  address: userInputAddress,
+                  manuallyEdited: true, // CRITICAL: Mark as manually edited
+                  geotag: {
+                    latitude: centerLocation.latitude,
+                    longitude: centerLocation.longitude,
+                    address: userInputAddress,
+                    timestamp: new Date().toISOString(),
+                    accuracy: 'manual',
+                    manuallyEdited: true, // CRITICAL: Mark as manually edited
+                  },
+                };
+                
+                setTappedLocation(geotaggedLocation);
+                
+                // Create marker with complete geotag info
+                const marker = {
+                  coordinate: centerLocation,
+                  title: userInputAddress,
+                  type: 'pickup',
+                  geotag: geotaggedLocation.geotag,
+                };
+                
+                console.log('Marker being sent to parent:', marker);
+                setSelectedMarker(marker);
+                onLocationSelect?.(marker);
+              }}
+              activeOpacity={0.85}
+            >
+              <View style={styles.confirmCenterContent}>
+                <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+                <Text style={styles.confirmCenterText}>Pin This Location</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Geotagged Location Confirmation */}
+      {tappedLocation && tappedLocation.geotag && (
+        <View style={styles.geotagConfirmation}>
+          <View style={styles.geotagConfirmHeader}>
+            <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+            <Text style={styles.geotagConfirmTitle}>Location Pinned</Text>
+            <TouchableOpacity 
+              style={styles.editAddressButton}
+              onPress={() => {
+                setEditableAddress(tappedLocation.address || '');
+                setShowAddressEditModal(true);
+              }}
+            >
+              <Ionicons name="pencil" size={16} color="#0EA5E9" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.geotagDetails}>
+            <View style={styles.geotagDetailRow}>
+              <Ionicons name="location" size={14} color="#0EA5E9" />
+              <Text style={styles.geotagDetailText} numberOfLines={2}>
+                {tappedLocation.address || 'Selected Location'}
+              </Text>
+            </View>
+            <View style={styles.geotagDetailRow}>
+              <Ionicons name="navigate" size={14} color="#10B981" />
+              <Text style={styles.geotagDetailText}>
+                {tappedLocation.latitude.toFixed(6)}, {tappedLocation.longitude.toFixed(6)}
+              </Text>
+            </View>
+            <View style={styles.geotagDetailRow}>
+              <Ionicons name="time-outline" size={14} color="#94A3B8" />
+              <Text style={styles.geotagDetailText}>
+                {new Date(tappedLocation.timestamp).toLocaleTimeString()}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Address Edit Modal */}
+      <Modal
+        visible={showAddressEditModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddressEditModal(false)}
+      >
+        <KeyboardAvoidingView 
+          style={styles.addressModalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.addressModalContent}>
+            <View style={styles.addressModalHeader}>
+              <View style={styles.addressModalTitleRow}>
+                <Ionicons name="create-outline" size={24} color="#0EA5E9" />
+                <Text style={styles.addressModalTitle}>Edit Address</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => setShowAddressEditModal(false)}
+                style={styles.addressModalClose}
+              >
+                <Ionicons name="close" size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.addressInputContainer}>
+              <Text style={styles.addressInputLabel}>Full Address</Text>
+              <TextInput
+                style={styles.addressInput}
+                value={editableAddress}
+                onChangeText={setEditableAddress}
+                placeholder="Enter complete address..."
+                placeholderTextColor="#64748B"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+              <Text style={styles.addressInputHint}>
+                📍 Enter your complete address. You can adjust the pin position on the map after saving.
+              </Text>
+            </View>
+
+            {centerLocation && (
+              <View style={styles.coordinatesDisplay}>
+                <Ionicons name="navigate" size={16} color="#10B981" />
+                <Text style={styles.coordinatesText}>
+                  Current Pin: {centerLocation.latitude.toFixed(6)}, {centerLocation.longitude.toFixed(6)}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.addressModalActions}>
+              <TouchableOpacity 
+                style={styles.addressCancelButton}
+                onPress={() => setShowAddressEditModal(false)}
+              >
+                <Text style={styles.addressCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.addressSaveButton}
+                onPress={() => {
+                  if (editableAddress.trim()) {
+                    setUserInputAddress(editableAddress.trim());
+                    setShowAddressEditModal(false);
+                    Alert.alert(
+                      'Address Saved',
+                      'Now drag the map to adjust the pin position, then tap "Pin This Location" to confirm.',
+                      [{ text: 'OK' }]
+                    );
+                  } else {
+                    Alert.alert('Invalid Address', 'Please enter a valid address');
+                  }
+                }}
+              >
+                <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+                <Text style={styles.addressSaveText}>Save Address</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Controls */}
       <View style={styles.controls}>
@@ -337,6 +666,263 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#94A3B8',
     marginLeft: 22,
+  },
+  centerPinContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginLeft: -20,
+    marginTop: -40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerPin: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  pinIconWrapper: {
+    position: 'relative',
+  },
+  pinEditBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#0EA5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#0F1332',
+  },
+  centerPinShadow: {
+    width: 20,
+    height: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    marginTop: -8,
+  },
+  confirmCenterWrapper: {
+    position: 'absolute',
+    bottom: 80,
+    left: 16,
+    right: 16,
+    gap: 8,
+  },
+  geotagInfo: {
+    backgroundColor: '#0F1332',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    gap: 6,
+  },
+  geotagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  geotagText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#10B981',
+    fontFamily: 'monospace',
+  },
+  geotagSubtext: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  addressPreview: {
+    fontSize: 12,
+    color: '#0EA5E9',
+    fontWeight: '600',
+    flex: 1,
+  },
+  confirmCenterButton: {
+    backgroundColor: '#10B981',
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  confirmCenterContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  confirmCenterText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  geotagConfirmation: {
+    position: 'absolute',
+    bottom: 80,
+    left: 16,
+    right: 16,
+    backgroundColor: '#0F1332',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  geotagConfirmHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  geotagConfirmTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#10B981',
+    flex: 1,
+  },
+  editAddressButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(14, 165, 233, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  geotagDetails: {
+    gap: 8,
+  },
+  geotagDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  geotagDetailText: {
+    fontSize: 12,
+    color: '#F1F5F9',
+    flex: 1,
+  },
+  addressModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  addressModalContent: {
+    backgroundColor: '#0F1332',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    maxHeight: '80%',
+  },
+  addressModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  addressModalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  addressModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#F1F5F9',
+  },
+  addressModalClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#171D45',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addressInputContainer: {
+    marginBottom: 20,
+  },
+  addressInputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  addressInput: {
+    backgroundColor: '#171D45',
+    borderRadius: 12,
+    padding: 16,
+    color: '#F1F5F9',
+    fontSize: 15,
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.3)',
+  },
+  addressInputHint: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  coordinatesDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  coordinatesText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#10B981',
+    fontFamily: 'monospace',
+  },
+  addressModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  addressCancelButton: {
+    flex: 1,
+    backgroundColor: '#171D45',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1E293B',
+  },
+  addressCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  addressSaveButton: {
+    flex: 2,
+    backgroundColor: '#0EA5E9',
+    paddingVertical: 14,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  addressSaveText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });
 

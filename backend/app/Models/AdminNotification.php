@@ -91,13 +91,18 @@ class AdminNotification extends Model
 
     public function getTimeAgoAttribute()
     {
-        // FIX: Check if created_at exists before calling diffForHumans()
+        // FIX: Ensure created_at is a valid Carbon instance
         if (!$this->created_at) {
-            return 'Just now'; // Default value for null dates
+            return 'Just now';
         }
 
         try {
-            return $this->created_at->diffForHumans();
+            // Ensure it's a Carbon instance
+            $createdAt = $this->created_at instanceof Carbon 
+                ? $this->created_at 
+                : Carbon::parse($this->created_at);
+            
+            return $createdAt->diffForHumans();
         } catch (\Exception $e) {
             return 'Recently';
         }
@@ -135,7 +140,11 @@ class AdminNotification extends Model
         }
 
         try {
-            return $this->created_at->format('Y-m-d H:i:s');
+            $createdAt = $this->created_at instanceof Carbon 
+                ? $this->created_at 
+                : Carbon::parse($this->created_at);
+            
+            return $createdAt->format('Y-m-d H:i:s');
         } catch (\Exception $e) {
             return null;
         }
@@ -149,7 +158,11 @@ class AdminNotification extends Model
         }
 
         try {
-            return $this->created_at->format('M d, Y h:i A');
+            $createdAt = $this->created_at instanceof Carbon 
+                ? $this->created_at 
+                : Carbon::parse($this->created_at);
+            
+            return $createdAt->format('M d, Y h:i A');
         } catch (\Exception $e) {
             return 'Date unavailable';
         }

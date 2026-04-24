@@ -10,6 +10,7 @@ import {
   Platform,
   Image,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -64,6 +65,7 @@ export default function PickupDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [showFullImage, setShowFullImage] = useState(false);
 
   const fetchPickup = useCallback(async () => {
     try {
@@ -94,6 +96,7 @@ export default function PickupDetailScreen() {
           setPickup({
             ...pickupData,
             laundry: laundryData,
+            service: pickupData.service || null, // Include service data
           });
         }
       } else if (response.status === 401) {
@@ -353,13 +356,20 @@ export default function PickupDetailScreen() {
               <Ionicons name="checkmark-circle" size={20} color={COLORS.pickup} />
               <Text style={styles.proofBannerText}>Your laundry has arrived at our shop!</Text>
             </View>
-            <View style={styles.proofImageContainer}>
+            <TouchableOpacity
+              style={styles.proofImageContainer}
+              onPress={() => setShowFullImage(true)}
+              activeOpacity={0.8}
+            >
               <Image
                 source={{ uri: pickup.pickup_proof_photo_url }}
                 style={styles.proofImage}
                 resizeMode="cover"
               />
-            </View>
+              <View style={styles.proofOverlay}>
+                <Ionicons name="expand" size={24} color="#FFF" />
+              </View>
+            </TouchableOpacity>
             {pickup.proof_uploaded_at && (
               <View style={styles.proofFooter}>
                 <Ionicons name="time-outline" size={14} color={COLORS.textMuted} />
@@ -370,6 +380,35 @@ export default function PickupDetailScreen() {
             )}
           </View>
         )}
+
+        {/* ─── Full Image Modal ─── */}
+        <Modal
+          visible={showFullImage}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowFullImage(false)}
+        >
+          <View style={styles.modalContainer}>
+            <TouchableOpacity
+              style={styles.modalBackdrop}
+              onPress={() => setShowFullImage(false)}
+              activeOpacity={1}
+            />
+            <View style={styles.modalContent}>
+              <TouchableOpacity
+                style={styles.modalClose}
+                onPress={() => setShowFullImage(false)}
+              >
+                <Ionicons name="close" size={28} color="#FFF" />
+              </TouchableOpacity>
+              <Image
+                source={{ uri: pickup.pickup_proof_photo_url }}
+                style={styles.fullImage}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+        </Modal>
 
         {/* ─── Address ─── */}
         <View style={styles.card}>
@@ -410,6 +449,65 @@ export default function PickupDetailScreen() {
             </View>
           </View>
         </View>
+
+        {/* ─── Service Information ─── */}
+        {pickup.service && (
+          <View style={styles.card}>
+            <View style={styles.serviceHeader}>
+              <Ionicons name="shirt-outline" size={18} color={COLORS.purple} />
+              <Text style={styles.sectionTitle}>Selected Service</Text>
+            </View>
+            <View style={styles.serviceBanner}>
+              <View style={styles.serviceIconCircle}>
+                <Ionicons 
+                  name={
+                    pickup.service.name?.toLowerCase().includes('wash') ? 'water' :
+                    pickup.service.name?.toLowerCase().includes('dry') ? 'sunny' :
+                    pickup.service.name?.toLowerCase().includes('iron') ? 'flame' :
+                    pickup.service.name?.toLowerCase().includes('fold') ? 'layers' :
+                    'shirt'
+                  } 
+                  size={24} 
+                  color={COLORS.purple} 
+                />
+              </View>
+              <View style={styles.serviceContent}>
+                <Text style={styles.serviceName}>{pickup.service.name}</Text>
+                {pickup.service.description && (
+                  <Text style={styles.serviceDescription} numberOfLines={2}>
+                    {pickup.service.description}
+                  </Text>
+                )}
+                <View style={styles.servicePricing}>
+                  {pickup.service.price_per_kilo && (
+                    <View style={styles.servicePriceTag}>
+                      <Ionicons name="pricetag" size={12} color={COLORS.purple} />
+                      <Text style={styles.servicePriceText}>
+                        ₱{parseFloat(pickup.service.price_per_kilo).toFixed(2)} / kg
+                      </Text>
+                    </View>
+                  )}
+                  {pickup.service.price_per_load && (
+                    <View style={styles.servicePriceTag}>
+                      <Ionicons name="pricetag" size={12} color={COLORS.purple} />
+                      <Text style={styles.servicePriceText}>
+                        ₱{parseFloat(pickup.service.price_per_load).toFixed(2)} / load
+                      </Text>
+                    </View>
+                  )}
+                  {pickup.service.turnaround_time && (
+                    <View style={styles.serviceTimeTag}>
+                      <Ionicons name="time-outline" size={12} color={COLORS.textMuted} />
+                      <Text style={styles.serviceTimeText}>
+                        {pickup.service.turnaround_time}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* ─── Linked Laundry Order ─── */}
         {pickup.laundries_id && (
@@ -677,9 +775,16 @@ const styles = StyleSheet.create({
     borderRadius: 12, overflow: 'hidden',
     backgroundColor: COLORS.surfaceElevated,
     borderWidth: 1, borderColor: COLORS.borderLight,
+    position: 'relative',
   },
   proofImage: {
-    width: '100%', height: 240,
+    width: '100%', height: 160,
+  },
+  proofOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center', alignItems: 'center',
   },
   proofFooter: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -726,5 +831,115 @@ const styles = StyleSheet.create({
   },
   viewLaundryText: {
     fontSize: 15, fontWeight: '700', color: '#FFF',
+  },
+
+  // Modal
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+  },
+  modalContent: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalClose: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: 20,
+    zIndex: 10,
+    width: 44, height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '80%',
+  },
+
+  // Service Information
+  serviceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  serviceBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+    backgroundColor: COLORS.purpleGlow,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.purple + '30',
+  },
+  serviceIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.purple + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  serviceContent: {
+    flex: 1,
+  },
+  serviceName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  serviceDescription: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  servicePricing: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  servicePriceTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.purple + '20',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.purple + '40',
+  },
+  servicePriceText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.purple,
+  },
+  serviceTimeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.surfaceElevated,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  serviceTimeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textMuted,
   },
 });

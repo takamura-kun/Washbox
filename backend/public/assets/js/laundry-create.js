@@ -101,6 +101,7 @@ class LaundryCreateManager {
         // Form elements
         this.form = document.getElementById('laundryForm') || document.getElementById('laundryForm');
         this.serviceSelect = document.getElementById('serviceSelect');
+        this.lockedServiceInput = document.querySelector('input[name="service_id"][type="hidden"]');
         this.promotionSelect = document.getElementById('promotionSelect');
         this.weightInput = document.getElementById('weightInput');
         this.loadsInput = document.getElementById('loadsInput');
@@ -203,6 +204,42 @@ class LaundryCreateManager {
                 this.updateWeightSummary();
             });
         }
+
+        // Extra services toggle - support both admin and branch IDs
+        const extraServicesOption = document.getElementById('extraServicesOption') || document.getElementById('useExtraServices');
+        const extraLoadsOption = document.getElementById('extraLoadsOption') || document.getElementById('useExtraLoads');
+        const extraServicesContainer = document.getElementById('extraServicesContainer');
+        
+        if (extraServicesOption && extraServicesContainer) {
+            extraServicesOption.addEventListener('change', () => {
+                if (extraServicesOption.checked) {
+                    extraServicesContainer.style.display = 'block';
+                } else {
+                    extraServicesContainer.style.display = 'none';
+                }
+                this.updatePrice();
+            });
+        }
+        
+        if (extraLoadsOption && extraServicesContainer) {
+            extraLoadsOption.addEventListener('change', () => {
+                if (extraLoadsOption.checked) {
+                    extraServicesContainer.style.display = 'none';
+                    // Clear all extra service checkboxes
+                    document.querySelectorAll('.extra-service-checkbox, .extra-service-check').forEach(cb => cb.checked = false);
+                    this.updateExtraServicesTotal();
+                }
+                this.updatePrice();
+            });
+        }
+        
+        // Extra service checkboxes - support both class names
+        document.querySelectorAll('.extra-service-checkbox, .extra-service-check').forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                this.updateExtraServicesTotal();
+                this.updatePrice();
+            });
+        });
 
         // Loads input
         if (this.loadsInput) {
@@ -568,9 +605,34 @@ initAddonQuantityControls() {
     }
 
     updatePricingFields() {
-        if (!this.serviceSelect) return;
+        // Handle both regular select and locked service
+        let selected = null;
+        let serviceData = {};
+        
+        if (this.serviceSelect && this.serviceSelect.options[this.serviceSelect.selectedIndex]?.value) {
+            selected = this.serviceSelect.options[this.serviceSelect.selectedIndex];
+            serviceData = {
+                value: selected.value,
+                pricingType: selected.dataset.pricingType,
+                serviceType: selected.dataset.serviceType,
+                maxWeight: parseFloat(selected.dataset.maxWeight) || 0,
+                minWeight: parseFloat(selected.dataset.minWeight) || 0,
+                turnaround: selected.dataset.turnaroundTime || 24,
+                category: selected.dataset.category || ''
+            };
+        } else if (this.lockedServiceInput && this.lockedServiceInput.value) {
+            // Locked service from pickup
+            serviceData = {
+                value: this.lockedServiceInput.value,
+                pricingType: this.lockedServiceInput.dataset.pricingType || 'per_load',
+                serviceType: this.lockedServiceInput.dataset.serviceType || 'full_service',
+                maxWeight: parseFloat(this.lockedServiceInput.dataset.maxWeight) || 0,
+                minWeight: 0,
+                turnaround: 24,
+                category: 'drop_off'
+            };
+        }
 
-        const selected = this.serviceSelect.options[this.serviceSelect.selectedIndex];
         const promotionSelected = this.promotionSelect?.options[this.promotionSelect.selectedIndex];
 
         const isPerLoadOverride = promotionSelected && promotionSelected.value &&
@@ -606,7 +668,7 @@ initAddonQuantityControls() {
         }
 
         // Normal service selection
-        if (!selected.value) {
+        if (!serviceData.value) {
             this.weightContainer?.classList.add('d-none');
             this.loadsContainer?.classList.add('d-none');
             if (this.extraWeightWarning) this.extraWeightWarning.style.display = 'none';
@@ -614,14 +676,14 @@ initAddonQuantityControls() {
             return;
         }
 
-        const pricingType = selected.dataset.pricingType;
-        const serviceType = selected.dataset.serviceType;
-        const maxWeight = parseFloat(selected.dataset.maxWeight) || 0;
-        const minWeight = parseFloat(selected.dataset.minWeight) || 0;
-        const turnaround = selected.dataset.turnaroundTime || 24;
+        const pricingType = serviceData.pricingType;
+        const serviceType = serviceData.serviceType;
+        const maxWeight = serviceData.maxWeight;
+        const minWeight = serviceData.minWeight;
+        const turnaround = serviceData.turnaround;
 
         // Update service description
-        const category = selected.dataset.category || '';
+        const category = serviceData.category;
         let description = '';
         if (serviceType === 'regular_clothes' || serviceType === 'full_service') {
             description = 'Drop Off — Regular Package';
@@ -708,6 +770,36 @@ initAddonQuantityControls() {
         }
     }
 
+    updateExtraServicesTotal() {
+        let total = 0;
+        const selectedServices = [];
+        
+        // Support both class names
+        document.querySelectorAll('.extra-service-check:checked, .extra-service-checkbox:checked').forEach(checkbox => {
+            const price = parseFloat(checkbox.dataset.price) || 0;
+            const serviceName = checkbox.dataset.name || checkbox.value;
+            total += price;
+            selectedServices.push({ name: serviceName, price: price });
+        });
+        
+        const totalDisplay = document.getElementById('extraServicesTotal');
+        if (totalDisplay) {
+            totalDisplay.textContent = '₱' + total.toFixed(2);
+        }
+        
+        // Update hidden field with JSON data (only if services selected)
+        const extraServicesInput = document.getElementById('extraServicesInput');
+        if (extraServicesInput) {
+            if (selectedServices.length > 0) {
+                extraServicesInput.value = JSON.stringify(selectedServices);
+            } else {
+                extraServicesInput.value = ''; // Empty string, not JSON
+            }
+        }
+        
+        return total;
+    }
+
     /**
      * Calculate add-ons total with quantities - FIXED with debug logs
      */
@@ -751,33 +843,69 @@ initAddonQuantityControls() {
     }
 
     updatePrice() {
-        if (!this.serviceSelect) return;
+        // Handle both regular select and locked service (hidden input)
+        let selected = null;
+        let serviceData = {};
+        
+        if (this.serviceSelect && this.serviceSelect.options[this.serviceSelect.selectedIndex]?.value) {
+            // Regular service select
+            selected = this.serviceSelect.options[this.serviceSelect.selectedIndex];
+            serviceData = {
+                value: selected.value,
+                pricingType: selected.dataset.pricingType,
+                serviceType: selected.dataset.serviceType,
+                pricePerLoad: parseFloat(selected.dataset.pricePerLoad) || 0,
+                pricePerPiece: parseFloat(selected.dataset.pricePerPiece) || 0,
+                maxWeight: parseFloat(selected.dataset.maxWeight) || 0,
+                allowExcessWeight: selected.dataset.allowExcessWeight === '1',
+                excessWeightCharge: parseFloat(selected.dataset.excessWeightCharge) || 0
+            };
+        } else if (this.lockedServiceInput && this.lockedServiceInput.value) {
+            // Locked service from pickup - read from data attributes on hidden input
+            serviceData = {
+                value: this.lockedServiceInput.value,
+                pricingType: this.lockedServiceInput.dataset.pricingType || 'per_load',
+                serviceType: this.lockedServiceInput.dataset.serviceType || 'full_service',
+                pricePerLoad: parseFloat(this.lockedServiceInput.dataset.pricePerLoad) || 0,
+                pricePerPiece: parseFloat(this.lockedServiceInput.dataset.pricePerPiece) || 0,
+                maxWeight: parseFloat(this.lockedServiceInput.dataset.maxWeight) || 0,
+                allowExcessWeight: this.lockedServiceInput.dataset.allowExcessWeight === '1',
+                excessWeightCharge: parseFloat(this.lockedServiceInput.dataset.excessWeightCharge) || 0
+            };
+        }
 
-        const selected = this.serviceSelect.options[this.serviceSelect.selectedIndex];
         const promotionSelected = this.promotionSelect?.options[this.promotionSelect.selectedIndex];
 
         const isPerLoadOverride = promotionSelected && promotionSelected.value &&
                                   promotionSelected.dataset.applicationType === 'per_load_override';
 
-        if (!selected.value && !isPerLoadOverride) {
+        if (!serviceData.value && !isPerLoadOverride) {
             this.resetPriceDisplay();
+            // Still calculate addons so they show in the grand total
+            const addonsOnly = this.calculateAddonsTotal();
+            const pickupFeeOnly = parseFloat(this.pickupFeeInput?.value) || 0;
+            const deliveryFeeOnly = parseFloat(this.deliveryFeeInput?.value) || 0;
+            if (this.totalDisplay) {
+                this.totalDisplay.textContent = '₱' + (addonsOnly + pickupFeeOnly + deliveryFeeOnly).toFixed(2);
+            }
             return;
         }
 
-        const pricingType = selected.dataset.pricingType;
-        const serviceType = selected.dataset.serviceType;
-        const pricePerLoad = parseFloat(selected.dataset.pricePerLoad) || 0;
-        const pricePerPiece = parseFloat(selected.dataset.pricePerPiece) || 0;
-        const maxWeight = parseFloat(selected.dataset.maxWeight) || 0;
+        const pricingType = serviceData.pricingType;
+        const serviceType = serviceData.serviceType;
+        const pricePerLoad = serviceData.pricePerLoad;
+        const pricePerPiece = serviceData.pricePerPiece;
+        const maxWeight = serviceData.maxWeight;
 
         let serviceSubtotal = 0;
         let extraLoads = 0;
         let extraCharge = 0;
+        let excessWeightFee = 0;
         let loads = parseInt(this.loadsInput?.value) || 1;
         let weight = 0;
 
         // Calculate service subtotal
-        if (isPerLoadOverride && !selected.value) {
+        if (isPerLoadOverride && !selected?.value) {
             // This is the fixed price promotion case (no service selected)
             const displayPrice = parseFloat(promotionSelected.dataset.displayPrice) || 0;
             serviceSubtotal = loads * displayPrice;
@@ -793,7 +921,7 @@ initAddonQuantityControls() {
             if (this.serviceBaseInfo) this.serviceBaseInfo.style.display = 'none';
             if (this.loadsBreakdown) this.loadsBreakdown.style.display = 'block';
 
-        } else if (selected.value) {
+        } else if (serviceData.value) {
             // Normal service calculation (with or without promotion)
             const unitPrice = pricingType === 'per_piece' ? pricePerPiece : pricePerLoad;
 
@@ -802,41 +930,141 @@ initAddonQuantityControls() {
                 weight = parseFloat(this.weightInput?.value) || maxWeight;
                 const requiredLoads = Math.ceil(weight / maxWeight);
 
-                if (requiredLoads > loads) {
-                    loads = requiredLoads;
-                    if (this.loadsInput) this.loadsInput.value = loads;
-
-                    // Show extra load warning
-                    if (this.extraWeightWarning) {
-                        this.extraWeightWarning.style.display = 'block';
+                // Excess weight fee mode
+                if (weight > maxWeight && serviceData.allowExcessWeight && serviceData.excessWeightCharge > 0) {
+                    const excess = weight - (maxWeight * loads);
+                    if (excess > 0) {
+                        excessWeightFee = excess * serviceData.excessWeightCharge;
+                        const excessSection = document.getElementById('excessWeightSection');
+                        if (excessSection) excessSection.style.display = 'block';
+                        const excessKgEl = document.getElementById('excessWeightKg');
+                        if (excessKgEl) excessKgEl.textContent = excess.toFixed(2) + ' kg';
+                        const excessFeeEl = document.getElementById('excessWeightFeeDisplay');
+                        if (excessFeeEl) excessFeeEl.textContent = '\u20b1' + excessWeightFee.toFixed(2);
+                        if (this.extraWeightWarning) this.extraWeightWarning.style.display = 'block';
                         if (this.extraWeightMessage) {
-                            this.extraWeightMessage.textContent =
-                                `Weight (${weight.toFixed(1)}kg) exceeds ${maxWeight}kg per load.`;
+                            this.extraWeightMessage.textContent = `Weight (${weight.toFixed(1)}kg) exceeds ${maxWeight}kg limit. Excess: ${excess.toFixed(2)}kg × ₱${serviceData.excessWeightCharge}/kg = ₱${excessWeightFee.toFixed(2)}`;
                         }
+                    } else {
+                        const excessSection = document.getElementById('excessWeightSection');
+                        if (excessSection) excessSection.style.display = 'none';
+                    }
+                } else if (requiredLoads > loads) {
+                    const useExtraServices = document.getElementById('extraServicesOption') || document.getElementById('useExtraServices');
+                    
+                    // Update message to show actual excess
+                    if (this.extraWeightMessage) {
+                        this.extraWeightMessage.textContent = `⚠️ Weight (${weight.toFixed(1)}kg) exceeds ${maxWeight}kg limit. Choose an option above.`;
+                        this.extraWeightMessage.classList.add('text-warning', 'fw-bold');
+                    }
+                    
+                    if (useExtraServices) {
+                        // Use extra services instead of extra loads
+                        const extraServicesTotal = this.updateExtraServicesTotal();
+                        extraCharge = extraServicesTotal;
+                        
+                        if (this.autoExtraLoad) {
+                            const checkedServices = document.querySelectorAll('.extra-service-check:checked');
+                            if (checkedServices.length > 0) {
+                                const serviceNames = Array.from(checkedServices).map(cb => {
+                                    const label = document.querySelector(`label[for="${cb.id}"]`);
+                                    return label ? label.textContent.trim().split('₱')[0].trim() : cb.value;
+                                }).join(', ');
+                                this.autoExtraLoad.textContent = `Selected: ${serviceNames} (Total: ₱${extraServicesTotal.toFixed(2)})`;
+                            } else {
+                                this.autoExtraLoad.textContent = 'Please select at least one extra service.';
+                            }
+                            this.autoExtraLoad.classList.add('text-success');
+                        }
+                        
+                        if (this.extraLoadsSection) {
+                            this.extraLoadsSection.style.display = extraServicesTotal > 0 ? 'block' : 'none';
+                            if (this.extraLoadsCount) {
+                                this.extraLoadsCount.textContent = 'Extra Services';
+                            }
+                            if (this.extraLoadsCharge) {
+                                this.extraLoadsCharge.textContent = '₱' + extraServicesTotal.toFixed(2);
+                            }
+                        }
+                    } else {
+                        // Use extra loads (existing behavior)
+                        loads = requiredLoads;
+                        if (this.loadsInput) this.loadsInput.value = loads;
+
                         if (this.autoExtraLoad) {
                             this.autoExtraLoad.textContent = `Auto-adjusted to ${loads} load(s).`;
+                            this.autoExtraLoad.classList.add('text-info');
+                        }
+
+                        extraLoads = loads - 1;
+                        extraCharge = extraLoads * unitPrice;
+
+                        if (this.extraLoadsSection) {
+                            this.extraLoadsSection.style.display = 'block';
+                            if (this.extraLoadsCount) {
+                                this.extraLoadsCount.textContent = extraLoads + ' extra load(s)';
+                            }
+                            if (this.extraLoadsCharge) {
+                                this.extraLoadsCharge.textContent = '₱' + extraCharge.toFixed(2);
+                            }
                         }
                     }
-
-                    extraLoads = loads - 1;
-                    extraCharge = extraLoads * unitPrice;
-
-                    if (this.extraLoadsSection) {
-                        this.extraLoadsSection.style.display = 'block';
-                        if (this.extraLoadsCount) {
-                            this.extraLoadsCount.textContent = extraLoads + ' extra load(s)';
-                        }
-                        if (this.extraLoadsCharge) {
-                            this.extraLoadsCharge.textContent = '₱' + extraCharge.toFixed(2);
+                } // end excess weight fee mode
+                else {
+                    // Weight is within limit - but still allow extra services
+                    const useExtraServices = document.getElementById('extraServicesOption') || document.getElementById('useExtraServices');
+                    if (useExtraServices) {
+                        const extraServicesTotal = this.updateExtraServicesTotal();
+                        extraCharge = extraServicesTotal;
+                        
+                        if (this.extraLoadsSection) {
+                            this.extraLoadsSection.style.display = extraServicesTotal > 0 ? 'block' : 'none';
+                            if (this.extraLoadsCount) {
+                                this.extraLoadsCount.textContent = 'Extra Services';
+                            }
+                            if (this.extraLoadsCharge) {
+                                this.extraLoadsCharge.textContent = '₱' + extraServicesTotal.toFixed(2);
+                            }
                         }
                     }
-                } else {
-                    if (this.extraWeightWarning) this.extraWeightWarning.style.display = 'none';
-                    if (this.extraLoadsSection) this.extraLoadsSection.style.display = 'none';
+                    
+                    // Weight is within limit - show default message
+                    if (this.extraWeightMessage) {
+                        this.extraWeightMessage.textContent = 'Select a service and enter weight to see options.';
+                        this.extraWeightMessage.classList.remove('text-warning', 'fw-bold');
+                    }
+                    if (this.autoExtraLoad && !useExtraServices) {
+                        this.autoExtraLoad.textContent = '';
+                    }
+                    
+                    if (!useExtraServices && this.extraLoadsSection) {
+                        this.extraLoadsSection.style.display = 'none';
+                    }
+                    const excessSection = document.getElementById('excessWeightSection');
+                    if (excessSection) excessSection.style.display = 'none';
                 }
             }
 
             serviceSubtotal = loads * unitPrice;
+
+            // Check for extra services selection (for all service types)
+            const useExtraServices = document.getElementById('extraServicesOption') || document.getElementById('useExtraServices');
+            if (useExtraServices && useExtraServices.checked) {
+                const extraServicesTotal = this.updateExtraServicesTotal();
+                if (extraServicesTotal > 0) {
+                    extraCharge = extraServicesTotal;
+                    
+                    if (this.extraLoadsSection) {
+                        this.extraLoadsSection.style.display = 'block';
+                        if (this.extraLoadsCount) {
+                            this.extraLoadsCount.textContent = 'Extra Services';
+                        }
+                        if (this.extraLoadsCharge) {
+                            this.extraLoadsCharge.textContent = '₱' + extraServicesTotal.toFixed(2);
+                        }
+                    }
+                }
+            }
 
             // Update displays based on pricing type
             if (pricingType === 'per_piece' || serviceType === 'special_item') {
@@ -863,7 +1091,7 @@ initAddonQuantityControls() {
         const addonsTotal = this.calculateAddonsTotal();
 
         // Calculate promotion discount (for percentage promotions only)
-        const promotionResult = this.calculatePromotion(serviceSubtotal, loads, isPerLoadOverride, selected.value);
+        const promotionResult = this.calculatePromotion(serviceSubtotal, loads, isPerLoadOverride, serviceData.value);
 
         // Calculate fees
         const pickupFee = parseFloat(this.pickupFeeInput?.value) || 0;
@@ -874,18 +1102,18 @@ initAddonQuantityControls() {
         let grandTotal = 0;
         let displaySubtotal = 0;
 
-        if (isPerLoadOverride && !selected.value) {
+        if (isPerLoadOverride && !selected?.value) {
             // For fixed price promotions without service, use the promotion price directly
             displaySubtotal = serviceSubtotal;
-            grandTotal = serviceSubtotal + extraCharge + addonsTotal + totalFees;
+            grandTotal = serviceSubtotal + extraCharge + excessWeightFee + addonsTotal + totalFees;
         } else if (promotionResult.isOverride) {
             // For fixed price promotions WITH service
             displaySubtotal = promotionResult.overrideTotal;
-            grandTotal = promotionResult.overrideTotal + extraCharge + addonsTotal + totalFees;
+            grandTotal = promotionResult.overrideTotal + extraCharge + excessWeightFee + addonsTotal + totalFees;
         } else {
             // Regular service (with or without percentage discount)
             displaySubtotal = serviceSubtotal;
-            grandTotal = serviceSubtotal - promotionResult.discount + extraCharge + addonsTotal + totalFees;
+            grandTotal = serviceSubtotal - promotionResult.discount + extraCharge + excessWeightFee + addonsTotal + totalFees;
         }
 
         // Update displays
@@ -1006,12 +1234,23 @@ initAddonQuantityControls() {
 
         this.loadsBreakdownList.innerHTML = '';
 
-        for (let i = 1; i <= loads; i++) {
+        // Sanitize user input to prevent XSS
+        const sanitize = (str) => {
+            const div = document.createElement('div');
+            div.textContent = String(str || '');
+            return div.innerHTML;
+        };
+
+        const sanitizedLabel = sanitize(label);
+        const sanitizedLoads = parseInt(loads) || 0;
+        const sanitizedPrice = parseFloat(pricePerLoad) || 0;
+
+        for (let i = 1; i <= sanitizedLoads; i++) {
             const item = document.createElement('div');
             item.className = 'service-breakdown-item';
             item.innerHTML = `
-                <span>${label} Load ${i}:</span>
-                <span>₱${pricePerLoad.toFixed(2)}</span>
+                <span>${sanitizedLabel} Load ${i}:</span>
+                <span>₱${sanitizedPrice.toFixed(2)}</span>
             `;
             this.loadsBreakdownList.appendChild(item);
         }
@@ -1019,8 +1258,8 @@ initAddonQuantityControls() {
         const totalItem = document.createElement('div');
         totalItem.className = 'service-breakdown-total';
         totalItem.innerHTML = `
-            <span>Total (${loads} ${loads === 1 ? 'load' : 'loads'}):</span>
-            <span class="text-success">₱${(loads * pricePerLoad).toFixed(2)}</span>
+            <span>Total (${sanitizedLoads} ${sanitizedLoads === 1 ? 'load' : 'loads'}):</span>
+            <span class="text-success">₱${(sanitizedLoads * sanitizedPrice).toFixed(2)}</span>
         `;
         this.loadsBreakdownList.appendChild(totalItem);
     }
@@ -1071,10 +1310,15 @@ initAddonQuantityControls() {
     }
 
     handleSubmit(e) {
+        console.log('Form submit triggered');
+        console.log('Extra services input value:', document.getElementById('extraServicesInput')?.value);
+        
         if (!this.validateForm()) {
+            console.log('Form validation failed');
             e.preventDefault();
             return;
         }
+        console.log('Form validation passed');
         // Add loading state
         if (this.submitBtn) {
             this.submitBtn.classList.add('loading');
@@ -1114,8 +1358,11 @@ initAddonQuantityControls() {
             }
         }
 
+        // Check if service exists (either in select or locked hidden input)
+        const hasService = (this.serviceSelect?.value) || (this.lockedServiceInput?.value);
+
         // Validate service selection - Allow per_load_override without service
-        if (!this.serviceSelect?.value && !isPerLoadOverride) {
+        if (!hasService && !isPerLoadOverride) {
             this.showToast('Please select a service or choose a per-load promotion', 'warning');
             this.serviceSelect?.focus();
             return false;
@@ -1134,10 +1381,17 @@ initAddonQuantityControls() {
         }
 
         // Validate weight/loads for normal services
-        if (this.serviceSelect?.value) {
-            const selected = this.serviceSelect.options[this.serviceSelect.selectedIndex];
-            const pricingType = selected.dataset.pricingType;
-            const serviceType = selected.dataset.serviceType;
+        if (hasService) {
+            let pricingType, serviceType;
+            
+            if (this.serviceSelect?.value) {
+                const selected = this.serviceSelect.options[this.serviceSelect.selectedIndex];
+                pricingType = selected.dataset.pricingType;
+                serviceType = selected.dataset.serviceType;
+            } else if (this.lockedServiceInput?.value) {
+                pricingType = this.lockedServiceInput.dataset.pricingType;
+                serviceType = this.lockedServiceInput.dataset.serviceType;
+            }
 
             const loads = parseInt(this.loadsInput?.value) || 0;
             if (loads <= 0) {
@@ -1246,9 +1500,32 @@ initAddonQuantityControls() {
             document.body.appendChild(container);
         }
 
+        // Sanitize inputs to prevent XSS
+        const sanitize = (str) => {
+            const div = document.createElement('div');
+            div.textContent = String(str || '');
+            return div.innerHTML;
+        };
+
+        // Whitelist allowed toast types
+        const allowedTypes = ['success', 'warning', 'danger', 'info', 'primary', 'secondary'];
+        const sanitizedType = allowedTypes.includes(type) ? type : 'info';
+        const sanitizedMessage = sanitize(message);
+
+        // Map type to icon
+        const iconMap = {
+            'success': 'check-circle',
+            'warning': 'exclamation-triangle',
+            'danger': 'x-circle',
+            'info': 'info-circle',
+            'primary': 'info-circle',
+            'secondary': 'info-circle'
+        };
+        const icon = iconMap[sanitizedType] || 'info-circle';
+
         // Create toast element
         const toast = document.createElement('div');
-        toast.className = `toast align-items-center text-white bg-${type} border-0`;
+        toast.className = `toast align-items-center text-white bg-${sanitizedType} border-0`;
         toast.setAttribute('role', 'alert');
         toast.setAttribute('aria-live', 'assertive');
         toast.setAttribute('aria-atomic', 'true');
@@ -1256,8 +1533,8 @@ initAddonQuantityControls() {
         toast.innerHTML = `
             <div class="d-flex">
                 <div class="toast-body">
-                    <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
-                    ${message}
+                    <i class="bi bi-${icon} me-2"></i>
+                    ${sanitizedMessage}
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
             </div>

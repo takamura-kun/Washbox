@@ -484,7 +484,7 @@ const LocationSearch = ({
       {noResults && query.length >= 2 && !loading && mode === 'search' && (
         <View style={styles.noResults}>
           <Ionicons name="search-outline" size={20} color={COLORS.textMuted} style={{ marginBottom: 6 }} />
-          <Text style={styles.noResultsText}>No locations found for "{query}"</Text>
+          <Text style={styles.noResultsText}>No locations found for &quot;{query}&quot;</Text>
           {showManualEntry && (
             <TouchableOpacity style={styles.noResultsBtn} onPress={toggleMode} activeOpacity={0.7}>
               <Ionicons name="create-outline" size={14} color={COLORS.accent} />

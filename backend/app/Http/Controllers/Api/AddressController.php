@@ -16,6 +16,14 @@ class AddressController extends Controller
         try {
             $customer = $request->user();
             
+            if (!$customer) {
+                \Log::warning('Address index called without authenticated customer');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated',
+                ], 401);
+            }
+            
             $addresses = $customer->activeAddresses()
                 ->orderBy('is_default', 'desc')
                 ->orderBy('created_at', 'desc')
@@ -41,6 +49,11 @@ class AddressController extends Controller
                     ];
                 });
 
+            \Log::info('Addresses fetched successfully', [
+                'customer_id' => $customer->id,
+                'count' => $addresses->count(),
+            ]);
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -48,6 +61,11 @@ class AddressController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            \Log::error('Failed to fetch addresses', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'customer_id' => $request->user()->id ?? null,
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch addresses',
@@ -76,6 +94,10 @@ class AddressController extends Controller
             ]);
 
             if ($validator->fails()) {
+                \Log::warning('Address validation failed', [
+                    'errors' => $validator->errors()->toArray(),
+                    'input' => $request->except(['password'])
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -92,9 +114,30 @@ class AddressController extends Controller
                 $customer->addresses()->update(['is_default' => false]);
             }
 
-            $address = $customer->addresses()->create($request->all());
+            $addressData = $request->only([
+                'label',
+                'full_address',
+                'street',
+                'barangay',
+                'city',
+                'province',
+                'postal_code',
+                'latitude',
+                'longitude',
+                'contact_person',
+                'contact_phone',
+                'delivery_notes',
+                'is_default',
+            ]);
+
+            $address = $customer->addresses()->create($addressData);
 
             DB::commit();
+
+            \Log::info('Address created successfully', [
+                'customer_id' => $customer->id,
+                'address_id' => $address->id,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -122,6 +165,11 @@ class AddressController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Failed to add address', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'customer_id' => $request->user()->id ?? null,
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to add address',

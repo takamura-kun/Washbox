@@ -1,5 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,9 +19,8 @@ import { Link, router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { API_BASE_URL, STORAGE_KEYS } from '../../constants/config';
+import { API_BASE_URL } from '../../constants/config';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef } from 'react';
 import { registerForPushNotifications } from '../../utils/notification';
 import TermsModal from '../../components/TermsModal';
 
@@ -34,10 +33,8 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [showTermsModal, setShowTermsModal] = useState(true);
-  const [termsAccepted, setTermsAccepted] = useState(false);
-
-
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(true);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -46,6 +43,16 @@ export default function LoginScreen() {
   const logoPulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    // Check if terms were previously accepted
+    const checkTermsAcceptance = async () => {
+      const accepted = await AsyncStorage.getItem('@washbox:terms_accepted');
+      if (!accepted) {
+        setShowTermsModal(true);
+        setTermsAccepted(false);
+      }
+    };
+    checkTermsAcceptance();
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -81,22 +88,24 @@ export default function LoginScreen() {
         }),
       ])
     ).start();
-  }, []);
+  }, [fadeAnim, slideAnim, logoScale, logoPulse]);
 
   // Validate inputs
   const validate = () => {
     const newErrors = {};
+    const emailPattern = /\S+@\S+\.\S+/;
+    const minPasswordLength = 8;
 
     if (!email) {
       newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
+    } else if (!emailPattern.test(email)) {
       newErrors.email = 'Email is invalid';
     }
 
     if (!password) {
       newErrors.password = 'Password is required';
-    } else if (password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+    } else if (password.length < minPasswordLength) {
+      newErrors.password = `Password must be at least ${minPasswordLength} characters`;
     }
 
     setErrors(newErrors);
@@ -109,31 +118,51 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
+      console.log('Attempting login to:', `${API_BASE_URL}/v1/login`);
+      console.log('Email:', email.trim());
+      
       const response = await fetch(`${API_BASE_URL}/v1/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password: password }),
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', JSON.stringify(data, null, 2));
+
+      // Handle 2FA requirement
+      if (data.requires_2fa) {
+        Alert.alert(
+          '2FA Required',
+          data.message || 'A verification code has been sent to your email.',
+          [{ text: 'OK' }]
+        );
+        setLoading(false);
+        return;
+      }
 
       if (response.ok && data.success) {
+        console.log('Login successful, saving token...');
         await login(data.data.token, data.data.customer);
 
         // Register device for push notifications, passing the auth token
         // so the FCM token gets saved to the backend. Fire-and-forget.
         registerForPushNotifications(data.data.token).catch(console.error);
       } else {
-        Alert.alert('Login Failed', data.message || 'Invalid credentials');
+        console.error('Login failed:', data.message);
+        Alert.alert('Login Failed', data.message || 'Invalid credentials. Please check your email and password.');
       }
     } catch (error) {
-      Alert.alert('Connection Error', 'Unable to connect to server');
+      console.error('Login error:', error);
+      Alert.alert(
+        'Connection Error',
+        `Unable to connect to server at ${API_BASE_URL}. Please check your internet connection and try again.\n\nError: ${error.message}`
+      );
     } finally {
       setLoading(false);
     }
   };
-
-
 
   return (
     <>
@@ -143,15 +172,15 @@ export default function LoginScreen() {
       <TermsModal
         visible={showTermsModal}
         onClose={() => router.back()}
-        onAccept={() => {
+        onAccept={async () => {
+          await AsyncStorage.setItem('@washbox:terms_accepted', 'true');
           setTermsAccepted(true);
           setShowTermsModal(false);
         }}
         showAcceptButton={true}
       />
 
-      {/* Login Form - Show after terms accepted */}
-      {termsAccepted && (
+      {/* Login Form */}
       <LinearGradient
         colors={['#0A0E27', '#1A1F3A', '#0A0E27']}
         style={styles.container}
@@ -332,7 +361,7 @@ export default function LoginScreen() {
 
               {/* Register Section */}
               <View style={styles.registerSection}>
-                <Text style={styles.registerText}>Don't have an account? </Text>
+                <Text style={styles.registerText}>Don&apos;t have an account? </Text>
                 <Link href="/(auth)/register" asChild>
                   <TouchableOpacity disabled={loading} activeOpacity={0.7}>
                     <Text style={styles.registerLink}>Create Account</Text>
@@ -343,7 +372,6 @@ export default function LoginScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
-      )}
     </>
   );
 }
@@ -386,25 +414,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Logo Section - CIRCULAR (For circular logo image)
+  // Logo Section
   logoSection: {
     alignItems: 'center',
-    marginBottom: 48, // Increased since brand text is removed
+    marginBottom: 48,
   },
   logoContainer: {
     width: 140,
     height: 140,
-    borderRadius: 70, // Perfect circle
-    shadowColor: '#0EA5E9',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
+    borderRadius: 70,
     elevation: 15,
+    shadowColor: 'rgba(14, 165, 233, 0.5)',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
   },
   logo: {
     width: 140,
     height: 140,
-    borderRadius: 70, // Ensures circular clipping
+    borderRadius: 70,
   },
 
   // Welcome Section
@@ -507,11 +535,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginTop: 8,
     overflow: 'hidden',
-    shadowColor: '#0EA5E9',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
     elevation: 8,
+    shadowColor: 'rgba(14, 165, 233, 0.4)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
   },
   loginButtonDisabled: {
     opacity: 0.6,
@@ -528,42 +556,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.5,
-  },
-
-  // Divider
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  dividerText: {
-    color: '#64748B',
-    paddingHorizontal: 16,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-
-  // Social Buttons
-  socialButtons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    marginBottom: 32,
-  },
-  socialButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 
   // Register Section

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Laundry;
+use App\Models\InventoryItem;
+use App\Services\LaundryInventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -146,7 +148,7 @@ class LaundryController extends Controller
      *
      * POST /api/v1/laundries
      */
-    public function store(Request $request)
+    public function store(Request $request, LaundryInventoryService $inventoryService)
     {
         try {
             $customer = $request->user();
@@ -154,7 +156,8 @@ class LaundryController extends Controller
             $validated = $request->validate([
                 'branch_id' => 'required|exists:branches,id',
                 'service_id' => 'required|exists:services,id',
-                'weight' => 'required|numeric|min:0.1|max:1000',
+                'weight' => 'nullable|numeric|min:0.1|max:1000',
+                'number_of_pieces' => 'nullable|integer|min:1',
                 'pickup_address' => 'nullable|string|max:500',
                 'delivery_address' => 'nullable|string|max:500',
                 'pickup_date' => 'nullable|date|after_or_equal:today',
@@ -162,13 +165,42 @@ class LaundryController extends Controller
                 'notes' => 'nullable|string|max:1000',
             ]);
 
-            // Get service for pricing
+            // Validate and fetch service
             $service = \App\Models\Service::findOrFail($validated['service_id']);
+            $pricingType = $service->pricing_type ?? 'per_load';
+            
+            // Determine quantity based on pricing type
+            if ($pricingType === 'per_piece') {
+                $quantity = (int) ($validated['number_of_pieces'] ?? 1);
+                $weight = 0;
+            } else {
+                $weight = (float) ($validated['weight'] ?? 0);
+                $quantity = 1;
+                
+                // Validate weight against service limits
+                if ($service->min_weight && $weight < $service->min_weight) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Weight must be at least {$service->min_weight} kg for this service",
+                        'errors' => ['weight' => ["Minimum weight is {$service->min_weight} kg"]],
+                    ], 422);
+                }
 
-            // Calculate pricing
-            $weight = $validated['weight'];
-            $pricePerKg = $service->price_per_kg ?? $service->price_per_piece ?? 0;
-            $subtotal = $pricePerKg * $weight;
+                if ($service->max_weight && $weight > $service->max_weight) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Weight cannot exceed {$service->max_weight} kg per load for this service",
+                        'errors' => ['weight' => ["Maximum weight is {$service->max_weight} kg per load"]],
+                    ], 422);
+                }
+            }
+
+            // Calculate pricing based on service pricing type
+            $unitPrice = $pricingType === 'per_piece'
+                ? (float) ($service->price_per_piece ?? 0)
+                : (float) ($service->price_per_load ?? 0);
+            
+            $subtotal = $unitPrice * $quantity;
             $discountAmount = 0; // TODO: Apply promotions if any
             $totalAmount = $subtotal - $discountAmount;
 
@@ -180,9 +212,12 @@ class LaundryController extends Controller
                 'customer_id' => $customer->id,
                 'branch_id' => $validated['branch_id'],
                 'service_id' => $validated['service_id'],
+                'created_by' => $customer->id,
                 'tracking_number' => $trackingNumber,
                 'weight' => $weight,
-                'price_per_piece' => $pricePerKg,
+                'number_of_loads' => $quantity,
+                'price_per_piece' => $pricingType === 'per_piece' ? $unitPrice : 0,
+                'price_per_load' => $pricingType === 'per_piece' ? 0 : $unitPrice,
                 'subtotal' => $subtotal,
                 'discount_amount' => $discountAmount,
                 'total_amount' => $totalAmount,
@@ -195,6 +230,44 @@ class LaundryController extends Controller
                 'delivery_date' => $validated['delivery_date'] ?? null,
                 'notes' => $validated['notes'] ?? null,
             ]);
+
+            // ========================================================================
+            // INVENTORY SYSTEM INTEGRATION
+            // ========================================================================
+            
+            // Calculate loads needed based on weight and service max_weight_per_load
+            if ($pricingType === 'per_load' && $service->max_weight_per_load) {
+                $loadsNeeded = $inventoryService->calculateLoadsNeeded($weight, $service);
+                $laundry->update(['number_of_loads' => $loadsNeeded]);
+            }
+
+            // Check if all inventory items are in stock
+            if (!$inventoryService->hasAllItemsInStock($laundry)) {
+                $lowStockItems = $inventoryService->getLowStockItems($laundry);
+                $laundry->delete();
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Insufficient inventory for this service',
+                    'low_stock_items' => $lowStockItems->map(fn($item) => [
+                        'name' => $item['item']->name,
+                        'quantity_needed' => $item['quantity_needed'],
+                        'current_stock' => $item['current_stock'],
+                        'unit' => $item['item']->unit,
+                    ]),
+                ], 400);
+            }
+
+            // Calculate inventory cost
+            $itemsCost = $inventoryService->calculateItemsCost($laundry);
+            $laundry->update(['inventory_cost' => $itemsCost]);
+
+            // Deduct inventory
+            $inventoryService->deductInventory($laundry);
+
+            // ========================================================================
+            // END INVENTORY SYSTEM INTEGRATION
+            // ========================================================================
 
             // Load relationships
             $laundry->load(['service', 'branch']);
@@ -212,7 +285,10 @@ class LaundryController extends Controller
                         'status' => $laundry->status,
                         'service_name' => $laundry->service->name,
                         'branch_name' => $laundry->branch->name,
+                        'number_of_loads' => $laundry->number_of_loads,
+                        'inventory_cost' => (float) $laundry->inventory_cost,
                         'total_amount' => (float) $laundry->total_amount,
+                        'profit' => (float) ($laundry->total_amount - $laundry->inventory_cost),
                         'created_at' => $laundry->created_at->toIso8601String(),
                     ],
                 ]
@@ -338,7 +414,7 @@ class LaundryController extends Controller
      *
      * PUT /api/v1/laundries/{id}/cancel
      */
-    public function cancel(Request $request, $id)
+    public function cancel(Request $request, $id, LaundryInventoryService $inventoryService)
     {
         try {
             $customer = $request->user();
@@ -364,6 +440,28 @@ class LaundryController extends Controller
                     'message' => 'Cannot cancel laundry in current status. Laundry is already being processed.',
                 ], 400);
             }
+
+            // ========================================================================
+            // INVENTORY SYSTEM INTEGRATION - RESTORE INVENTORY ON CANCELLATION
+            // ========================================================================
+            
+            // If laundry was already processed, restore inventory
+            if (in_array($laundry->status, ['processing', 'washing']) && $laundry->inventory_cost) {
+                $itemsNeeded = $inventoryService->getItemsNeeded($laundry);
+                
+                foreach ($itemsNeeded as $itemId => $quantity) {
+                    $item = \App\Models\InventoryItem::find($itemId);
+                    if ($item) {
+                        $item->addStock($quantity, 'laundry_cancelled_' . $laundry->id);
+                    }
+                }
+                
+                Log::info("Inventory restored for cancelled laundry #{$laundry->tracking_number}");
+            }
+            
+            // ========================================================================
+            // END INVENTORY SYSTEM INTEGRATION
+            // ========================================================================
 
             $laundry->update([
                 'status' => 'cancelled',
@@ -436,10 +534,8 @@ class LaundryController extends Controller
                 'payment_method' => $validated['payment_method'],
             ]);
 
-            // Send notifications when cash payment is selected
-            if ($validated['payment_method'] === 'cash') {
-                $this->sendCashPaymentNotifications($laundry);
-            }
+            // Send notifications for all payment methods
+            $this->sendPaymentMethodNotifications($laundry, $validated['payment_method']);
 
             return response()->json([
                 'success' => true,
@@ -466,7 +562,72 @@ class LaundryController extends Controller
     }
 
     /**
-     * Send notifications when customer selects cash payment
+     * Send notifications when customer selects a payment method
+     */
+    private function sendPaymentMethodNotifications(Laundry $laundry, string $paymentMethod): void
+    {
+        try {
+            $customerName = $laundry->customer->name ?? 'Customer';
+            $branchName = $laundry->branch->name ?? 'Branch';
+            $amount = number_format($laundry->total_amount, 2);
+            
+            // Determine notification details based on payment method
+            $paymentMethodDisplay = match($paymentMethod) {
+                'cash' => 'Cash',
+                'gcash' => 'GCash',
+                'bank_transfer' => 'Bank Transfer',
+                'credit_card' => 'Credit Card',
+                default => ucfirst($paymentMethod),
+            };
+
+            $notificationTitle = "{$paymentMethodDisplay} Payment Selected";
+            $notificationMessage = "{$customerName} selected {$paymentMethodDisplay} payment for laundry #{$laundry->tracking_number} (₱{$amount}) at {$branchName}";
+            $staffMessage = "{$customerName} will pay ₱{$amount} via {$paymentMethodDisplay} for laundry #{$laundry->tracking_number}";
+            
+            // Notification for Admin
+            \App\Models\AdminNotification::create([
+                'type' => 'payment_method_selected',
+                'title' => $notificationTitle,
+                'message' => $notificationMessage,
+                'icon' => 'credit-card',
+                'color' => 'info',
+                'link' => route('admin.laundries.show', $laundry->id),
+                'data' => [
+                    'laundries_id' => $laundry->id,
+                    'tracking_number' => $laundry->tracking_number,
+                    'customer_name' => $customerName,
+                    'amount' => $laundry->total_amount,
+                    'payment_method' => $paymentMethod,
+                ],
+                'branch_id' => $laundry->branch_id,
+            ]);
+
+            // Notification for Branch Staff
+            \App\Services\NotificationService::sendToBranchStaff(
+                $laundry->branch_id,
+                'payment_method_selected',
+                $notificationTitle,
+                $staffMessage,
+                $laundry->id,
+                null,
+                $laundry->customer_id,
+                [
+                    'laundries_id' => $laundry->id,
+                    'tracking_number' => $laundry->tracking_number,
+                    'customer_name' => $customerName,
+                    'amount' => $laundry->total_amount,
+                    'payment_method' => $paymentMethod,
+                ]
+            );
+
+            Log::info("Payment method notification sent for laundry #{$laundry->tracking_number} - Method: {$paymentMethod}");
+        } catch (\Exception $e) {
+            Log::error('Error sending payment method notifications: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send notifications when customer selects cash payment (deprecated - use sendPaymentMethodNotifications)
      */
     private function sendCashPaymentNotifications(Laundry $laundry): void
     {

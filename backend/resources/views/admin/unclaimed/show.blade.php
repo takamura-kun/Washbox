@@ -2,6 +2,10 @@
 
 @section('page-title', 'Unclaimed Laundry Details')
 
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('assets/css/unclaimed.css') }}">
+@endpush
+
 @section('content')
 <div class="container-fluid px-4 py-4">
     {{-- Header --}}
@@ -35,9 +39,6 @@
             </div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="tel:{{ $laundry->customer->phone ?? '' }}" class="btn btn-success">
-                <i class="bi bi-telephone me-1"></i> Call
-            </a>
             <form action="{{ route('admin.unclaimed.send-reminder', $laundry->id) }}" method="POST" class="d-inline">
                 @csrf
                 <button type="submit" class="btn btn-primary">
@@ -90,7 +91,7 @@
         <div class="col-lg-8">
             {{-- Laundry Details --}}
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white py-3">
+                <div class="card-header py-3">
                     <h5 class="mb-0"><i class="bi bi-box me-2"></i>Laundry Details</h5>
                 </div>
                 <div class="card-body">
@@ -165,7 +166,7 @@
 
             {{-- Customer Details --}}
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white py-3">
+                <div class="card-header py-3">
                     <h5 class="mb-0"><i class="bi bi-person me-2"></i>Customer Information</h5>
                 </div>
                 <div class="card-body">
@@ -198,22 +199,7 @@
                         @endif
                     </div>
 
-                    <hr>
 
-                    <div class="d-flex gap-2 flex-wrap">
-                        <a href="tel:{{ $laundry->customer->phone ?? '' }}" class="btn btn-success">
-                            <i class="bi bi-telephone me-1"></i> Call Now
-                        </a>
-                        <a href="sms:{{ $laundry->customer->phone ?? '' }}?body=Hi {{ $laundry->customer->name ?? 'Customer' }}, this is WashBox {{ $laundry->branch->name ?? '' }}. Your laundry (Laundry #{{ $laundry->tracking_number }}) has been ready for {{ $days }} days. Please pick it up soon. Thank you!"
-                           class="btn btn-outline-primary">
-                            <i class="bi bi-chat-dots me-1"></i> Send SMS
-                        </a>
-                        @if($laundry->customer)
-                            <a href="{{ route('admin.customers.show', $laundry->customer) }}" class="btn btn-outline-secondary">
-                                <i class="bi bi-person me-1"></i> View Profile
-                            </a>
-                        @endif
-                    </div>
                 </div>
             </div>
         </div>
@@ -222,7 +208,7 @@
         <div class="col-lg-4">
             {{-- Quick Stats --}}
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white py-3">
+                <div class="card-header py-3">
                     <h6 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Quick Stats</h6>
                 </div>
                 <div class="card-body">
@@ -255,14 +241,14 @@
             </div>
 
             {{-- Reminder History --}}
-            <div class="card blaundry-0 shadow-sm mb-4">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0"><i class="bi bi-bell-history me-2"></i>Reminder History</h6>
                     <span class="badge bg-secondary">{{ $reminderHistory->count() }}</span>
                 </div>
                 <div class="card-body p-0" style="max-height: 300px; overflow-y: auto;">
                     @forelse($reminderHistory as $reminder)
-                        <div class="p-3 blaundry-bottom">
+                        <div class="p-3 border-bottom">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <div class="fw-semibold small">{{ $reminder->title }}</div>
@@ -290,13 +276,13 @@
             </div>
 
             {{-- Activity Log --}}
-            <div class="card blaundry-0 shadow-sm">
-                <div class="card-header bg-white py-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header py-3">
                     <h6 class="mb-0"><i class="bi bi-activity me-2"></i>Activity Log</h6>
                 </div>
                 <div class="card-body p-0" style="max-height: 250px; overflow-y: auto;">
                     @forelse($laundry->statusHistories->take(10) as $history)
-                        <div class="p-3 blaundry-bottom">
+                        <div class="p-3 border-bottom">
                             <div class="d-flex justify-content-between">
                                 <span class="badge bg-secondary">{{ ucfirst($history->status) }}</span>
                                 <small class="text-muted">{{ $history->created_at->diffForHumans() }}</small>

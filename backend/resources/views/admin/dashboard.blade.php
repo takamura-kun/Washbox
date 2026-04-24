@@ -4,1781 +4,2249 @@
 
 @section('content')
 
-<div class="container-xl px-4 py-4 dashboard-modern-wrapper">
-
-    {{-- Enhanced Dashboard Header --}}
-    <div class="glass-header mb-4 shadow-sm">
-        <div class="row align-items-center">
-            <div class="col-lg-8">
-                <div class="d-flex align-items-center gap-3">
-
-                    <div>
-                        <p class="text-muted small mb-0 d-flex align-items-center gap-2">
-                            <span class="badge-status-live">
-                                <span class="pulse-dot"></span> LIVE
-                            </span>
-                            <span class="v-divider"></span>
-                            <i class="bi bi-calendar-check text-primary-blue"></i>
-                            <span id="current-date" class="fw-600">{{ now()->format('l, F j, Y') }}</span>
-                            <span class="v-divider"></span>
-                            <span class="text-success fw-bold" style="font-size: 0.75rem;">
-                                <i class="bi bi-arrow-repeat me-1"></i><span id="last-sync">Live Sync</span>
-                            </span>
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 mt-3 mt-lg-0">
-                <div class="d-flex gap-2 justify-content-lg-end align-items-center flex-wrap">
-
-                    {{-- Date Range Filter --}}
-                    <form method="GET" action="{{ route('admin.dashboard') }}" class="d-flex m-0" id="dateRangeForm">
-                        <div class="admin-date-filter">
-                            <i class="bi bi-calendar3 admin-date-filter-icon"></i>
-                            <select name="date_range"
-                                    class="admin-date-select"
-                                    onchange="this.form.submit()"
-                                    aria-label="Filter by date range">
-                                @php
-                                    $activeRange  = $currentFilters['date_range'] ?? 'last_30_days';
-                                    $rangeOptions = [
-                                        'today'        => 'Today',
-                                        'yesterday'    => 'Yesterday',
-                                        'last_7_days'  => 'Last 7 Days',
-                                        'this_week'    => 'This Week',
-                                        'last_30_days' => 'Last 30 Days',
-                                        'this_month'   => 'This Month',
-                                        'last_month'   => 'Last Month',
-                                        'this_year'    => 'This Year',
-                                    ];
-                                @endphp
-                                @foreach($rangeOptions as $value => $label)
-                                    <option value="{{ $value }}" {{ $activeRange === $value ? 'selected' : '' }}>
-                                        {{ $label }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </form>
-
-                    <button onclick="refreshDashboard()" class="btn btn-sm rounded-pill btn-outline-primary d-flex align-items-center" id="refresh-btn">
-                        <i class="bi bi-arrow-clockwise me-2"></i>
-                        <span>Refresh</span>
-                    </button>
-                    <div class="dropdown">
-                        <button class="btn btn-sm rounded-pill btn-danger d-flex align-items-center" type="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-download me-2"></i>
-                            Export
-                        </button>
-                        <ul class="dropdown-menu border-0 shadow-lg mt-2">
-                            <li><a class="dropdown-item py-2" href="{{ route('admin.reports.index') }}"><i class="bi bi-file-pdf me-2 text-danger"></i>View Reports</a></li>
-                            <li><a class="dropdown-item py-2" href="#" onclick="exportData('excel')"><i class="bi bi-file-excel me-2 text-success"></i>Export to Excel</a></li>
-                            <li><a class="dropdown-item py-2" href="#" onclick="exportData('csv')"><i class="bi bi-file-text me-2 text-info"></i>Export to CSV</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+{{-- ══════════════════════════════════════════
+     TOP BAR — Title + Live Badge + Timestamp
+══════════════════════════════════════════ --}}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="dash-card-title mb-1" style="font-size: 1.1rem;">Dashboard overview</h1>
+        <p class="dash-card-subtitle mb-0">Multi-branch operations — Sibulan · Siaton · Bais City</p>
     </div>
-
-    {{-- Compact System Status Cards --}}
-    <div class="row g-2 mb-3">
-        <div class="col-6 col-md-3">
-            <div class="status-card-modern grad-blue shadow-glow-blue" style="padding: 1rem; border-radius: 16px;">
-                <div class="d-flex align-items-center">
-                    <div class="status-icon-box shadow-sm" style="width: 36px; height: 36px; border-radius: 10px; font-size: 1rem;">
-                        <i class="bi bi-database"></i>
-                    </div>
-                    <div class="ms-2">
-                        <small class="text-blue-100 text-uppercase tracking-wider fw-700" style="font-size: 0.6rem;">Database</small>
-                        <h5 class="mb-0 text-white fw-800" style="font-size: 0.9rem;">{{ $stats['system_pulse']['db_connected'] ? 'Connected' : 'Offline' }}</h5>
-                    </div>
-                </div>
-                <div class="status-indicator-bar {{ $stats['system_pulse']['db_connected'] ? 'status-active' : 'status-inactive' }}"></div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="status-card-modern grad-indigo shadow-glow-indigo" style="padding: 1rem; border-radius: 16px;">
-                <div class="d-flex align-items-center">
-                    <div class="status-icon-box shadow-sm" style="width: 36px; height: 36px; border-radius: 10px; font-size: 1rem;">
-                        <i class="bi bi-bell"></i>
-                    </div>
-                    <div class="ms-2">
-                        <small class="text-blue-100 text-uppercase tracking-wider fw-700" style="font-size: 0.6rem;">Notifications</small>
-                        <h5 class="mb-0 text-white fw-800" style="font-size: 0.9rem;">{{ $stats['fcm_ready'] ? 'Ready' : 'Setup' }}</h5>
-                    </div>
-                </div>
-                <div class="status-indicator-bar status-warning"></div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="status-card-modern grad-cyan shadow-glow-cyan" style="padding: 1rem; border-radius: 16px;">
-                <div class="d-flex align-items-center">
-                    <div class="status-icon-box shadow-sm" style="width: 36px; height: 36px; border-radius: 10px; font-size: 1rem;">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <div class="ms-2">
-                        <small class="text-blue-100 text-uppercase tracking-wider fw-700" style="font-size: 0.6rem;">Avg. Processing</small>
-                        <h5 class="mb-0 text-white fw-800" style="font-size: 0.9rem;">{{ $stats['avgProcessingTime'] ?? '0 days' }}</h5>
-                    </div>
-                </div>
-                <div class="status-indicator-bar status-active"></div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <a href="{{ route('admin.laundries.index', ['filter' => 'errors']) }}" class="text-decoration-none d-block"
-               title="{{ ($stats['dataQuality']['data_entry_errors'] ?? 0) > 0 ? 'Click to view laundries with data errors' : 'No data errors found' }}">
-                <div class="status-card-modern grad-navy shadow-glow-navy"
-                     style="cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; padding: 1rem; border-radius: 16px;"
-                     onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(15,23,42,0.4)'"
-                     onmouseout="this.style.transform='';this.style.boxShadow=''">
-                    <div class="d-flex align-items-center">
-                        <div class="status-icon-box shadow-sm" style="width: 36px; height: 36px; border-radius: 10px; font-size: 1rem;">
-                            <i class="bi bi-exclamation-triangle"></i>
-                        </div>
-                        <div class="ms-2">
-                            <small class="text-blue-100 text-uppercase tracking-wider fw-700" style="font-size: 0.6rem;">Data Errors</small>
-                            <h5 class="mb-0 text-white fw-800" style="font-size: 0.9rem;">{{ $stats['dataQuality']['data_entry_errors'] ?? 0 }}</h5>
-                        </div>
-                        <div class="ms-auto">
-                            <i class="bi bi-arrow-right-circle text-white opacity-50" style="font-size: 1rem;"></i>
-                        </div>
-                    </div>
-                    <div class="status-indicator-bar {{ ($stats['dataQuality']['data_entry_errors'] ?? 0) > 0 ? 'status-warning' : 'status-inactive' }}"></div>
-                </div>
-            </a>
-        </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="dash-badge dash-badge-success d-flex align-items-center gap-1">
+            <span style="width:6px;height:6px;border-radius:50%;background:#fff;display:inline-block;"></span>
+            Live
+        </span>
+        <small class="dash-text-muted">{{ now()->format('D, M j, Y · H:i') }}</small>
     </div>
-    {{-- Main KPI Cards --}}
-    <div class="row g-3 mb-3">
-        <div class="col-md-6 col-lg-3" data-kpi-card="laundries">
-            <div class="kpi-card-modern shadow-sm">
-                <div class="kpi-card-inner">
-                    <div class="d-flex justify-content-between">
-                        <div class="kpi-icon-glow icon-blue">
-                            <i class="bi bi-basket3 text-primary-blue"></i>
+</div>
+
+
+{{-- ══════════════════════════════════════════
+     ACTION TRIAGE — Decision-First Layer
+══════════════════════════════════════════ --}}
+@if(!empty($stats['actionTriage']) && count($stats['actionTriage']) > 0)
+<div class="row g-2 mb-3" id="actionTriageSection">
+    @foreach($stats['actionTriage'] as $action)
+    <div class="col-12 col-md-6 col-lg-4">
+        <a href="{{ $action['url'] ?? '#' }}" class="text-decoration-none">
+            <div class="dash-card dash-border-left-{{ $action['urgency'] === 'critical' ? 'critical' : 'warning' }}" style="padding: 0.7rem;">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="dash-card-icon dash-icon-{{ $action['urgency'] === 'critical' ? 'critical' : 'warning' }}" style="width:30px;height:30px;font-size:0.85rem;">
+                            <i class="bi bi-lightning-charge-fill"></i>
                         </div>
-                        <div class="dropdown">
-                            <button class="btn btn-link p-0" type="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-three-dots-vertical text-muted"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('admin.laundries.index') }}?date={{ now()->format('Y-m-d') }}">View Today's Laundries</a></li>
-                                <li><a class="dropdown-item" href="{{ route('admin.laundries.create') }}">Create New Laundry</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ route('admin.reports.laundries') }}">Laundry Reports</a></li>
-                            </ul>
+                        <div>
+                            <p class="dash-text-xs dash-text-muted mb-0" style="text-transform:uppercase;letter-spacing:.4px;">{{ $action['location'] ?? 'System' }}</p>
+                            <p class="dash-text-sm dash-text-bold mb-0 {{ $action['urgency'] === 'critical' ? 'dash-text-critical' : 'dash-text-warning' }}" style="line-height:1.3;">
+                                {{ Str::limit($action['situation'] ?? 'Action needed', 55) }}
+                            </p>
                         </div>
                     </div>
-                    <div class="mt-3">
-                        <span class="kpi-label">Today Laundries</span>
-                        <h2 class="kpi-value text-slate-800" data-kpi="todayLaundries">{{ $stats['todayLaundries'] }}</h2>
-                        <div class="kpi-trend {{ $stats['laundriesChange'] >= 0 ? 'up' : 'down' }}">
-                            <i class="bi {{ $stats['laundriesChange'] >= 0 ? 'bi-arrow-up' : 'bi-arrow-down' }} me-1"></i>
-                            <span>{{ abs($stats['laundriesChange']) }}% vs yesterday</span>
-                        </div>
-                        <small class="text-muted d-block mt-1">Total: {{ $stats['totalLaundries'] ?? 0 }} laundries in system</small>
-                    </div>
+                    <span class="dash-badge {{ $action['urgency'] === 'critical' ? 'dash-badge-critical' : 'dash-badge-warning' }}" style="white-space:nowrap;">
+                        {{ $action['urgency'] === 'critical' ? 'URGENT' : 'TODAY' }}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="dash-text-muted">{{ $action['button_text'] ?? 'Resolve soon' }}</small>
+                    <span class="dash-btn dash-btn-info" style="font-size:0.6rem;padding:3px 8px;">Review</span>
                 </div>
             </div>
-        </div>
-
-        {{-- Today's Revenue --}}
-        <div class="col-md-6 col-lg-3" data-kpi-card="revenue">
-            <div class="kpi-card-modern shadow-sm">
-                <div class="kpi-card-inner">
-                    <div class="d-flex justify-content-between">
-                        <div class="kpi-icon-glow icon-green">
-                            <i class="bi bi-cash-coin text-success"></i>
-                        </div>
-                        <div class="dropdown">
-                            <button class="btn btn-link p-0" type="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-three-dots-vertical text-muted"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('admin.reports.index') }}?period=today">Today's Revenue Report</a></li>
-                                <li><a class="dropdown-item" href="{{ route('admin.reports.index') }}?period=month">Monthly Report</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ route('admin.laundries.index') }}?status=paid">View Paid Laundries</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <span class="kpi-label">Today's Revenue</span>
-                        <h2 class="kpi-value text-slate-800" data-kpi="todayRevenue">₱{{ number_format($stats['todayRevenue'], 0) }}</h2>
-                        <div class="kpi-trend {{ $stats['revenueChange'] >= 0 ? 'up' : 'down' }}">
-                            <i class="bi {{ $stats['revenueChange'] >= 0 ? 'bi-arrow-up' : 'bi-arrow-down' }} me-1"></i>
-                            <span>{{ abs($stats['revenueChange']) }}% vs yesterday</span>
-                        </div>
-                        <small class="text-muted d-block mt-1">Month: ₱{{ number_format($stats['thisMonthRevenue'] ?? 0, 0) }}</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Active Customers --}}
-        <div class="col-md-6 col-lg-3" data-kpi-card="customers">
-            <div class="kpi-card-modern shadow-sm">
-                <div class="kpi-card-inner">
-                    <div class="d-flex justify-content-between">
-                        <div class="kpi-icon-glow icon-indigo">
-                            <i class="bi bi-people text-indigo"></i>
-                        </div>
-                        <div class="dropdown">
-                            <button class="btn btn-link p-0" type="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-three-dots-vertical text-muted"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('admin.customers.index') }}">View All Customers</a></li>
-                                <li><a class="dropdown-item" href="{{ route('admin.customers.create') }}">Add New Customer</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ route('admin.customers.index') }}?new=this_month">New This Month</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <span class="kpi-label">Active Customers</span>
-                        <h2 class="kpi-value text-slate-800" data-kpi="activeCustomers">{{ number_format($stats['activeCustomers']) }}</h2>
-                        <div class="kpi-trend up">
-                            <i class="bi bi-plus-circle me-1"></i>
-                            <span>+{{ $stats['newCustomersThisMonth'] ?? 0 }} this month</span>
-                        </div>
-                        <small class="text-muted d-block mt-1">
-                            <i class="bi bi-person-plus me-1 text-success"></i>
-                            <span class="fw-600 text-success">+{{ $stats['newCustomersToday'] ?? 0 }} new today</span>
-                        </small>
-                        <small class="text-muted d-block mt-1">
-                            @if(isset($stats['customerRegistrationSource']['app']))
-                                {{ $stats['customerRegistrationSource']['app'] }} app users
-                            @endif
-                        </small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Unclaimed Items (Critical) --}}
-        <div class="col-md-6 col-lg-3" data-kpi-card="unclaimed">
-            <a href="{{ route('admin.unclaimed.index') }}" class="text-decoration-none">
-                <div class="kpi-card-modern shadow-sm border-danger-soft">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="kpi-icon-glow icon-red">
-                            <i class="bi bi-exclamation-triangle text-danger"></i>
-                        </div>
-                        <span class="badge rounded-pill bg-danger-soft text-danger">CRITICAL</span>
-                    </div>
-                    <span class="kpi-label">Unclaimed Items</span>
-                    <h2 class="kpi-value text-danger" data-kpi="unclaimedLaundry">{{ $stats['unclaimedLaundry'] }}</h2>
-                    <div class="kpi-trend down">
-                        <i class="bi bi-clock me-1"></i>
-                        <span>Est. Loss: ₱{{ number_format($stats['estimatedUnclaimedLoss'] ?? 0, 0) }}</span>
-                    </div>
-                    <small class="text-muted d-block mt-1">Click to manage unclaimed items</small>
-                    <div class="mt-3">
-                        <a href="{{ route('admin.unclaimed.remindAll') }}" class="btn btn-sm btn-danger w-100 rounded-pill">
-                            <i class="bi bi-bell-fill me-1"></i>Send Reminders
-                        </a>
-                    </div>
-                </div>
-            </a>
-        </div>
+        </a>
     </div>
+    @endforeach
 
-    {{-- Compact Quick Actions --}}
-    <div class="modern-card shadow-sm mb-4">
-        <div class="card-header-modern border-0 py-2">
-            <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-800 text-slate-800 fs-6">Quick Actions</h6>
-                <span class="badge bg-primary-blue bg-opacity-10 text-primary-blue small">
-                    <i class="bi bi-lightning"></i>
+    <div class="col-12 d-flex justify-content-end">
+        <button type="button"
+            class="btn btn-sm"
+            onclick="document.getElementById('actionTriageSection').style.display='none'; localStorage.setItem('dismissTriage_{{ date('Y-m-d') }}', '1');"
+            style="font-size:0.65rem;color:#94a3b8;background:transparent;border:1px solid #334155;padding:3px 10px;">
+            <i class="bi bi-x me-1"></i>Dismiss for today
+        </button>
+    </div>
+</div>
+<script>
+    if (localStorage.getItem('dismissTriage_{{ date('Y-m-d') }}') === '1') {
+        document.getElementById('actionTriageSection').style.display = 'none';
+    }
+</script>
+@endif
+
+
+{{-- ══════════════════════════════════════════
+     METRIC CARDS — Row 1: Core Operations
+══════════════════════════════════════════ --}}
+<div class="row g-2 mb-2">
+
+    {{-- Today's Laundries --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="metric-card-compact border-blue" style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#laundriesBreakdownModal">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="metric-icon-compact bg-blue-light"><i class="bi bi-basket3"></i></div>
+                <span class="metric-change {{ ($stats['laundriesChange'] ?? 0) >= 0 ? 'positive' : 'negative' }}">
+                    <i class="bi bi-arrow-{{ ($stats['laundriesChange'] ?? 0) >= 0 ? 'up' : 'down' }}"></i>
+                    {{ abs($stats['laundriesChange'] ?? 0) }}%
                 </span>
             </div>
+            <div class="metric-label-compact">Today's laundries</div>
+            <div class="metric-value-large text-slate-900">{{ $stats['todayLaundries'] ?? 0 }}</div>
+            <small class="text-muted">Total: {{ number_format($stats['totalLaundries'] ?? 0) }}</small>
         </div>
-        <div class="card-body-modern py-2">
+    </div>
+
+    {{-- Today's Revenue --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="metric-card-compact border-green" style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#revenueBreakdownModal">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="metric-icon-compact bg-green-light"><i class="bi bi-cash-coin"></i></div>
+                <span class="metric-change {{ ($stats['revenueChange'] ?? 0) >= 0 ? 'positive' : 'negative' }}">
+                    <i class="bi bi-arrow-{{ ($stats['revenueChange'] ?? 0) >= 0 ? 'up' : 'down' }}"></i>
+                    {{ abs($stats['revenueChange'] ?? 0) }}%
+                </span>
+            </div>
+            <div class="metric-label-compact">Today's revenue</div>
+            <div class="metric-value-large text-slate-900" style="font-size:1rem;">₱{{ number_format($stats['todayRevenue'] ?? 0, 0) }}</div>
+            <small class="text-muted">Month: ₱{{ number_format($stats['thisMonthRevenue'] ?? 0, 0) }}</small>
+        </div>
+    </div>
+
+    {{-- Active Customers --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.customers.index') }}" class="text-decoration-none">
+            <div class="metric-card-compact border-yellow">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-yellow-light"><i class="bi bi-people"></i></div>
+                    <span class="metric-change positive">
+                        <i class="bi bi-plus"></i>{{ $stats['newCustomersToday'] ?? 0 }}
+                    </span>
+                </div>
+                <div class="metric-label-compact">Active customers</div>
+                <div class="metric-value-large text-slate-900">{{ number_format($stats['activeCustomers'] ?? 0) }}</div>
+                <small class="text-muted">{{ $stats['newCustomersToday'] ?? 0 }} new today</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- Unclaimed Items --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.unclaimed.index') }}" class="text-decoration-none">
+            <div class="metric-card-compact border-red">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-red-light"><i class="bi bi-exclamation-triangle"></i></div>
+                    <span class="dash-badge dash-badge-critical" style="font-size:0.55rem;padding:2px 5px;">CRITICAL</span>
+                </div>
+                <div class="metric-label-compact">Unclaimed items</div>
+                <div class="metric-value-large text-danger">{{ $stats['unclaimedLaundry'] ?? 0 }}</div>
+                <small class="text-muted">Loss: ₱{{ number_format($stats['estimatedUnclaimedLoss'] ?? 0, 0) }}</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- Today's Profit --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="metric-card-compact border-purple" style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#profitBreakdownModal">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="metric-icon-compact bg-purple-light"><i class="bi bi-graph-up-arrow"></i></div>
+                <span class="metric-change {{ ($stats['profitMetrics']['profit'] ?? 0) >= 0 ? 'positive' : 'negative' }}">
+                    <i class="bi bi-arrow-{{ ($stats['profitMetrics']['profit'] ?? 0) >= 0 ? 'up' : 'down' }}"></i>
+                    {{ abs($stats['profitMetrics']['margin'] ?? 0) }}%
+                </span>
+            </div>
+            <div class="metric-label-compact">Today's profit</div>
+            <div class="metric-value-large {{ ($stats['profitMetrics']['profit'] ?? 0) >= 0 ? 'text-slate-900' : 'text-danger' }}" style="font-size:1rem;">
+                ₱{{ number_format($stats['profitMetrics']['profit'] ?? 0, 0) }}
+            </div>
+            <small class="text-muted">Margin: {{ $stats['profitMetrics']['margin'] ?? 0 }}%</small>
+        </div>
+    </div>
+
+    {{-- Staff Attendance --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.staff.index') }}" class="text-decoration-none">
+            <div class="metric-card-compact border-cyan">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-cyan-light"><i class="bi bi-check-circle"></i></div>
+                    <span class="metric-change positive">
+                        <i class="bi bi-arrow-up"></i>{{ $stats['attendanceMetrics']['rate'] ?? 0 }}%
+                    </span>
+                </div>
+                <div class="metric-label-compact">Staff attendance</div>
+                <div class="metric-value-large text-slate-900">
+                    {{ $stats['attendanceMetrics']['present'] ?? 0 }}/{{ $stats['attendanceMetrics']['total'] ?? 0 }}
+                </div>
+                <small class="text-muted">{{ $stats['attendanceMetrics']['rate'] ?? 0 }}% present today</small>
+            </div>
+        </a>
+    </div>
+</div>
+
+
+{{-- ══════════════════════════════════════════
+     METRIC CARDS — Row 2: Performance KPIs
+══════════════════════════════════════════ --}}
+<div class="row g-2 mb-3">
+
+    {{-- Retention Rate --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.customers.index') }}" class="text-decoration-none">
+            <div class="metric-card-compact border-purple">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-purple-light"><i class="bi bi-arrow-repeat"></i></div>
+                    <span class="metric-change {{ ($stats['customerRetentionRate']['rate'] ?? 0) >= 50 ? 'positive' : 'negative' }}">
+                        <i class="bi bi-arrow-{{ ($stats['customerRetentionRate']['rate'] ?? 0) >= 50 ? 'up' : 'down' }}"></i>
+                        {{ $stats['customerRetentionRate']['rate'] ?? 0 }}%
+                    </span>
+                </div>
+                <div class="metric-label-compact">Retention rate</div>
+                <div class="metric-value-large text-slate-900">{{ $stats['customerRetentionRate']['rate'] ?? 0 }}%</div>
+                <small class="text-muted">{{ $stats['customerRetentionRate']['returning'] ?? 0 }}/{{ $stats['customerRetentionRate']['total'] ?? 0 }} returning</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- Pickup Requests --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="metric-card-compact border-yellow" style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#pendingPickupsModal">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="metric-icon-compact bg-yellow-light"><i class="bi bi-box-arrow-up"></i></div>
+                <span class="dash-badge dash-badge-warning" style="font-size:0.55rem;padding:2px 5px;">PENDING</span>
+            </div>
+            <div class="metric-label-compact">Pickup requests</div>
+            <div class="metric-value-large text-slate-900">{{ $stats['pickupRequests']['total'] ?? 0 }}</div>
+            <small class="text-muted">{{ $stats['pickupRequests']['pending'] ?? 0 }} pending</small>
+        </div>
+    </div>
+
+    {{-- Delivery Success Rate --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.pickups.index') }}" class="text-decoration-none">
+            <div class="metric-card-compact border-green">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-green-light"><i class="bi bi-truck"></i></div>
+                    <span class="metric-change {{ ($stats['deliverySuccessRate']['rate'] ?? 0) >= 80 ? 'positive' : 'negative' }}">
+                        <i class="bi bi-arrow-{{ ($stats['deliverySuccessRate']['rate'] ?? 0) >= 80 ? 'up' : 'down' }}"></i>
+                        {{ $stats['deliverySuccessRate']['rate'] ?? 0 }}%
+                    </span>
+                </div>
+                <div class="metric-label-compact">Delivery success</div>
+                <div class="metric-value-large text-slate-900">{{ $stats['deliverySuccessRate']['rate'] ?? 0 }}%</div>
+                <small class="text-muted">{{ $stats['deliverySuccessRate']['onTime'] ?? 0 }}/{{ $stats['deliverySuccessRate']['total'] ?? 0 }} on-time</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- Avg Completion Time --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.laundries.index') }}" class="text-decoration-none">
+            <div class="metric-card-compact border-blue">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-blue-light"><i class="bi bi-clock-history"></i></div>
+                    <span class="metric-change {{ ($stats['serviceCompletionTime']['hours'] ?? 0) <= 48 ? 'positive' : 'negative' }}">
+                        <i class="bi bi-arrow-{{ ($stats['serviceCompletionTime']['hours'] ?? 0) <= 48 ? 'down' : 'up' }}"></i>
+                        {{ $stats['serviceCompletionTime']['formatted'] ?? '0h' }}
+                    </span>
+                </div>
+                <div class="metric-label-compact">Avg completion</div>
+                <div class="metric-value-large text-slate-900">{{ $stats['serviceCompletionTime']['formatted'] ?? '0h' }}</div>
+                <small class="text-muted">Last 30 days avg</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- Average Order Value --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.laundries.index') }}" class="text-decoration-none">
+            <div class="metric-card-compact border-cyan">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-cyan-light"><i class="bi bi-receipt"></i></div>
+                    <span class="metric-change {{ ($stats['averageOrderValue']['change'] ?? 0) >= 0 ? 'positive' : 'negative' }}">
+                        <i class="bi bi-arrow-{{ ($stats['averageOrderValue']['change'] ?? 0) >= 0 ? 'up' : 'down' }}"></i>
+                        {{ abs($stats['averageOrderValue']['change'] ?? 0) }}%
+                    </span>
+                </div>
+                <div class="metric-label-compact">Avg order value</div>
+                <div class="metric-value-large text-slate-900" style="font-size:1rem;">₱{{ number_format($stats['averageOrderValue']['current'] ?? 0, 0) }}</div>
+                <small class="text-muted">This month avg</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- Retail Sales --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.finance.retail-sales.index') }}" class="text-decoration-none">
+            <div class="metric-card-compact border-green">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-green-light"><i class="bi bi-cart-check"></i></div>
+                    <span class="metric-change {{ ($stats['retailSales']['change'] ?? 0) >= 0 ? 'positive' : 'negative' }}">
+                        <i class="bi bi-arrow-{{ ($stats['retailSales']['change'] ?? 0) >= 0 ? 'up' : 'down' }}"></i>
+                        {{ abs($stats['retailSales']['change'] ?? 0) }}%
+                    </span>
+                </div>
+                <div class="metric-label-compact">Retail sales</div>
+                <div class="metric-value-large text-slate-900" style="font-size:1rem;">₱{{ number_format($stats['retailSales']['total'] ?? 0, 0) }}</div>
+                <small class="text-muted">{{ $stats['retailSales']['count'] ?? 0 }} items sold today</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- Pending Payment --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.laundries.index', ['status' => 'ready']) }}" class="text-decoration-none">
+            <div class="metric-card-compact border-red">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-red-light"><i class="bi bi-cash-stack"></i></div>
+                    <span class="dash-badge dash-badge-warning" style="font-size:0.55rem;padding:2px 5px;">UNPAID</span>
+                </div>
+                <div class="metric-label-compact">Pending payment</div>
+                <div class="metric-value-large text-danger">{{ $stats['paymentCollection']['pending_payment'] ?? 0 }}</div>
+                <small class="text-muted">₱{{ number_format($stats['paymentCollection']['pending_amount'] ?? 0, 0) }} total</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- Ready to Deliver --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.laundries.index') }}?has_pickup=1&status=ready" class="text-decoration-none">
+            <div class="metric-card-compact border-blue">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-blue-light"><i class="bi bi-truck"></i></div>
+                    <span class="dash-badge dash-badge-info" style="font-size:0.55rem;padding:2px 5px;">DELIVER</span>
+                </div>
+                <div class="metric-label-compact">Ready to deliver</div>
+                <div class="metric-value-large text-slate-900">{{ $stats['paymentCollection']['ready_to_deliver'] ?? 0 }}</div>
+                <small class="text-muted">From pickup requests</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- Total Branches Active --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.branches.index') }}" class="text-decoration-none">
+            <div class="metric-card-compact border-cyan">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-cyan-light"><i class="bi bi-shop"></i></div>
+                    <span class="dash-badge dash-badge-info" style="font-size:0.55rem;padding:2px 5px;">ACTIVE</span>
+                </div>
+                <div class="metric-label-compact">Active branches</div>
+                <div class="metric-value-large text-slate-900">{{ \App\Models\Branch::where('is_active', true)->count() }}</div>
+                <small class="text-muted">{{ \App\Models\Branch::count() }} total branches</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- New Customers Today --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.customers.index') }}" class="text-decoration-none">
+            <div class="metric-card-compact border-green">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-green-light"><i class="bi bi-person-plus"></i></div>
+                    <span class="metric-change positive"><i class="bi bi-arrow-up"></i>Today</span>
+                </div>
+                <div class="metric-label-compact">New customers</div>
+                <div class="metric-value-large text-slate-900">{{ $stats['newCustomersToday'] ?? 0 }}</div>
+                <small class="text-muted">{{ $stats['newCustomersWeek'] ?? 0 }} this week</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- Cancelled Orders Today --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.laundries.index', ['status' => 'cancelled']) }}" class="text-decoration-none">
+            <div class="metric-card-compact border-red">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-red-light"><i class="bi bi-x-circle"></i></div>
+                    <span class="dash-badge dash-badge-danger" style="font-size:0.55rem;padding:2px 5px;">TODAY</span>
+                </div>
+                <div class="metric-label-compact">Cancelled orders</div>
+                <div class="metric-value-large text-danger">{{ \App\Models\Laundry::whereDate('updated_at', today())->where('status', 'cancelled')->count() }}</div>
+                <small class="text-muted">{{ \App\Models\Laundry::whereMonth('created_at', now()->month)->where('status', 'cancelled')->count() }} this month</small>
+            </div>
+        </a>
+    </div>
+
+    {{-- Processing Now --}}
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ route('admin.laundries.index', ['status' => 'processing']) }}" class="text-decoration-none">
+            <div class="metric-card-compact border-purple">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="metric-icon-compact bg-purple-light"><i class="bi bi-arrow-repeat"></i></div>
+                    <span class="dash-badge" style="font-size:0.55rem;padding:2px 5px;background:rgba(139,92,246,0.15);color:#7c3aed;">LIVE</span>
+                </div>
+                <div class="metric-label-compact">Processing now</div>
+                <div class="metric-value-large text-slate-900">{{ \App\Models\Laundry::whereIn('status', ['received','processing'])->count() }}</div>
+                <small class="text-muted">Across all branches</small>
+            </div>
+        </a>
+    </div>
+</div>
+
+
+{{-- ══════════════════════════════════════════
+     SMART RECOMMENDATIONS
+══════════════════════════════════════════ --}}
+@if(!empty($smartRecommendations) && count($smartRecommendations) > 0)
+<div class="row g-3 mb-3" id="smartRecommendationsSection">
+    <div class="col-12">
+        <div class="dash-card-gradient">
+            <div class="dash-card-header mb-2">
+                <div class="dash-card-icon">
+                    <i class="bi bi-lightbulb" style="font-size:0.9rem;"></i>
+                </div>
+                <div>
+                    <h6 class="dash-card-title mb-0">Smart recommendations</h6>
+                    <p class="dash-card-subtitle mb-0">AI-powered insights · {{ count($smartRecommendations) }} active</p>
+                </div>
+                <button type="button"
+                    class="btn btn-sm ms-auto"
+                    onclick="document.getElementById('smartRecommendationsSection').style.display='none'; localStorage.setItem('dismissReco_{{ date('Y-m-d') }}', '1');"
+                    style="font-size:0.6rem;color:rgba(255,255,255,0.7);background:transparent;border:1px solid rgba(255,255,255,0.2);padding:2px 8px;">
+                    <i class="bi bi-x"></i> Dismiss
+                </button>
+            </div>
             <div class="row g-2">
-                @php
-                    $quickActions = [
-                        ['route' => 'admin.laundries.create', 'icon' => 'bi-plus-lg', 'label' => 'New Laundry', 'color' => 'blue'],
-                        ['route' => 'admin.customers.create', 'icon' => 'bi-person-plus', 'label' => 'Customer', 'color' => 'indigo'],
-                        ['route' => 'admin.pickups.index', 'icon' => 'bi-truck', 'label' => 'Pickups', 'color' => 'cyan'],
-                        ['route' => 'admin.unclaimed.index', 'icon' => 'bi-box-seam', 'label' => 'Unclaimed', 'color' => 'red'],
-                        ['route' => 'admin.promotions.create', 'icon' => 'bi-percent', 'label' => 'Promotions', 'color' => 'purple'],
-                        ['route' => 'admin.reports.index', 'icon' => 'bi-graph-up', 'label' => 'Reports', 'color' => 'navy'],
-                    ];
-                @endphp
-                @foreach($quickActions as $action)
-                    @if(Route::has($action['route']))
-                    <div class="col-6 col-md-3 col-lg-2">
-                        <a href="{{ route($action['route']) }}" class="btn btn-outline-{{ $action['color'] }} btn-sm w-100 d-flex flex-column align-items-center py-2 text-decoration-none">
-                            <i class="bi {{ $action['icon'] }} fs-5 mb-1"></i>
-                            <span class="small fw-600">{{ $action['label'] }}</span>
+                @foreach($smartRecommendations as $rec)
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="dash-recommendation-card">
+                        <div class="d-flex align-items-start gap-2 mb-2">
+                            <i class="bi {{ $rec['icon'] ?? 'bi-lightbulb' }}" style="font-size:1rem;margin-top:2px;color:#fff;"></i>
+                            <div>
+                                <h6 class="dash-card-title mb-1" style="font-size:0.75rem;">{{ $rec['title'] ?? 'Recommendation' }}</h6>
+                                <p class="dash-alert-text mb-0" style="font-size:0.68rem;line-height:1.35;color:rgba(255,255,255,0.85);">{{ $rec['description'] ?? '' }}</p>
+                            </div>
+                        </div>
+                        @if(!empty($rec['link']))
+                        <a href="{{ $rec['link'] }}" class="dash-btn w-100 justify-content-center mt-2" style="font-size:0.65rem;">
+                            <i class="bi bi-arrow-right me-1"></i>View details
                         </a>
+                        @endif
                     </div>
-                    @endif
+                </div>
                 @endforeach
             </div>
         </div>
     </div>
+</div>
+<script>
+    if (localStorage.getItem('dismissReco_{{ date('Y-m-d') }}') === '1') {
+        document.getElementById('smartRecommendationsSection').style.display = 'none';
+    }
+</script>
+@endif
 
-    {{-- ✅ STICKY TABS - NATURALLY POSITIONED BELOW QUICK ACTIONS --}}
-    <div class="modern-tabs-sticky">
-        <ul class="nav nav-segmented" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button">
-                    <i class="bi bi-speedometer2 me-2"></i>Overview
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="laundries-tab" data-bs-toggle="pill" data-bs-target="#laundries" type="button">
-                    <i class="bi bi-basket me-2"></i>Laundries
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="customers-tab" data-bs-toggle="pill" data-bs-target="#customers" type="button">
-                    <i class="bi bi-people me-2"></i>Customers
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="operations-tab" data-bs-toggle="pill" data-bs-target="#operations" type="button">
-                    <i class="bi bi-gear me-2"></i>Operations
-                </button>
-            </li>
-        </ul>
+
+{{-- Quick Actions section removed - using floating FAB instead --}}
+
+{{-- ══════════════════════════════════════════
+     CHARTS ROW 1 — Inventory Snapshot + Financial Summary
+══════════════════════════════════════════ --}}
+<div class="row g-3 mb-3">
+
+    {{-- Inventory Snapshot Card --}}
+    <div class="col-lg-7">
+        <div class="modern-card h-100">
+            <div class="card-header-modern d-flex align-items-center justify-content-between" style="padding:12px 16px;">
+                <div class="d-flex align-items-center gap-2">
+                    <span style="font-size:1.1rem;">📦</span>
+                    <h6 class="mb-0 fw-bold" style="font-size:0.8rem;">Inventory snapshot</h6>
+                </div>
+                <a href="{{ route('admin.inventory.index') }}" 
+                   style="color:#2563eb;font-size:0.65rem;text-decoration:none;padding:3px 8px;border:1px solid rgba(37,99,235,0.2);border-radius:4px;background:rgba(59,130,246,0.1);">
+                    Manage ↗
+                </a>
+            </div>
+            <div class="card-body-modern" style="padding:16px;">
+                @php
+                    $branchId = request('branch_id');
+                    $totalItems = \App\Models\BranchStock::when($branchId, fn($q) => $q->where('branch_id', $branchId))->count();
+                    $criticalItems = \App\Models\BranchStock::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereRaw('current_stock <= reorder_point * 0.5')
+                        ->where('current_stock', '>', 0)->count();
+                    $lowStockItems = \App\Models\BranchStock::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereRaw('current_stock > reorder_point * 0.5 AND current_stock <= reorder_point')->count();
+                    $totalValue = \App\Models\BranchStock::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->selectRaw('SUM(current_stock * cost_price) as total')->value('total') ?? 0;
+                    
+                    // Get all inventory items with their stock status
+                    $allInventoryItems = \App\Models\BranchStock::with(['inventoryItem', 'branch'])
+                        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->where('current_stock', '>', 0)
+                        ->orderByRaw('CASE 
+                            WHEN current_stock <= reorder_point * 0.5 THEN 0 
+                            WHEN current_stock <= reorder_point THEN 1 
+                            ELSE 2 
+                        END')
+                        ->orderBy('current_stock', 'asc')
+                        ->get()
+                        ->map(function($stock) {
+                            $isCritical = $stock->current_stock <= ($stock->reorder_point * 0.5);
+                            $isLow = !$isCritical && $stock->current_stock <= $stock->reorder_point;
+                            
+                            // Get last restocked date from inventory distribution items
+                            $lastRestocked = \App\Models\InventoryDistributionItem::where('branch_id', $stock->branch_id)
+                                ->where('inventory_item_id', $stock->inventory_item_id)
+                                ->latest('created_at')
+                                ->first();
+                            
+                            return [
+                                'id' => $stock->id,
+                                'name' => $stock->inventoryItem->name ?? 'Unknown',
+                                'branch' => $stock->branch->name ?? 'Unknown',
+                                'stock' => $stock->current_stock,
+                                'reorder_point' => $stock->reorder_point,
+                                'unit' => $stock->inventoryItem->unit ?? 'units',
+                                'status' => $isCritical ? 'Critical' : ($isLow ? 'Low' : 'Good'),
+                                'color' => $isCritical ? '#ef4444' : ($isLow ? '#f59e0b' : '#10b981'),
+                                'last_restocked' => $lastRestocked ? $lastRestocked->created_at->diffForHumans() : 'Never',
+                                'percentage' => $stock->reorder_point > 0 ? round(($stock->current_stock / $stock->reorder_point) * 100) : 100
+                            ];
+                        });
+                @endphp
+                
+                {{-- Summary Stats --}}
+                <div class="row g-2 mb-3">
+                    <div class="col-3">
+                        <div class="text-center p-2" style="background:rgba(37,99,235,0.1);border-radius:6px;border:1px solid rgba(37,99,235,0.3);">
+                            <div style="font-size:1.4rem;font-weight:700;color:#2563eb;">{{ $totalItems }}</div>
+                            <div class="text-muted" style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.5px;">Total</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="text-center p-2" style="background:rgba(220,38,38,0.1);border-radius:6px;border:1px solid rgba(220,38,38,0.3);">
+                            <div style="font-size:1.4rem;font-weight:700;color:#dc2626;">{{ $criticalItems }}</div>
+                            <div class="text-muted" style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.5px;">Critical</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="text-center p-2" style="background:rgba(217,119,6,0.1);border-radius:6px;border:1px solid rgba(217,119,6,0.3);">
+                            <div style="font-size:1.4rem;font-weight:700;color:#d97706;">{{ $lowStockItems }}</div>
+                            <div class="text-muted" style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.5px;">Low stock</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="text-center p-2" style="background:rgba(22,163,74,0.1);border-radius:6px;border:1px solid rgba(22,163,74,0.3);">
+                            <div style="font-size:1.4rem;font-weight:700;color:#16a34a;">₱{{ number_format($totalValue / 1000, 1) }}k</div>
+                            <div class="text-muted" style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.5px;">Value</div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Search and Filter Bar --}}
+                <div class="mb-2">
+                    <div class="row g-2">
+                        <div class="col-8">
+                            <input type="text" 
+                                   id="inventorySearch" 
+                                   class="form-control form-control-sm" 
+                                   placeholder="Search items..." 
+                                   style="background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.1);font-size:0.7rem;padding:4px 8px;">
+                        </div>
+                        <div class="col-4">
+                            <select id="inventoryFilter" 
+                                    class="form-select form-select-sm" 
+                                    style="background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.1);font-size:0.7rem;padding:4px 8px;">
+                                <option value="all">All Status</option>
+                                <option value="critical">Critical</option>
+                                <option value="low">Low Stock</option>
+                                <option value="good">Good</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- All Inventory Items List --}}
+                @if($allInventoryItems->count() > 0)
+                <div id="inventoryList" style="background:rgba(0,0,0,0.02);border-radius:6px;padding:10px;border:1px solid rgba(0,0,0,0.1);max-height:240px;overflow-y:auto;">
+                    @foreach($allInventoryItems as $item)
+                    <div class="inventory-item" 
+                         data-name="{{ strtolower($item['name']) }}" 
+                         data-branch="{{ strtolower($item['branch']) }}" 
+                         data-status="{{ strtolower($item['status']) }}"
+                         style="padding:8px 0;{{ !$loop->last ? 'border-bottom:1px solid rgba(0,0,0,0.1);' : '' }}">
+                        <div class="d-flex align-items-start justify-content-between">
+                            <div class="flex-grow-1 min-w-0" style="padding-right:12px;">
+                                <div style="font-size:0.75rem;font-weight:500;margin-bottom:3px;">
+                                    {{ $item['name'] }}
+                                </div>
+                                <div class="text-muted" style="font-size:0.62rem;margin-bottom:4px;">{{ $item['branch'] }}</div>
+                                
+                                {{-- Stock Progress Bar --}}
+                                <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                                    <div style="flex:1;height:4px;background:rgba(0,0,0,0.2);border-radius:2px;overflow:hidden;">
+                                        <div style="width:{{ min($item['percentage'], 100) }}%;height:100%;background:{{ $item['color'] }};transition:width 0.3s;"></div>
+                                    </div>
+                                    <span class="text-muted" style="font-size:0.6rem;white-space:nowrap;">{{ $item['stock'] }}/{{ $item['reorder_point'] }}</span>
+                                </div>
+                                
+                                {{-- Last Restocked --}}
+                                <div class="text-muted" style="font-size:0.58rem;">
+                                    <i class="bi bi-clock" style="font-size:0.55rem;"></i> {{ $item['last_restocked'] }}
+                                </div>
+                            </div>
+                            <div class="text-end flex-shrink-0">
+                                <div style="font-size:0.75rem;font-weight:600;color:{{ $item['color'] }};">{{ number_format($item['stock'], 0) }} {{ $item['unit'] }}</div>
+                                <div style="font-size:0.6rem;color:{{ $item['color'] }};">{{ $item['status'] }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                <div style="background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.1);border-radius:6px;padding:24px;text-align:center;">
+                    <i class="bi bi-box-seam text-muted" style="font-size:2rem;opacity:0.5;"></i>
+                    <p class="text-muted" style="font-size:0.72rem;margin-top:8px;margin-bottom:0;">No inventory items found</p>
+                </div>
+                @endif
+            </div>
+        </div>
     </div>
 
-    {{-- Tabs Content --}}
-    <div class="tab-content pt-4">
-        {{-- Enhanced Overview Tab --}}
-        <div class="tab-pane fade show active" id="overview" role="tabpanel">
-            <div class="row g-4">
-                {{-- Enhanced Laundry Pipeline --}}
-                <div class="col-lg-8">
-                    <div class="modern-card shadow-sm h-100">
-                        <div class="card-header-modern bg-transparent border-0">
-                            <h6 class="mb-0 fw-800 text-slate-800">Laundry Pipeline</h6>
-                            <small class="text-muted">Current status of all laundries</small>
+    {{-- Inventory Search & Filter Script --}}
+    <script>
+    (function() {
+        const searchInput = document.getElementById('inventorySearch');
+        const filterSelect = document.getElementById('inventoryFilter');
+        const inventoryItems = document.querySelectorAll('.inventory-item');
+        
+        function filterInventory() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const statusFilter = filterSelect.value.toLowerCase();
+            
+            inventoryItems.forEach(item => {
+                const name = item.dataset.name;
+                const branch = item.dataset.branch;
+                const status = item.dataset.status;
+                
+                const matchesSearch = name.includes(searchTerm) || branch.includes(searchTerm);
+                const matchesFilter = statusFilter === 'all' || status === statusFilter;
+                
+                if (matchesSearch && matchesFilter) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        
+        if (searchInput) searchInput.addEventListener('input', filterInventory);
+        if (filterSelect) filterSelect.addEventListener('change', filterInventory);
+    })();
+    </script>
+
+    {{-- Financial Summary --}}
+    <div class="col-lg-5">
+        <div class="modern-card h-100">
+            <div class="card-header-modern">
+                <h6 class="mb-0 fw-bold text-slate-800">
+                    <i class="bi bi-cash-stack text-success me-2"></i>Financial summary
+                </h6>
+                <small>Today's income, expenses & profit</small>
+            </div>
+            <div class="card-body-modern">
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <div class="financial-metric">
+                            <div class="metric-label small mb-1">Total income</div>
+                            <div class="metric-value text-success fw-bold" style="font-size:1.2rem;">
+                                ₱{{ number_format($stats['financialBreakdown']['total_income'] ?? 0, 0) }}
+                            </div>
                         </div>
-                        <div class="card-body-modern">
-                            <div class="row g-3">
-                                @php
-                                    $pipelineStatuses = [
-                                        ['status' => 'received', 'label' => 'Received', 'icon' => 'bi-inbox', 'color' => 'blue', 'description' => 'Laundries received and awaiting processing'],
-                                        ['status' => 'ready', 'label' => 'Ready', 'icon' => 'bi-check-circle', 'color' => 'cyan', 'description' => 'Ready for pickup/delivery'],
-                                        ['status' => 'paid', 'label' => 'Paid', 'icon' => 'bi-credit-card', 'color' => 'green', 'description' => 'Payment completed'],
-                                        ['status' => 'completed', 'label' => 'Completed', 'icon' => 'bi-check2-all', 'color' => 'success', 'description' => 'Completed laundries'],
-                                        ['status' => 'cancelled', 'label' => 'Cancelled', 'icon' => 'bi-x-circle', 'color' => 'red', 'description' => 'Cancelled laundries']
-                                    ];
-                                @endphp
-                                @foreach($pipelineStatuses as $status)
-                                    <div class="col-md-4">
-                                        <div class="pipeline-tile {{ $status['color'] }} shadow-sm">
-                                            <div class="d-flex align-items-center justify-content-between mb-3">
-                                                <div class="p-icon">
-                                                    <i class="bi {{ $status['icon'] }}"></i>
-                                                </div>
-                                                <span class="p-count">{{ $stats['laundryPipeline'][$status['status']] ?? 0 }}</span>
-                                            </div>
-                                            <h6 class="p-label">{{ $status['label'] }}</h6>
-                                            <p class="pipeline-desc small text-muted mb-0">{{ $status['description'] }}</p>
-                                            <div class="mt-3">
-                                                <a href="{{ route('admin.laundries.index') }}?status={{ $status['status'] }}" class="btn btn-sm btn-{{ $status['color'] }}-light w-100">
-                                                    View Details
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
+                    </div>
+                    <div class="col-6">
+                        <div class="financial-metric">
+                            <div class="metric-label small mb-1">Total expenses</div>
+                            <div class="metric-value text-danger fw-bold" style="font-size:1.2rem;">
+                                ₱{{ number_format($stats['financialBreakdown']['total_expense'] ?? 0, 0) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="financial-metric">
+                            <div class="metric-label small mb-1">Net profit</div>
+                            <div class="metric-value fw-bold {{ ($stats['financialBreakdown']['net_profit'] ?? 0) >= 0 ? 'text-success' : 'text-danger' }}" style="font-size:1.2rem;">
+                                ₱{{ number_format($stats['financialBreakdown']['net_profit'] ?? 0, 0) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="financial-metric">
+                            <div class="metric-label small mb-1">Profit margin</div>
+                            <div class="metric-value fw-bold {{ ($stats['financialBreakdown']['profit_margin'] ?? 0) >= 0 ? 'text-success' : 'text-danger' }}" style="font-size:1.2rem;">
+                                {{ $stats['financialBreakdown']['profit_margin'] ?? 0 }}%
                             </div>
                         </div>
                     </div>
                 </div>
-
-                {{-- Enhanced Unclaimed Breakdown --}}
-                <div class="col-lg-4">
-                    <div class="modern-card shadow-sm border-danger-soft">
-                        <div class="card-header-modern bg-danger-soft">
-                            <h6 class="mb-0 fw-800 text-danger">Unclaimed Items</h6>
-                            <small class="text-danger">Requires immediate attention</small>
-                        </div>
-                        <div class="card-body-modern">
-                            @php
-                                $unclaimedCategories = [
-                                    ['label' => '0-7 Days', 'key' => 'within_7_days', 'color' => 'success', 'icon' => 'bi-clock'],
-                                    ['label' => '1-2 Weeks', 'key' => '1_to_2_weeks', 'color' => 'warning', 'icon' => 'bi-clock-history'],
-                                    ['label' => '2-4 Weeks', 'key' => '2_to_4_weeks', 'color' => 'orange', 'icon' => 'bi-exclamation-circle'],
-                                    ['label' => '>1 Month', 'key' => 'over_1_month', 'color' => 'danger', 'icon' => 'bi-exclamation-triangle'],
-                                ];
-                            @endphp
-                            @foreach($unclaimedCategories as $category)
-                                <div class="unclaimed-row mb-3">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center">
-                                            <div class="u-indicator bg-{{ $category['color'] }} me-3">
-                                                <i class="bi {{ $category['icon'] }} text-white"></i>
-                                            </div>
-                                            <div>
-                                                <h6 class="mb-0">{{ $category['label'] }}</h6>
-                                                <small class="text-muted">Time since completion</small>
-                                            </div>
-                                        </div>
-                                        <div class="text-end">
-                                            <h4 class="mb-0 text-{{ $category['color'] }}">{{ $stats['unclaimedBreakdown'][$category['key']] ?? 0 }}</h4>
-                                            <small class="text-muted">items</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                            <div class="alert alert-danger mt-4 bg-danger-soft border-0">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-exclamation-triangle me-3 fs-4 text-danger"></i>
-                                    <div>
-                                        <strong>Estimated Financial Impact:</strong>
-                                        <h5 class="mb-0 mt-1 text-danger">₱{{ number_format($stats['estimatedUnclaimedLoss'] ?? 0, 2) }}</h5>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                <div class="p-2" style="background:rgba(15,23,42,0.4);border-radius:6px;border:1px solid #1e293b;">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small class="text-muted" style="font-size:0.62rem;">Laundry services</small>
+                        <small class="text-success" style="font-size:0.62rem;font-weight:600;">
+                            ₱{{ number_format($stats['financialBreakdown']['laundry_income'] ?? 0, 0) }}
+                        </small>
                     </div>
-                </div>
-
-                {{-- Enhanced Revenue Chart --}}
-                <div class="col-lg-12">
-                    <div class="modern-card shadow-sm">
-                        <div class="card-header-modern bg-transparent border-0 d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0 fw-800 text-slate-800">Revenue Trend</h6>
-                                <small class="text-muted">
-                                    @php
-                                        $rangeLabels = [
-                                            'today'        => 'Today',
-                                            'yesterday'    => 'Yesterday',
-                                            'last_7_days'  => 'Last 7 days',
-                                            'this_week'    => 'This week',
-                                            'last_30_days' => 'Last 30 days',
-                                            'this_month'   => 'This month',
-                                            'last_month'   => 'Last month',
-                                            'this_year'    => 'This year',
-                                        ];
-                                        $activeRangeLabel = $rangeLabels[$currentFilters['date_range'] ?? 'last_30_days'] ?? 'Last 30 days';
-                                    @endphp
-                                    {{ $activeRangeLabel }} performance
-                                </small>
-                            </div>
-                        </div>
-                        <div class="card-body-modern">
-                            <div class="chart-container">
-                                <canvas id="revenueChart" height="100"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- ADVANCED: Pipeline by Branch + Customer Breakdown --}}
-                <div class="col-lg-12">
-                    <div class="bpb-wrapper modern-card shadow-sm overflow-hidden">
-
-                        {{-- Animated gradient header --}}
-                        <div class="bpb-main-header">
-                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="bpb-header-icon">
-                                        <i class="bi bi-shop"></i>
-                                    </div>
-                                    <div>
-                                        <h5 class="mb-0 fw-800 text-white">Pipeline by Branch</h5>
-                                        <small class="text-white" style="opacity:.75;">Laundry status breakdown per branch</small>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    @php
-                                        $bpbDefs = [
-                                            'received'   => ['label'=>'Received',   'hex'=>'#60a5fa', 'icon'=>'bi-inbox-fill'],
-                                            'ready'      => ['label'=>'Ready',      'hex'=>'#22d3ee', 'icon'=>'bi-check-circle-fill'],
-                                            'paid'       => ['label'=>'Paid',       'hex'=>'#10b981', 'icon'=>'bi-credit-card-fill'],
-                                            'completed'  => ['label'=>'Completed',  'hex'=>'#34d399', 'icon'=>'bi-check2-all'],
-                                            'cancelled'  => ['label'=>'Cancelled',  'hex'=>'#f87171', 'icon'=>'bi-x-circle-fill'],
-                                        ];
-                                    @endphp
-                                    <div class="bpb-legend d-none d-lg-flex">
-                                        @foreach($bpbDefs as $key => $def)
-                                            <div class="bpb-legend-item">
-                                                <span class="bpb-legend-dot" style="background:{{ $def['hex'] }};"></span>
-                                                <span>{{ $def['label'] }}</span>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                    <a href="{{ route('admin.branches.index') }}"
-                                       class="btn btn-sm btn-light rounded-pill fw-600">
-                                        <i class="bi bi-shop me-1"></i>Manage Branches
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Branch cards --}}
-                        <div class="card-body-modern">
-                            @if(empty($stats['branchPipeline']))
-                                <div class="text-center py-5">
-                                    <div class="bpb-empty-icon mb-3"><i class="bi bi-shop"></i></div>
-                                    <h6 class="text-muted fw-600">No branch data available</h6>
-                                </div>
-                            @else
-                                <div class="row g-4">
-                                    @php
-                                        $bpbAccentColors = ['#3b82f6','#6366f1','#06b6d4','#10b981','#f59e0b','#ef4444'];
-                                    @endphp
-                                    @foreach($stats['branchPipeline'] as $branch)
-                                        @php
-                                            $accent     = $bpbAccentColors[$loop->index % count($bpbAccentColors)];
-                                            $branchTotal = max($branch['total'], 1);
-                                        @endphp
-                                        <div class="col-xl-4 col-md-6">
-                                            <div class="bpb-card" style="--bpb-accent: {{ $accent }};">
-                                                <div class="bpb-accent-bar"></div>
-
-                                                {{-- Card header --}}
-                                                <div class="bpb-card-header">
-                                                    <div class="d-flex align-items-center gap-3">
-                                                        <div class="bpb-avatar"
-                                                             style="background: linear-gradient(135deg, {{ $accent }}, {{ $accent }}aa);">
-                                                            {{ strtoupper(substr($branch['name'], 0, 1)) }}
-                                                        </div>
-                                                        <div class="flex-grow-1 min-w-0">
-                                                            <h6 class="mb-0 fw-700 bpb-branch-name">{{ $branch['name'] }}</h6>
-                                                            <span class="bpb-total-badge mt-1 d-inline-block">
-                                                                <i class="bi bi-basket me-1"></i>
-                                                                {{ $branch['total'] }} laundries
-                                                            </span>
-                                                        </div>
-                                                        <a href="{{ route('admin.laundries.index', ['branch' => $branch['id']]) }}"
-                                                           class="bpb-view-link flex-shrink-0">
-                                                            <i class="bi bi-box-arrow-up-right"></i>
-                                                        </a>
-                                                    </div>
-                                                </div>
-
-                                                {{-- Stacked progress bar --}}
-                                                <div class="bpb-stacked-bar-wrap">
-                                                    <div class="bpb-stacked-bar">
-                                                        @foreach($bpbDefs as $statusKey => $def)
-                                                            @php $pct = round(($branch['statuses'][$statusKey] / $branchTotal) * 100, 1); @endphp
-                                                            @if($pct > 0)
-                                                                <div class="bpb-bar-seg"
-                                                                     style="width:{{ $pct }}%;background:{{ $def['hex'] }};"
-                                                                     data-bs-toggle="tooltip"
-                                                                     data-bs-title="{{ $def['label'] }}: {{ $branch['statuses'][$statusKey] }} ({{ $pct }}%)">
-                                                                </div>
-                                                            @endif
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-
-                                                {{-- 5-tile status grid --}}
-                                                <div class="bpb-status-grid">
-                                                    @foreach($bpbDefs as $statusKey => $def)
-                                                        @php
-                                                            $cnt     = $branch['statuses'][$statusKey];
-                                                            $pctTile = $branchTotal > 1 ? round(($cnt / $branchTotal) * 100) : 0;
-                                                        @endphp
-                                                        <a href="{{ route('admin.laundries.index', ['branch' => $branch['id'], 'status' => $statusKey]) }}"
-                                                           class="bpb-status-tile text-decoration-none"
-                                                           style="--tile-color:{{ $def['hex'] }};">
-                                                            <div class="bpb-tile-icon">
-                                                                <i class="bi {{ $def['icon'] }}"></i>
-                                                            </div>
-                                                            <div class="bpb-tile-count">{{ $cnt }}</div>
-                                                            <div class="bpb-tile-label">{{ $def['label'] }}</div>
-                                                            <div class="bpb-tile-pct">{{ $pctTile }}%</div>
-                                                        </a>
-                                                    @endforeach
-                                                </div>
-
-                                            </div>{{-- /bpb-card --}}
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted" style="font-size:0.62rem;">Retail sales</small>
+                        <small class="text-success" style="font-size:0.62rem;font-weight:600;">
+                            ₱{{ number_format($stats['financialBreakdown']['retail_income'] ?? 0, 0) }}
+                        </small>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
-        {{-- Enhanced Laundries Tab --}}
-        <div class="tab-pane fade" id="laundries" role="tabpanel">
-            <div class="row g-4">
 
-                {{-- Daily Laundry Count --}}
-                <div class="col-lg-6">
-                    <div class="daily-count-card">
-                        <div class="daily-count-header">
-                            <div class="daily-count-icon">
-                                <i class="bi bi-bar-chart-line"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-800 text-slate-800">Daily Laundry Count</h6>
-                                <small class="text-muted">Laundries per day for selected period</small>
-                            </div>
-                        </div>
-                        <div class="daily-chart-container">
-                            <canvas id="dailyLaundryChart"></canvas>
-                        </div>
-                    </div>
+{{-- ══════════════════════════════════════════
+     CHARTS ROW 2 — Revenue vs Expenses + Service Demand
+══════════════════════════════════════════ --}}
+<div class="row g-3 mb-3">
+
+    {{-- Revenue vs Expense Trend --}}
+    <div class="col-lg-6">
+        <div class="modern-card h-100">
+            <div class="card-header-modern d-flex align-items-center justify-content-between">
+                <div>
+                    <h6 class="mb-0 fw-bold text-slate-800">Revenue vs expenses</h6>
+                    <small>Daily trend this week</small>
                 </div>
-
-                {{-- Payment Methods --}}
-                <div class="col-lg-6">
-                    <div class="payment-methods-card">
-                        <div class="payment-header">
-                            <div class="payment-icon">
-                                <i class="bi bi-credit-card"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-800 text-slate-800">Payment Methods</h6>
-                                <small class="text-muted">Payment breakdown for selected period</small>
-                            </div>
-                        </div>
-                        <div class="payment-methods-list">
-                            @php
-                                $paymentMethods = $stats['paymentMethods'] ?? [];
-                                $paymentIcons = [
-                                    'cash' => ['icon' => 'bi-cash-coin', 'color' => '#10b981', 'bg' => '#ecfdf5'],
-                                    'card' => ['icon' => 'bi-credit-card', 'color' => '#3b82f6', 'bg' => '#eff6ff'],
-                                    'gcash' => ['icon' => 'bi-phone', 'color' => '#f59e0b', 'bg' => '#fffbeb'],
-                                    'bank' => ['icon' => 'bi-bank', 'color' => '#8b5cf6', 'bg' => '#faf5ff']
-                                ];
-                            @endphp
-                            @forelse($paymentMethods as $payment)
-                                @php
-                                    $methodKey = strtolower($payment['method']);
-                                    $iconData = $paymentIcons[$methodKey] ?? $paymentIcons['cash'];
-                                @endphp
-                                <div class="payment-method-item">
-                                    <div class="payment-method-icon" style="background: {{ $iconData['bg'] }}; color: {{ $iconData['color'] }};">
-                                        <i class="bi {{ $iconData['icon'] }}"></i>
-                                    </div>
-                                    <div class="payment-method-details">
-                                        <div class="payment-method-name">{{ ucfirst($payment['method']) }}</div>
-                                        <div class="payment-method-count">{{ $payment['count'] }} transactions</div>
-                                    </div>
-                                    <div>
-                                        <div class="payment-method-amount">₱{{ number_format($payment['amount'], 0) }}</div>
-                                        <div class="payment-method-percentage">{{ $payment['percentage'] }}%</div>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="text-center py-4">
-                                    <i class="bi bi-credit-card text-muted fs-1 mb-2"></i>
-                                    <p class="text-muted">No payment data available</p>
-                                </div>
-                            @endforelse
-                        </div>
-                    </div>
+                <div class="d-flex gap-3">
+                    <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:#94a3b8;">
+                        <span style="width:8px;height:8px;border-radius:2px;background:#10b981;display:inline-block;"></span>Revenue
+                    </span>
+                    <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:#94a3b8;">
+                        <span style="width:8px;height:8px;border-radius:2px;background:#ef4444;display:inline-block;"></span>Expenses
+                    </span>
                 </div>
-
-                {{-- Top Services --}}
-                <div class="col-lg-6">
-                    <div class="top-services-card">
-                        <div class="top-services-header">
-                            <div class="top-services-icon">
-                                <i class="bi bi-star"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-800 text-slate-800">Top Services</h6>
-                                <small class="text-muted">Most used services this period</small>
-                            </div>
-                        </div>
-                        <div class="services-list">
-                            @php
-                                $topServices = $stats['topServices'] ?? [];
-                                $serviceColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                            @endphp
-                            @forelse($topServices as $service)
-                                @php $color = $serviceColors[($service['rank'] - 1) % count($serviceColors)]; @endphp
-                                <div class="service-item">
-                                    <div class="service-rank" style="background: {{ $color }}; color: white;">
-                                        {{ $service['rank'] }}
-                                    </div>
-                                    <div class="service-details">
-                                        <div class="service-name">{{ $service['name'] }}</div>
-                                        <div class="service-usage">{{ $service['count'] }} times used</div>
-                                        <div class="service-bar">
-                                            <div class="service-bar-fill" 
-                                                 style="width: {{ $service['percentage'] }}%; background: {{ $color }};"
-                                                 data-width="{{ $service['percentage'] }}"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="text-center py-4">
-                                    <i class="bi bi-star text-muted fs-1 mb-2"></i>
-                                    <p class="text-muted">No service data available</p>
-                                </div>
-                            @endforelse
-                        </div>
-                    </div>
+            </div>
+            <div class="card-body-modern">
+                <div style="position:relative;width:100%;height:200px;">
+                    <canvas id="revenueExpenseTrendChart"
+                        role="img"
+                        aria-label="Line chart showing daily revenue vs expenses this week">
+                        Revenue and expense trend over the past 7 days.
+                    </canvas>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                {{-- Year-over-Year Revenue --}}
-                <div class="col-lg-6">
-                    <div class="yoy-revenue-card">
-                        <div class="yoy-header">
-                            <div class="yoy-icon">
-                                <i class="bi bi-graph-up-arrow"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-800 text-slate-800">Year-over-Year Revenue</h6>
-                                <small class="text-muted">Last 5 years comparison</small>
-                            </div>
-                        </div>
-                        <div class="yoy-chart-container">
-                            <canvas id="yoyRevenueChart"></canvas>
-                        </div>
-                    </div>
+    {{-- Service Demand Trends --}}
+    <div class="col-lg-6">
+        <div class="modern-card h-100">
+            <div class="card-header-modern d-flex align-items-center justify-content-between">
+                <div>
+                    <h6 class="mb-0 fw-bold text-slate-800">Service demand trends</h6>
+                    <small>Service usage popularity this week</small>
                 </div>
+                <div class="d-flex gap-3">
+                    <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:#94a3b8;">
+                        <span style="width:8px;height:8px;border-radius:2px;background:#60a5fa;display:inline-block;"></span>Full service
+                    </span>
+                    <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:#94a3b8;">
+                        <span style="width:8px;height:8px;border-radius:2px;background:#a78bfa;display:inline-block;"></span>Self service
+                    </span>
+                </div>
+            </div>
+            <div class="card-body-modern">
+                <div style="position:relative;width:100%;height:200px;">
+                    <canvas id="serviceDemandChart"
+                        role="img"
+                        aria-label="Line chart showing service demand trends this week">
+                        Service demand by type over the past 7 days.
+                    </canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-                {{-- ── Service Type Pie Charts ─────────────────────── --}}
-                @php
-                    $scd = $stats['serviceChartData'] ?? [
-                        'drop_off'     => ['labels'=>[],'counts'=>[],'revenues'=>[],'total'=>0],
-                        'self_service' => ['labels'=>[],'counts'=>[],'revenues'=>[],'total'=>0],
-                        'addon'        => ['labels'=>[],'counts'=>[],'revenues'=>[],'total'=>0],
-                        'all_services' => [],
-                        'grand_total'  => ['count'=>0,'revenue'=>0],
+
+{{-- ══════════════════════════════════════════
+     CHARTS ROW 3 — Staff Attendance + Laundries Status
+══════════════════════════════════════════ --}}
+<div class="row g-3 mb-3">
+
+    {{-- Staff Attendance Trends --}}
+    <div class="col-lg-6">
+        <div class="modern-card h-100">
+            <div class="card-header-modern">
+                <h6 class="mb-0 fw-bold text-slate-800">
+                    <i class="bi bi-people text-info me-2"></i>Staff attendance trends
+                </h6>
+                <small>All branches daily attendance</small>
+            </div>
+            <div class="card-body-modern">
+                <div style="position:relative;width:100%;height:200px;">
+                    <canvas id="staffAttendanceTrendsChart"
+                        role="img"
+                        aria-label="Line chart showing staff attendance trends per branch">
+                        Staff attendance per branch over the past 7 days.
+                    </canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Daily Profit Trend --}}
+    <div class="col-lg-6">
+        <div class="modern-card h-100">
+            <div class="card-header-modern">
+                <h6 class="mb-0 fw-bold text-slate-800">
+                    <i class="bi bi-graph-up text-success me-2"></i>Daily profit trend
+                </h6>
+                <small>Last 7 days profit analysis</small>
+            </div>
+            <div class="card-body-modern">
+                <div style="position:relative;width:100%;height:200px;">
+                    <canvas id="profitTrendChart"
+                        role="img"
+                        aria-label="Line chart showing daily profit over the past 7 days">
+                        Daily profit trend for the past 7 days.
+                    </canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{{-- ══════════════════════════════════════════
+     SATISFACTION RATINGS — Services & Branches
+══════════════════════════════════════════ --}}
+{{-- Service Satisfaction Widget --}}
+<div class="satisfaction-widget collapsed" id="serviceSatisfactionWidget">
+    <div class="satisfaction-header" id="serviceHeader">
+        <h3>
+            <i class="bi bi-star-fill"></i>
+            <span>Service Ratings</span>
+        </h3>
+        <div class="satisfaction-controls">
+            <button class="satisfaction-btn" id="serviceMinimizeBtn" title="Minimize">
+                <i class="bi bi-dash"></i>
+            </button>
+            <button class="satisfaction-btn" id="serviceCloseBtn" title="Close">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+    </div>
+    <div class="satisfaction-body" id="serviceBody">
+        <div class="satisfaction-overall">
+            <div class="satisfaction-score">4.7</div>
+            <div class="satisfaction-stars">
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-half"></i>
+            </div>
+            <div class="satisfaction-label">Overall Rating</div>
+        </div>
+        
+        @php
+            // Fetch real service ratings
+            $serviceRatingsData = \App\Models\CustomerRating::whereNotNull('laundry_id')
+                ->with('laundry.service')
+                ->get()
+                ->groupBy(function($item) {
+                    return $item->laundry && $item->laundry->service ? $item->laundry->service->name : 'Unknown';
+                })
+                ->map(function($group, $serviceName) {
+                    return [
+                        'name' => $serviceName,
+                        'rating' => round($group->avg('rating'), 1),
+                        'reviews' => $group->count(),
                     ];
-                    $svcTypeConfig = [
-                        'drop_off'     => ['label'=>'Full Service',  'icon'=>'bi-stars',       'gradient'=>'linear-gradient(135deg,#1e3a8a,#3b82f6)', 'hex'=>'#3b82f6','bg'=>'#eff6ff','border'=>'#bfdbfe'],
-                        'self_service' => ['label'=>'Self Service',  'icon'=>'bi-person-gear', 'gradient'=>'linear-gradient(135deg,#4c1d95,#8b5cf6)', 'hex'=>'#8b5cf6','bg'=>'#faf5ff','border'=>'#ddd6fe'],
-                        'addon'        => ['label'=>'Add-On',        'icon'=>'bi-plus-circle', 'gradient'=>'linear-gradient(135deg,#92400e,#f59e0b)', 'hex'=>'#f59e0b','bg'=>'#fffbeb','border'=>'#fde68a'],
+                })
+                ->sortByDesc('reviews')
+                ->take(10)
+                ->values();
+            
+            $serviceSatisfaction = $serviceRatingsData->count() > 0 ? $serviceRatingsData->toArray() : [
+                ['name' => 'No ratings yet', 'rating' => 0, 'reviews' => 0],
+            ];
+        @endphp
+        
+        @foreach($serviceSatisfaction as $service)
+        <div class="satisfaction-item">
+            <div class="satisfaction-item-name">{{ $service['name'] }}</div>
+            <div class="satisfaction-item-rating">
+                <div class="satisfaction-item-stars">
+                    @for($i = 1; $i <= 5; $i++)
+                        @if($i <= floor($service['rating']))
+                            <i class="bi bi-star-fill"></i>
+                        @elseif($i == ceil($service['rating']) && $service['rating'] - floor($service['rating']) >= 0.5)
+                            <i class="bi bi-star-half"></i>
+                        @else
+                            <i class="bi bi-star"></i>
+                        @endif
+                    @endfor
+                </div>
+                <span class="satisfaction-item-score">{{ number_format($service['rating'], 1) }}</span>
+            </div>
+        </div>
+        @endforeach
+    </div>
+</div>
+
+{{-- Branch Satisfaction Widget --}}
+<div class="satisfaction-widget collapsed" id="branchSatisfactionWidget">
+    <div class="satisfaction-header" id="branchHeader">
+        <h3>
+            <i class="bi bi-building"></i>
+            <span>Branch Ratings</span>
+        </h3>
+        <div class="satisfaction-controls">
+            <button class="satisfaction-btn" id="branchMinimizeBtn" title="Minimize">
+                <i class="bi bi-dash"></i>
+            </button>
+            <button class="satisfaction-btn" id="branchCloseBtn" title="Close">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+    </div>
+    <div class="satisfaction-body" id="branchBody">
+        <div class="satisfaction-overall">
+            <div class="satisfaction-score">4.8</div>
+            <div class="satisfaction-stars">
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+            </div>
+            <div class="satisfaction-label">Overall Rating</div>
+        </div>
+        
+        @php
+            // Fetch real branch ratings
+            $branchRatingsData = \App\Models\CustomerRating::whereNotNull('branch_id')
+                ->with('branch')
+                ->get()
+                ->groupBy('branch_id')
+                ->map(function($group) {
+                    $branch = $group->first()->branch;
+                    return [
+                        'name' => $branch ? $branch->name : 'Unknown',
+                        'rating' => round($group->avg('rating'), 1),
+                        'reviews' => $group->count(),
+                    ];
+                })
+                ->sortByDesc('reviews')
+                ->values();
+            
+            $branchSatisfaction = $branchRatingsData->count() > 0 ? $branchRatingsData->toArray() : [
+                ['name' => 'No ratings yet', 'rating' => 0, 'reviews' => 0],
+            ];
+        @endphp
+        
+        @foreach($branchSatisfaction as $branch)
+        <div class="satisfaction-item">
+            <div class="satisfaction-item-name">{{ $branch['name'] }}</div>
+            <div class="satisfaction-item-rating">
+                <div class="satisfaction-item-stars">
+                    @for($i = 1; $i <= 5; $i++)
+                        @if($i <= floor($branch['rating']))
+                            <i class="bi bi-star-fill"></i>
+                        @elseif($i == ceil($branch['rating']) && $branch['rating'] - floor($branch['rating']) >= 0.5)
+                            <i class="bi bi-star-half"></i>
+                        @else
+                            <i class="bi bi-star"></i>
+                        @endif
+                    @endfor
+                </div>
+                <span class="satisfaction-item-score">{{ number_format($branch['rating'], 1) }}</span>
+            </div>
+        </div>
+        @endforeach
+    </div>
+</div>
+
+
+{{-- Old Top Customers section removed - now in People & Rankings section below --}}
+
+{{-- ══════════════════════════════════════════
+     DASHBOARD WIDGETS — Pipeline, Maps, etc.
+══════════════════════════════════════════ --}}
+@include('admin.dashboard_widgets')
+
+{{-- People & Rankings Section - Dark Theme Cards --}}
+@include('admin.dashboard_people_rankings')
+
+{{-- Inventory Stock Monitor Widget removed - now in People & Rankings section above --}}
+
+
+{{-- ══════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════ --}}
+<div id="routeDetailsPanel" class="route-details-panel" style="display:none;"></div>
+
+{{-- Fullscreen Map Modal --}}
+<div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content" style="background:#0f172a;">
+            <div class="modal-header" style="background:#0f172a;border-color:#334155;">
+                <h5 class="modal-title fw-bold" style="color:#f1f5f9;">Logistics command center</h5>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-warning" id="modalMultiRouteBtn" style="display:none;" onclick="getOptimizedMultiRoute()">
+                        <i class="bi bi-route me-1"></i>Optimize (<span id="modalSelectedCount">0</span>)
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="autoRouteAllVisible()">
+                        <i class="bi bi-magic me-1"></i>Auto-optimize
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0">
+                <div id="modalLogisticsMap" style="height:100%;width:100%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Laundries Breakdown Modal --}}
+<div class="modal fade" id="laundriesBreakdownModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background:#0f172a;border:1px solid #334155;">
+            <div class="modal-header" style="border-color:#334155;">
+                <div>
+                    <h5 class="modal-title fw-bold" style="color:#f1f5f9;">
+                        <i class="bi bi-basket3 text-primary me-2"></i>Today's laundries breakdown
+                    </h5>
+                    <small style="color:#94a3b8;">{{ now()->format('l, F j, Y') }}</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @php
+                    $todayStart = today();
+                    $todayEnd   = today()->endOfDay();
+                    $branchId = request('branch_id');
+
+                    $laundriesByStatus = \App\Models\Laundry::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereBetween('created_at', [$todayStart, $todayEnd])
+                        ->selectRaw('status, COUNT(*) as count')
+                        ->groupBy('status')
+                        ->get()->pluck('count', 'status');
+
+                    $laundriesByBranch = \App\Models\Laundry::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereBetween('created_at', [$todayStart, $todayEnd])
+                        ->selectRaw('branch_id, COUNT(*) as count, SUM(total_amount) as revenue')
+                        ->groupBy('branch_id')
+                        ->with('branch')->get();
+
+                    $totalLaundries = $laundriesByStatus->sum();
+
+                    $recentLaundries = \App\Models\Laundry::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereBetween('created_at', [$todayStart, $todayEnd])
+                        ->with(['customer:id,name', 'service:id,name', 'branch:id,name'])
+                        ->orderByDesc('created_at')
+                        ->limit(10)
+                        ->get(['id','tracking_number','customer_id','service_id','branch_id','status','total_amount','created_at']);
+
+                    $statusConfig = [
+                        'received'  => ['label' => 'Received',  'color' => '#60a5fa', 'icon' => 'bi-inbox-fill'],
+                        'ready'     => ['label' => 'Ready',     'color' => '#22d3ee', 'icon' => 'bi-check-circle-fill'],
+                        'paid'      => ['label' => 'Paid',      'color' => '#10b981', 'icon' => 'bi-credit-card-fill'],
+                        'completed' => ['label' => 'Completed', 'color' => '#34d399', 'icon' => 'bi-check2-all'],
+                        'cancelled' => ['label' => 'Cancelled', 'color' => '#f87171', 'icon' => 'bi-x-circle-fill'],
                     ];
                 @endphp
 
-                {{-- Summary strips --}}
-                @foreach(['drop_off','self_service','addon'] as $typeKey)
-                    @php $tc = $svcTypeConfig[$typeKey]; $ts = $scd[$typeKey]; @endphp
+                <div class="row g-3 mb-3">
                     <div class="col-md-4">
-                        <div class="svc-summary-strip" style="--svc-hex:{{ $tc['hex'] }};--svc-bg:{{ $tc['bg'] }};--svc-border:{{ $tc['border'] }};">
-                            <div class="svc-strip-icon-wrap" style="background:{{ $tc['gradient'] }};">
-                                <i class="bi {{ $tc['icon'] }}"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="svc-strip-label">{{ $tc['label'] }}</div>
-                                <div class="svc-strip-count">{{ number_format($ts['total']) }} laundries</div>
-                            </div>
-                            <div class="text-end">
-                                @php $gc = $scd['grand_total']['count']; $pct = $gc > 0 ? round(($ts['total']/$gc)*100) : 0; @endphp
-                                <div class="svc-strip-pct" style="color:{{ $tc['hex'] }};">{{ $pct }}%</div>
-                                <div class="svc-strip-pct-label">of all laundries</div>
-                            </div>
+                        <div class="p-3 rounded" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);">
+                            <div style="color:#94a3b8;font-size:0.65rem;text-transform:uppercase;margin-bottom:4px;">Total laundries</div>
+                            <div style="font-size:1.5rem;font-weight:700;color:#60a5fa;">{{ $totalLaundries }}</div>
                         </div>
                     </div>
-                @endforeach
+                    <div class="col-md-4">
+                        <div class="p-3 rounded" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);">
+                            <div style="color:#94a3b8;font-size:0.65rem;text-transform:uppercase;margin-bottom:4px;">Completed</div>
+                            <div style="font-size:1.5rem;font-weight:700;color:#10b981;">{{ $laundriesByStatus->get('completed', 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded" style="background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.3);">
+                            <div style="color:#94a3b8;font-size:0.65rem;text-transform:uppercase;margin-bottom:4px;">In progress</div>
+                            <div style="font-size:1.5rem;font-weight:700;color:#22d3ee;">{{ $laundriesByStatus->get('received', 0) + $laundriesByStatus->get('ready', 0) }}</div>
+                        </div>
+                    </div>
+                </div>
 
-                {{-- Full Service doughnut --}}
-                <div class="col-lg-4">
-                    <div class="modern-card shadow-sm h-100">
-                        <div class="card-header-modern bg-transparent border-0">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="svc-chart-header-icon" style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);">
-                                    <i class="bi bi-stars"></i>
-                                </div>
+                <h6 class="fw-bold mb-2" style="color:#f1f5f9;font-size:0.8rem;">Status breakdown</h6>
+                <div class="row g-2 mb-3">
+                    @foreach($statusConfig as $key => $cfg)
+                    @php $cnt = $laundriesByStatus->get($key, 0); @endphp
+                    <div class="col-md-4">
+                        <div class="p-2 rounded d-flex align-items-center justify-content-between"
+                            style="background:rgba(255,255,255,0.04);border-left:3px solid {{ $cfg['color'] }};">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi {{ $cfg['icon'] }}" style="color:{{ $cfg['color'] }};font-size:1rem;"></i>
                                 <div>
-                                    <h6 class="mb-0 fw-800 text-slate-800">Full Service</h6>
-                                    <small class="text-muted">Service breakdown by type</small>
-                                </div>
-                                <div class="ms-auto">
-                                    <span class="svc-chart-total-badge" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;">
-                                        {{ number_format($scd['drop_off']['total']) }} orders
-                                    </span>
+                                    <div style="font-size:0.72rem;font-weight:600;color:#f1f5f9;">{{ $cfg['label'] }}</div>
+                                    <div style="font-size:0.6rem;color:#475569;">{{ $totalLaundries > 0 ? round(($cnt/$totalLaundries)*100, 1) : 0 }}%</div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="card-body-modern">
-                            @if(!empty($scd['drop_off']['labels']))
-                                <div class="svc-donut-wrap">
-                                    <canvas id="fullServiceChart"></canvas>
-                                    <div class="svc-donut-center">
-                                        <div class="svc-donut-num">{{ number_format($scd['drop_off']['total']) }}</div>
-                                        <div class="svc-donut-lbl">Usage</div>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="svc-empty-state">
-                                    <i class="bi bi-stars"></i>
-                                    <p>No full service data</p>
-                                </div>
-                            @endif
+                            <div style="font-size:1rem;font-weight:700;color:{{ $cfg['color'] }};">{{ $cnt }}</div>
                         </div>
                     </div>
+                    @endforeach
                 </div>
 
-                {{-- Self Service doughnut --}}
-                <div class="col-lg-4">
-                    <div class="modern-card shadow-sm h-100">
-                        <div class="card-header-modern bg-transparent border-0">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="svc-chart-header-icon" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6);">
-                                    <i class="bi bi-person-gear"></i>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0 fw-800 text-slate-800">Self Service</h6>
-                                    <small class="text-muted">Service breakdown by type</small>
-                                </div>
-                                <div class="ms-auto">
-                                    <span class="svc-chart-total-badge" style="background:#faf5ff;color:#5b21b6;border-color:#ddd6fe;">
-                                        {{ number_format($scd['self_service']['total']) }} orders
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body-modern">
-                            @if(!empty($scd['self_service']['labels']))
-                                <div class="svc-donut-wrap">
-                                    <canvas id="selfServiceChart"></canvas>
-                                    <div class="svc-donut-center">
-                                        <div class="svc-donut-num">{{ number_format($scd['self_service']['total']) }}</div>
-                                        <div class="svc-donut-lbl">Usage</div>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="svc-empty-state">
-                                    <i class="bi bi-person-gear"></i>
-                                    <p>No self service data</p>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Add-On doughnut --}}
-                <div class="col-lg-4">
-                    <div class="modern-card shadow-sm h-100">
-                        <div class="card-header-modern bg-transparent border-0">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="svc-chart-header-icon" style="background:linear-gradient(135deg,#92400e,#f59e0b);">
-                                    <i class="bi bi-plus-circle"></i>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0 fw-800 text-slate-800">Add-Ons</h6>
-                                    <small class="text-muted">Service breakdown by type</small>
-                                </div>
-                                <div class="ms-auto">
-                                    <span class="svc-chart-total-badge" style="background:#fffbeb;color:#92400e;border-color:#fde68a;">
-                                        {{ number_format($scd['addon']['total']) }} orders
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body-modern">
-                            @if(!empty($scd['addon']['labels']))
-                                <div class="svc-donut-wrap">
-                                    <canvas id="addonServiceChart"></canvas>
-                                    <div class="svc-donut-center">
-                                        <div class="svc-donut-num">{{ number_format($scd['addon']['total']) }}</div>
-                                        <div class="svc-donut-lbl">Usage</div>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="svc-empty-state">
-                                    <i class="bi bi-plus-circle"></i>
-                                    <p>No add-on data</p>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-
-                {{-- All Service Types table --}}
-                <div class="col-lg-8">
-                    <div class="modern-card shadow-sm">
-                        <div class="card-header-modern bg-transparent border-0 d-flex align-items-center justify-content-between">
-                            <div>
-                                <h6 class="mb-0 fw-800 text-slate-800">All Service Types</h6>
-                                <small class="text-muted">Ranked by laundry volume</small>
-                            </div>
-                            <a href="{{ route('admin.services.index') }}" class="btn btn-sm btn-outline-primary rounded-pill">
-                                <i class="bi bi-gear me-1"></i>Manage Services
-                            </a>
-                        </div>
-                        <div class="card-body-modern p-0">
-                            @if(!empty($scd['all_services']))
-                                <div class="table-responsive">
-                                    <table class="table svc-table mb-0">
-                                        <thead>
-                                            <tr>
-                                                <th style="width:32px;">#</th>
-                                                <th>Service</th>
-                                                <th>Category</th>
-                                                <th class="text-center">Used</th>
-                                                <th class="text-end">Revenue</th>
-                                                <th style="width:130px;">Volume</th>
-                                                <th style="width:32px;"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($scd['all_services'] as $i => $svc)
-                                                @php $tc = $svcTypeConfig[$svc['category']] ?? $svcTypeConfig['drop_off']; @endphp
-                                                <tr class="svc-table-row">
-                                                    <td class="svc-rank-cell">{{ $i+1 }}</td>
-                                                    <td>
-                                                        <div class="d-flex align-items-center gap-2">
-                                                            <div class="svc-icon-sm" style="background:{{ $tc['bg'] }};color:{{ $tc['hex'] }};">
-                                                                <i class="bi bi-tag-fill"></i>
-                                                            </div>
-                                                            <span class="svc-name-text">{{ $svc['name'] }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <span class="svc-type-pill"
-                                                              style="background:{{ $tc['bg'] }};color:{{ $tc['hex'] }};border-color:{{ $tc['border'] }};">
-                                                            <i class="bi {{ $tc['icon'] }}"></i>{{ $tc['label'] }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <span class="fw-700">{{ number_format($svc['count']) }}</span>
-                                                        <div class="svc-sub-pct">{{ $svc['count_pct'] }}%</div>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <span class="fw-700 text-success">₱{{ number_format($svc['revenue'],0) }}</span>
-                                                        <div class="svc-sub-pct">{{ $svc['revenue_pct'] }}%</div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="svc-bar-track">
-                                                            <div class="svc-bar-fill" style="width:{{ $svc['count_pct'] }}%;background:{{ $tc['hex'] }};"></div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <a href="{{ route('admin.laundries.index', ['service'=>$svc['id']]) }}"
-                                                           class="svc-row-link" title="View laundries">
-                                                            <i class="bi bi-arrow-right-circle"></i>
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            @else
-                                <div class="svc-empty-state m-4">
-                                    <i class="bi bi-tag"></i>
-                                    <p>No services configured yet</p>
-                                    <a href="{{ route('admin.services.index') }}" class="btn btn-sm btn-primary rounded-pill mt-2">Add Services</a>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Recent Laundries (small, beside table) --}}
-                <div class="col-lg-4">
-                    <div class="modern-card shadow-sm h-100">
-                        <div class="card-header-modern bg-transparent border-0 d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0 fw-800 text-slate-800">Latest</h6>
-                                <small class="text-muted">Most recent laundries</small>
-                            </div>
-                            <a href="{{ route('admin.laundries.index') }}" class="btn btn-sm btn-outline-primary">All</a>
-                        </div>
-                        <div class="card-body-modern">
-                            @php $latestLaundries = \App\Models\Laundry::with('customer')->latest()->limit(6)->get(); @endphp
-                            @forelse($latestLaundries as $laundry)
-                                <div class="recent-laundry-item {{ !$loop->last ? 'mb-2' : '' }}">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center">
-                                            <div class="laundry-status-badge status-{{ $laundry->status }} me-3">
-                                                <i class="bi bi-circle-fill"></i>
-                                            </div>
-                                            <div>
-                                                <h6 class="mb-0" style="font-size:.82rem;">#{{ $laundry->laundry_number ?? $laundry->id }}</h6>
-                                                <small class="text-muted">{{ $laundry->customer->name ?? 'Guest' }}</small>
-                                            </div>
-                                        </div>
-                                        <div class="text-end">
-                                            <div style="font-size:.82rem;font-weight:700;">₱{{ number_format($laundry->total_amount,0) }}</div>
-                                            <small class="text-capitalize text-muted">{{ $laundry->status }}</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="text-center py-4">
-                                    <i class="bi bi-basket text-muted fs-1 d-block mb-2"></i>
-                                    <p class="text-muted">No laundries yet</p>
-                                </div>
-                            @endforelse
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        {{-- Enhanced Customers Tab --}}
-        <div class="tab-pane fade" id="customers" role="tabpanel">
-
-            {{-- ══════════════════════════════════════════════════════ --}}
-            {{-- CUSTOMER PIPELINE BY BRANCH                           --}}
-            {{-- ══════════════════════════════════════════════════════ --}}
-            <div class="row g-4">
-                <div class="col-lg-12">
-                    <div class="cbp-wrapper modern-card shadow-sm overflow-hidden">
-
-                        {{-- Gradient header --}}
-                        <div class="cbp-main-header">
-                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="cbp-header-icon">
-                                        <i class="bi bi-people-fill"></i>
-                                    </div>
-                                    <div>
-                                        <h5 class="mb-0 fw-800 text-white">Customer Pipeline by Branch</h5>
-                                        <small class="text-white" style="opacity:.75;">
-                                            Walk-in vs Mobile customers per branch
-                                        </small>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <div class="cbp-legend d-none d-lg-flex">
-                                        <div class="cbp-legend-item">
-                                            <span class="cbp-legend-dot" style="background:#34d399;"></span>
-                                            <span>Walk-In</span>
-                                        </div>
-                                        <div class="cbp-legend-item">
-                                            <span class="cbp-legend-dot" style="background:#818cf8;"></span>
-                                            <span>Self-Registered</span>
-                                        </div>
-                                    </div>
-                                    <a href="{{ route('admin.customers.index') }}"
-                                       class="btn btn-sm btn-light rounded-pill fw-600">
-                                        <i class="bi bi-arrow-right-circle me-1"></i>All Customers
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Branch cards + pie chart --}}
-                        <div class="card-body-modern">
-                            @if(empty($stats['customerBranchPipeline']))
-                                <div class="text-center py-5">
-                                    <div class="cbp-empty-icon mb-3"><i class="bi bi-people"></i></div>
-                                    <h6 class="text-muted fw-600">No customer branch data</h6>
-                                    <small class="text-muted">Customer data will appear here once laundries are created.</small>
-                                </div>
-                            @else
-                                <div class="row g-4 align-items-stretch">
-
-                                    {{-- Branch cards (left) --}}
-                                    <div class="col-lg-8">
-                                        <div class="row g-3">
-                                            @php
-                                                $cbpAccents = ['#10b981','#6366f1','#06b6d4','#f59e0b','#ef4444','#8b5cf6'];
-                                            @endphp
-                                            @foreach($stats['customerBranchPipeline'] as $branch)
-                                                @php
-                                                    $accent   = $cbpAccents[$loop->index % count($cbpAccents)];
-                                                    $bTotal   = max($branch['total'], 1);
-                                                    $wiPct    = round(($branch['walk_in'] / $bTotal) * 100);
-                                                    $mobPct   = 100 - $wiPct;
-                                                @endphp
-                                                <div class="col-md-6">
-                                                    <div class="cbp-card" style="--cbp-accent: {{ $accent }};">
-                                                        <div class="cbp-accent-bar"></div>
-
-                                                        {{-- Card header --}}
-                                                        <div class="cbp-card-header">
-                                                            <div class="d-flex align-items-center gap-3">
-                                                                <div class="cbp-avatar"
-                                                                     style="background:linear-gradient(135deg,{{ $accent }},{{ $accent }}aa);">
-                                                                    {{ strtoupper(substr($branch['name'], 0, 1)) }}
-                                                                </div>
-                                                                <div class="flex-grow-1 min-w-0">
-                                                                    <h6 class="mb-0 fw-700 cbp-branch-name">{{ $branch['name'] }}</h6>
-                                                                    <span class="cbp-total-badge mt-1 d-inline-block">
-                                                                        <i class="bi bi-people me-1"></i>
-                                                                        {{ $branch['total'] }} customers
-                                                                    </span>
-                                                                </div>
-                                                                <a href="{{ route('admin.customers.index', ['branch' => $branch['id']]) }}"
-                                                                   class="cbp-view-link flex-shrink-0">
-                                                                    <i class="bi bi-box-arrow-up-right"></i>
-                                                                </a>
-                                                            </div>
-                                                        </div>
-
-                                                        {{-- Stacked progress bar --}}
-                                                        <div class="cbp-bar-wrap">
-                                                            <div class="cbp-stacked-bar">
-                                                                @if($wiPct > 0)
-                                                                    <div class="cbp-bar-seg"
-                                                                         style="width:{{ $wiPct }}%;background:#34d399;"
-                                                                         data-bs-toggle="tooltip"
-                                                                         data-bs-title="Walk-In: {{ $branch['walk_in'] }} ({{ $wiPct }}%)">
-                                                                    </div>
-                                                                @endif
-                                                                @if($mobPct > 0)
-                                                                    <div class="cbp-bar-seg"
-                                                                         style="width:{{ $mobPct }}%;background:#818cf8;"
-                                                                         data-bs-toggle="tooltip"
-                                                                         data-bs-title="Mobile: {{ $branch['mobile'] }} ({{ $mobPct }}%)">
-                                                                    </div>
-                                                                @endif
-                                                            </div>
-                                                        </div>
-
-                                                        {{-- 2-tile grid --}}
-                                                        <div class="cbp-status-grid">
-                                                            <a href="{{ route('admin.customers.index', ['branch_id' => $branch['id'], 'registration_type' => 'walk_in']) }}"
-                                                               class="cbp-status-tile text-decoration-none"
-                                                               style="--tile-color:#34d399;">
-                                                                <div class="cbp-tile-icon"><i class="bi bi-person-walking"></i></div>
-                                                                <div class="cbp-tile-count">{{ $branch['walk_in'] }}</div>
-                                                                <div class="cbp-tile-label">Walk-In</div>
-                                                                <div class="cbp-tile-pct">{{ $wiPct }}%</div>
-                                                            </a>
-                                                            <a href="{{ route('admin.customers.index', ['branch_id' => $branch['id'], 'registration_type' => 'self_registered']) }}"
-                                                               class="cbp-status-tile text-decoration-none"
-                                                               style="--tile-color:#818cf8;">
-                                                                <div class="cbp-tile-icon"><i class="bi bi-phone-fill"></i></div>
-                                                                <div class="cbp-tile-count">{{ $branch['mobile'] }}</div>
-                                                                <div class="cbp-tile-label">Self-Reg</div>
-                                                                <div class="cbp-tile-pct">{{ $mobPct }}%</div>
-                                                            </a>
-                                                        </div>
-
-                                                    </div>{{-- /cbp-card --}}
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-
-                                    {{-- Overall pie chart (right) --}}
-                                    <div class="col-lg-4">
-                                        <div class="cbp-chart-card h-100">
-                                            <div class="cbp-chart-header">
-                                                <div class="cbp-chart-icon">
-                                                    <i class="bi bi-pie-chart-fill"></i>
-                                                </div>
-                                                <div>
-                                                    <h6 class="mb-0 fw-800">Overall Split</h6>
-                                                    <small class="text-muted">Walk-in vs Mobile</small>
-                                                </div>
-                                            </div>
-                                            <div class="cbp-donut-wrap">
-                                                <canvas id="customerBranchChart"></canvas>
-                                                <div class="cbp-donut-center">
-                                                    @php
-                                                        $totalWalkIn = collect($stats['customerBranchPipeline'])->sum('walk_in');
-                                                        $totalMobile = collect($stats['customerBranchPipeline'])->sum('mobile');
-                                                        $grandTotal  = $totalWalkIn + $totalMobile;
-                                                    @endphp
-                                                    <div class="cbp-donut-num">{{ number_format($grandTotal) }}</div>
-                                                    <div class="cbp-donut-lbl">Customers</div>
-                                                </div>
-                                            </div>
-                                            {{-- Legend --}}
-                                            <div class="cbp-chart-legend">
-                                                <div class="cbp-chart-legend-item">
-                                                    <span class="cbp-chart-legend-dot" style="background:#34d399;"></span>
-                                                    <span class="cbp-chart-legend-label">Walk-In</span>
-                                                    <span class="cbp-chart-legend-val">{{ number_format($totalWalkIn) }}</span>
-                                                </div>
-                                                <div class="cbp-chart-legend-item">
-                                                    <span class="cbp-chart-legend-dot" style="background:#818cf8;"></span>
-                                                    <span class="cbp-chart-legend-label">Self-Registered</span>
-                                                    <span class="cbp-chart-legend-val">{{ number_format($totalMobile) }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {{-- ══════════════════════════════════════════════════════ --}}
-
-            {{-- Top Customers + Top Rated ──────────────────────────── --}}
-            <div class="row g-4 mt-2">
-                {{-- Enhanced Top Customers --}}
-                <div class="col-lg-6">
-                    <div class="modern-card shadow-sm h-100">
-                        <div class="card-header-modern bg-transparent border-0 d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0 fw-800 text-slate-800">Top Customers</h6>
-                                <small class="text-muted">By lifetime value</small>
-                            </div>
-                            <a href="{{ route('admin.customers.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
-                        </div>
-                        <div class="card-body-modern">
-                            @php $topCustomers = $stats['topCustomers'] ?? []; @endphp
-                            @forelse($topCustomers as $customer)
-                                <div class="top-customer-item mb-3">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center">
-                                            <div class="customer-avatar me-3">
-                                                {{ substr($customer['name'], 0, 1) }}
-                                            </div>
-                                            <div>
-                                                <h6 class="mb-0">{{ $customer['name'] }}</h6>
-                                                <small class="text-muted">{{ $customer['laundries_count'] }} laundries</small>
-                                            </div>
-                                        </div>
-                                        <div class="text-end">
-                                            <h6 class="mb-0 text-success">₱{{ number_format($customer['total_spent'], 0) }}</h6>
-                                            <small class="text-muted">Lifetime value</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="text-center py-5">
-                                    <i class="bi bi-people text-muted fs-1 mb-3"></i>
-                                    <p class="text-muted">No customer data available</p>
-                                </div>
-                            @endforelse
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Top Rated Customers --}}
-                <div class="col-lg-6">
-                    <div class="modern-card shadow-sm h-100">
-                        <div class="card-header-modern bg-transparent border-0 d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0 fw-800 text-slate-800">Top Rated Customers</h6>
-                                <small class="text-muted">Highest average rating given</small>
-                            </div>
-                            <a href="{{ route('admin.customers.index') }}" class="btn btn-sm btn-outline-warning">View All</a>
-                        </div>
-                        <div class="card-body-modern">
-                            @php
-                                $topRatedCustomers = $stats['topRatedCustomers'] ?? [];
-                                $starColors = [5=>'#f59e0b',4=>'#f59e0b',3=>'#94a3b8',2=>'#ef4444',1=>'#ef4444'];
-                            @endphp
-                            @forelse($topRatedCustomers as $index => $customer)
-                                @php
-                                    $stars     = (int) round($customer['avg_rating']);
-                                    $starColor = $starColors[$stars] ?? '#94a3b8';
-                                @endphp
-                                <div class="top-customer-item top-rated-item mb-3">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="trc-rank">{{ $index + 1 }}</div>
-                                        <div class="customer-avatar flex-shrink-0"
-                                             style="background:linear-gradient(135deg,{{ $starColor }},{{ $starColor }}cc);">
-                                            {{ substr($customer['name'], 0, 1) }}
-                                        </div>
-                                        <div class="flex-grow-1 min-w-0">
-                                            <h6 class="mb-0 text-truncate">{{ $customer['name'] }}</h6>
-                                            <div class="trc-star-bar mt-1">
-                                                <div class="trc-star-fill"
-                                                     style="width:{{ ($customer['avg_rating'] / 5) * 100 }}%;background:{{ $starColor }};"
-                                                     data-width="{{ ($customer['avg_rating'] / 5) * 100 }}">
-                                                </div>
-                                            </div>
-                                            <small class="text-muted">{{ $customer['ratings_count'] }} {{ $customer['ratings_count'] == 1 ? 'rating' : 'ratings' }}</small>
-                                        </div>
-                                        <div class="text-end flex-shrink-0">
-                                            <div class="trc-score" style="color:{{ $starColor }};">
-                                                {{ $customer['avg_rating'] }}
-                                                <i class="bi bi-star-fill ms-1" style="font-size:0.75rem;"></i>
-                                            </div>
-                                            <div class="trc-stars">
-                                                @for($s = 1; $s <= 5; $s++)
-                                                    <i class="bi bi-star{{ $s <= $stars ? '-fill' : '' }}"
-                                                       style="color:{{ $s <= $stars ? $starColor : '#e2e8f0' }};"></i>
-                                                @endfor
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="text-center py-5">
-                                    <i class="bi bi-star text-muted fs-1 mb-3 d-block"></i>
-                                    <p class="text-muted">No ratings submitted yet</p>
-                                </div>
-                            @endforelse
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {{-- ────────────────────────────────────────────────────── --}}
-        </div>
-
-        {{-- Operations Tab --}}
-        <div class="tab-pane fade" id="operations" role="tabpanel">
-            <div class="row g-4">
-
-                {{-- ══════════════════════════════════════════════════ --}}
-                {{-- PICKUP PIPELINE BY BRANCH                         --}}
-                {{-- ══════════════════════════════════════════════════ --}}
-                <div class="col-lg-12">
-                    <div class="pbp-wrapper modern-card shadow-sm overflow-hidden">
-
-                        {{-- Gradient header --}}
-                        <div class="pbp-main-header">
-                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="pbp-header-icon">
-                                        <i class="bi bi-truck"></i>
-                                    </div>
-                                    <div>
-                                        <h5 class="mb-0 fw-800 text-white">Pickup Pipeline by Branch</h5>
-                                        <small class="text-white" style="opacity:.75;">
-                                            Live pickup request status per branch
-                                        </small>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    {{-- Status legend --}}
-                                    @php
-                                        $pbpDefs = [
-                                            'pending'   => ['label'=>'Pending',   'hex'=>'#fbbf24', 'icon'=>'bi-clock-fill'],
-                                            'accepted'  => ['label'=>'Accepted',  'hex'=>'#22d3ee', 'icon'=>'bi-check-circle-fill'],
-                                            'en_route'  => ['label'=>'En Route',  'hex'=>'#818cf8', 'icon'=>'bi-truck'],
-                                            'picked_up' => ['label'=>'Picked Up', 'hex'=>'#34d399', 'icon'=>'bi-bag-check-fill'],
-                                            'cancelled' => ['label'=>'Cancelled', 'hex'=>'#f87171', 'icon'=>'bi-x-circle-fill'],
-                                        ];
-                                    @endphp
-                                    <div class="pbp-legend d-none d-lg-flex">
-                                        @foreach($pbpDefs as $key => $def)
-                                            <div class="pbp-legend-item">
-                                                <span class="pbp-legend-dot" style="background:{{ $def['hex'] }};"></span>
-                                                <span>{{ $def['label'] }}</span>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                    <a href="{{ route('admin.pickups.index') }}"
-                                       class="btn btn-sm btn-light rounded-pill fw-600">
-                                        <i class="bi bi-arrow-right-circle me-1"></i>All Pickups
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Branch cards --}}
-                        <div class="card-body-modern">
-                            @if(empty($stats['pickupBranchPipeline']) || collect($stats['pickupBranchPipeline'])->sum('total') === 0)
-                                <div class="text-center py-5">
-                                    <div class="pbp-empty-icon mb-3"><i class="bi bi-truck"></i></div>
-                                    <h6 class="text-muted fw-600">No pickup request data</h6>
-                                    <small class="text-muted">Pickup requests will appear here once created.</small>
-                                </div>
-                            @else
-                                <div class="row g-4">
-                                    @php
-                                        $pbpAccents = ['#f59e0b','#6366f1','#06b6d4','#10b981','#ef4444','#8b5cf6'];
-                                    @endphp
-                                    @foreach($stats['pickupBranchPipeline'] as $branch)
-                                        @php
-                                            $accent  = $pbpAccents[$loop->index % count($pbpAccents)];
-                                            $bTotal  = max($branch['total'], 1);
-                                        @endphp
-                                        <div class="col-xl-4 col-md-6">
-                                            <div class="pbp-card" style="--pbp-accent: {{ $accent }};">
-
-                                                <div class="pbp-accent-bar"></div>
-
-                                                {{-- Branch header --}}
-                                                <div class="pbp-card-header">
-                                                    <div class="d-flex align-items-center gap-3">
-                                                        <div class="pbp-avatar"
-                                                             style="background:linear-gradient(135deg,{{ $accent }},{{ $accent }}aa);">
-                                                            {{ strtoupper(substr($branch['name'], 0, 1)) }}
-                                                        </div>
-                                                        <div class="flex-grow-1 min-w-0">
-                                                            <h6 class="mb-0 fw-700 pbp-branch-name">{{ $branch['name'] }}</h6>
-                                                            <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
-                                                                <span class="pbp-total-badge">
-                                                                    <i class="bi bi-truck me-1"></i>
-                                                                    {{ $branch['total'] }} requests
-                                                                </span>
-                                                                @if($branch['active'] > 0)
-                                                                    <span class="pbp-active-badge">
-                                                                        <span class="pbp-pulse-dot"></span>
-                                                                        {{ $branch['active'] }} active
-                                                                    </span>
-                                                                @endif
-                                                            </div>
-                                                        </div>
-                                                        <a href="{{ route('admin.pickups.index', ['branch' => $branch['id']]) }}"
-                                                           class="pbp-view-link flex-shrink-0">
-                                                            <i class="bi bi-box-arrow-up-right"></i>
-                                                        </a>
-                                                    </div>
-                                                </div>
-
-                                                {{-- Stacked progress bar --}}
-                                                <div class="pbp-bar-wrap">
-                                                    <div class="pbp-stacked-bar">
-                                                        @foreach($pbpDefs as $statusKey => $def)
-                                                            @php $pct = $bTotal > 1 ? round(($branch['statuses'][$statusKey] / $bTotal) * 100, 1) : 0; @endphp
-                                                            @if($pct > 0)
-                                                                <div class="pbp-bar-seg"
-                                                                     style="width:{{ $pct }}%;background:{{ $def['hex'] }};"
-                                                                     data-bs-toggle="tooltip"
-                                                                     data-bs-title="{{ $def['label'] }}: {{ $branch['statuses'][$statusKey] }} ({{ $pct }}%)">
-                                                                </div>
-                                                            @endif
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-
-                                                {{-- Status tiles — 5 columns --}}
-                                                <div class="pbp-status-grid">
-                                                    @foreach($pbpDefs as $statusKey => $def)
-                                                        @php
-                                                            $cnt     = $branch['statuses'][$statusKey];
-                                                            $pctTile = $bTotal > 1 ? round(($cnt / $bTotal) * 100) : 0;
-                                                        @endphp
-                                                        <a href="{{ route('admin.pickups.index', ['branch' => $branch['id'], 'status' => $statusKey]) }}"
-                                                           class="pbp-status-tile text-decoration-none"
-                                                           style="--tile-color:{{ $def['hex'] }};">
-                                                            <div class="pbp-tile-icon">
-                                                                <i class="bi {{ $def['icon'] }}"></i>
-                                                            </div>
-                                                            <div class="pbp-tile-count">{{ $cnt }}</div>
-                                                            <div class="pbp-tile-label">{{ $def['label'] }}</div>
-                                                            <div class="pbp-tile-pct">{{ $pctTile }}%</div>
-                                                        </a>
-                                                    @endforeach
-                                                </div>
-
-                                            </div>{{-- /pbp-card --}}
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-                {{-- ══════════════════════════════════════════════════ --}}
-
-                {{-- Left: Pickup Management Panel --}}
-                <div class="col-lg-5">
-                    <div class="modern-card shadow-sm h-100">
-                        <div class="card-header-modern bg-transparent border-0 d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0 fw-800 text-slate-800">Pickup Management</h6>
-                                <small class="text-muted">Select multiple pickups for optimized route</small>
-                            </div>
-                            <div>
-                                <span id="selectedPickupCount" class="badge bg-purple" style="display: none;">0</span>
-                            </div>
-                        </div>
-                        <div class="card-body-modern">
-                            {{-- Multi-Route Action Buttons --}}
-                            <div id="multiRouteBtn" class="d-grid mb-4" style="display: none;">
-                                <button class="btn btn-purple shadow-sm" onclick="getOptimizedMultiRoute()">
-                                    <i class="bi bi-route me-2"></i>Optimize Route (<span id="selectedCount">0</span> selected)
-                                </button>
-                            </div>
-
-                            {{-- Auto-Optimize Button --}}
-                            <div class="d-grid mb-4">
-                                <button class="btn btn-primary shadow-sm" onclick="autoRouteAllVisible()">
-                                    <i class="bi bi-magic me-2"></i> Auto-Optimize All Pending
-                                </button>
-                            </div>
-
-                            {{-- Quick Actions --}}
-                            <div class="d-flex gap-2 mb-4">
-                                <button class="btn btn-sm btn-outline-purple flex-fill" onclick="selectAllPending()">
-                                    <i class="bi bi-check-square me-1"></i> Select All Pending
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger flex-fill" onclick="clearSelections()">
-                                    <i class="bi bi-x-circle me-1"></i> Clear All
-                                </button>
-                            </div>
-
-                            {{-- Pickup Status Summary --}}
-                            <h6 class="mb-3 fw-800 text-slate-600">Pickup Status Summary</h6>
-                            @foreach([
-                                'pending'    => 'Pending',
-                                'accepted'   => 'Accepted',
-                                'en_route'   => 'En Route',
-                                'picked_up'  => 'Picked Up',
-                                'cancelled'  => 'Cancelled',
-                            ] as $statusKey => $label)
-                                <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
-                                    <div class="d-flex align-items-center">
-                                        <div class="pickup-status-indicator status-{{ $statusKey }} me-3"></div>
-                                        <div>
-                                            <h6 class="mb-0">{{ $label }}</h6>
-                                            <small class="text-muted">Pickup requests</small>
-                                        </div>
-                                    </div>
-                                    <div class="text-end">
-                                        <h4 class="mb-0">{{ $stats['pickupStats'][$statusKey] ?? 0 }}</h4>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Right: Map View --}}
-                <div class="col-lg-7">
-                    <div class="modern-card shadow-sm h-100">
-                        <div class="card-header-modern bg-transparent border-0 d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0 fw-800 text-slate-800">Logistics Map</h6>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-purple" id="multiRouteTopBtn" style="display: none;"
-                                        onclick="getOptimizedMultiRoute()">
-                                    <i class="bi bi-route"></i> Optimize (<span id="selectedCountTop">0</span>)
-                                </button>
-                                <button class="btn btn-sm btn-outline-primary" onclick="refreshMapMarkers()">
-                                    <i class="bi bi-geo-alt"></i> Refresh
-                                </button>
-                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#mapModal">
-                                    <i class="bi bi-arrows-fullscreen"></i> Fullscreen
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body-modern p-0 position-relative">
-                            {{-- ADDRESS SEARCH OVERLAY --}}
-                            <div id="address-search-overlay" style="position: absolute; top: 15px; right: 15px; z-index: 1000; max-width: 380px;">
-                                <div class="card shadow-lg border-0">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex align-items-center gap-2 mb-2">
-                                            <i class="bi bi-search text-primary"></i>
-                                            <h6 class="mb-0 fw-bold">Search Location</h6>
-                                        </div>
-                                        <div class="input-group input-group-sm">
-                                            <input type="text"
-                                                   id="map-address-search"
-                                                   class="form-control"
-                                                   placeholder="e.g., 183 Dr. V Locsin Street, Dumaguete City"
-                                                   style="font-size: 13px;">
-                                            <button class="btn btn-primary" onclick="searchMapAddress()">
-                                                <i class="bi bi-geo-alt-fill"></i>
-                                            </button>
-                                        </div>
-                                        <div id="search-result-display" class="mt-2" style="display: none;">
-                                            <div class="alert alert-success mb-0 py-2 px-2 small">
-                                                <div class="d-flex justify-content-between align-items-start">
-                                                    <div class="flex-grow-1">
-                                                        <strong id="result-address-text" class="d-block mb-1"></strong>
-                                                        <small class="text-muted d-block" id="result-coords-text"></small>
-                                                    </div>
-                                                    <button class="btn btn-sm btn-link p-0 text-decoration-none"
-                                                            onclick="document.getElementById('search-result-display').style.display='none'">
-                                                        <i class="bi bi-x-lg"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="logisticsMap" class="admin-logistics-map"></div>
-                            <div id="map-controls-container" style="position: absolute; top: 10px; left: 10px; z-index: 1000;">
-                                <div id="eta-display-container" style="display: none; margin-bottom: 10px;"></div>
-                                <div class="route-controls" style="display: none;">
-                                    <button class="route-btn btn-clear-route" onclick="clearRoute()">
-                                        <i class="bi bi-x-circle"></i> Clear Route
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Route Details Panel (Initially Hidden) --}}
-    <div id="routeDetailsPanel" class="route-details-panel" style="display: none;"></div>
-
-    {{-- Fullscreen Map Modal --}}
-    <div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-fullscreen">
-            <div class="modal-content">
-                <div class="modal-header border-bottom shadow-sm bg-navy text-white">
-                    <h5 class="modal-title fw-bold">Logistics Command Center</h5>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-warning" id="modalMultiRouteBtn" style="display: none;" onclick="getOptimizedMultiRoute()">
-                            <i class="bi bi-route me-1"></i>Optimize (<span id="modalSelectedCount">0</span>)
-                        </button>
-                        <button class="btn btn-sm btn-info" onclick="autoRouteAllVisible()">
-                            <i class="bi bi-magic me-1"></i>Auto-Optimize All
-                        </button>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                </div>
-                <div class="modal-body p-0">
-                    <div id="modalLogisticsMap" style="height: 100%; width: 100%;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Enhanced System Metrics --}}
-    <div class="row g-4 mt-4">
-        <div class="col-lg-12">
-            <div class="modern-card shadow-sm">
-                <div class="card-header-modern bg-transparent border-0">
-                    <h6 class="mb-0 fw-800 text-slate-800">System Performance Metrics</h6>
-                    <small class="text-muted">Performance indicators</small>
-                </div>
-                <div class="card-body-modern">
-                    <div class="row g-3">
-                        @php
-                            $systemStats = [
-                                ['label' => 'Data Accuracy', 'value' => ($stats['dataQuality']['info_accuracy'] ?? 0) . '%', 'color' => 'blue', 'icon' => 'bi-check-circle'],
-                                ['label' => 'Avg Laundry Value', 'value' => '₱' . number_format(($stats['todayRevenue'] ?? 0) / max($stats['todayLaundries'], 1), 0), 'color' => 'green', 'icon' => 'bi-currency-dollar'],
-                                ['label' => 'Processing Time', 'value' => $stats['avgProcessingTime'] ?? '0 days', 'color' => 'indigo', 'icon' => 'bi-clock'],
-                                ['label' => 'System Uptime', 'value' => '100%', 'color' => 'cyan', 'icon' => 'bi-server'],
-                            ];
-                        @endphp
-                        @foreach($systemStats as $stat)
-                            <div class="col-6 col-md-3">
-                                <div class="metric-tile shadow-sm border-{{ $stat['color'] }}">
-                                    <div class="m-icon icon-{{ $stat['color'] }}"><i class="bi {{ $stat['icon'] }}"></i></div>
-                                    <div class="mt-3">
-                                        <small class="text-muted">{{ $stat['label'] }}</small>
-                                        <h4 class="mb-0 fw-800">{{ $stat['value'] }}</h4>
-                                    </div>
-                                </div>
-                            </div>
+                @if($laundriesByBranch->count() > 0)
+                <h6 class="fw-bold mb-2" style="color:#f1f5f9;font-size:0.8rem;">Branch breakdown</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr>
+                            <th style="font-size:0.7rem;">Branch</th>
+                            <th class="text-center" style="font-size:0.7rem;">Orders</th>
+                            <th class="text-end" style="font-size:0.7rem;">Revenue</th>
+                            <th class="text-end" style="font-size:0.7rem;">%</th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach($laundriesByBranch as $item)
+                        <tr>
+                            <td style="font-size:0.75rem;color:#f1f5f9;">{{ $item->branch->name ?? '—' }}</td>
+                            <td class="text-center"><span class="badge bg-warning">{{ $item->count }}</span></td>
+                            <td class="text-end text-success fw-bold" style="font-size:0.75rem;">₱{{ number_format($item->revenue, 0) }}</td>
+                            <td class="text-end" style="font-size:0.72rem;color:#94a3b8;">{{ $totalLaundries > 0 ? round(($item->count/$totalLaundries)*100, 1) : 0 }}%</td>
+                        </tr>
                         @endforeach
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
+                @endif
+
+                @if($recentLaundries->count() > 0)
+                <h6 class="fw-bold mb-2 mt-3" style="color:#f1f5f9;font-size:0.8rem;">Recent orders today</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0" style="font-size:0.75rem;">
+                        <thead>
+                            <tr style="border-color:#334155;">
+                                <th style="color:#94a3b8;font-weight:500;">Tracking #</th>
+                                <th style="color:#94a3b8;font-weight:500;">Customer</th>
+                                <th style="color:#94a3b8;font-weight:500;">Service</th>
+                                <th style="color:#94a3b8;font-weight:500;">Branch</th>
+                                <th style="color:#94a3b8;font-weight:500;">Status</th>
+                                <th class="text-end" style="color:#94a3b8;font-weight:500;">Amount</th>
+                                <th style="color:#94a3b8;font-weight:500;">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach($recentLaundries as $l)
+                        @php $sc = $statusConfig[$l->status] ?? ['color'=>'#94a3b8','label'=>ucfirst($l->status)]; @endphp
+                        <tr style="border-color:#1e293b;">
+                            <td style="color:#60a5fa;font-family:monospace;">{{ $l->tracking_number ?? '—' }}</td>
+                            <td style="color:#f1f5f9;">{{ $l->customer->name ?? '—' }}</td>
+                            <td style="color:#cbd5e1;">{{ $l->service->name ?? '—' }}</td>
+                            <td style="color:#94a3b8;">{{ $l->branch->name ?? '—' }}</td>
+                            <td>
+                                <span class="badge" style="background:{{ $sc['color'] }}20;color:{{ $sc['color'] }};font-size:0.65rem;border:1px solid {{ $sc['color'] }}40;">{{ $sc['label'] }}</span>
+                            </td>
+                            <td class="text-end" style="color:#10b981;font-weight:600;">₱{{ number_format($l->total_amount, 0) }}</td>
+                            <td style="color:#64748b;">{{ $l->created_at->format('h:i A') }}</td>
+                        </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endif
+
+                @if($totalLaundries === 0)
+                <div class="text-center py-5">
+                    <i class="bi bi-basket3" style="font-size:2.5rem;color:#334155;"></i>
+                    <p style="color:#475569;margin-top:8px;font-size:0.8rem;">No laundries recorded today</p>
+                </div>
+                @endif
+            </div>
+            <div class="modal-footer" style="border-color:#334155;">
+                <a href="{{ route('admin.laundries.index') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-list me-1"></i>View all laundries
+                </a>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
+</div>
 
-</div>{{-- End row g-4 --}}
-</div>{{-- End tab-pane operations --}}
+{{-- Revenue Breakdown Modal --}}
+<div class="modal fade" id="revenueBreakdownModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-cash-coin text-success me-2"></i>Today's revenue breakdown
+                    </h5>
+                    <small class="text-muted">{{ now()->format('l, F j, Y') }}</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @php
+                    $branchId = request('branch_id');
+                    $laundryRevenue = \App\Models\Laundry::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereBetween('paid_at', [$todayStart ?? today(), $todayEnd ?? today()->endOfDay()])
+                        ->whereIn('status', ['paid', 'completed'])->sum('total_amount');
+                    $retailRevenue  = \App\Models\RetailSale::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereDate('created_at', today())->sum('total_amount');
+                    $totalRevModal  = $laundryRevenue + $retailRevenue;
+
+                    // Get individual laundry orders with add-ons
+                    $revenueByService = \App\Models\Laundry::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereBetween('paid_at', [today(), today()->endOfDay()])
+                        ->whereIn('status', ['paid', 'completed'])
+                        ->with(['service:id,name', 'customer:id,name', 'inventoryItems'])
+                        ->orderByDesc('paid_at')
+                        ->get()
+                        ->map(function($laundry) use ($totalRevModal) {
+                            $detergent = 0; $fabcon = 0; $bleach = 0; $plastics = 0;
+                            foreach ($laundry->inventoryItems as $item) {
+                                $itemName = strtolower($item->name);
+                                $qty = $item->pivot->quantity ?? 0;
+                                if (str_contains($itemName, 'detergent') || str_contains($itemName, 'powder')) $detergent += $qty;
+                                elseif (str_contains($itemName, 'fabcon') || str_contains($itemName, 'fabric') || str_contains($itemName, 'conditioner')) $fabcon += $qty;
+                                elseif (str_contains($itemName, 'bleach')) $bleach += $qty;
+                                elseif (str_contains($itemName, 'plastic') || str_contains($itemName, 'bag')) $plastics += $qty;
+                            }
+                            return [
+                                'id' => $laundry->id,
+                                'customer_name' => $laundry->customer->name ?? 'N/A',
+                                'service_name' => $laundry->service->name ?? 'Unknown',
+                                'loads' => $laundry->number_of_loads ?? 0,
+                                'detergent' => $detergent,
+                                'fabcon' => $fabcon,
+                                'bleach' => $bleach,
+                                'plastics' => $plastics,
+                                'revenue' => $laundry->total_amount,
+                                'percentage' => $totalRevModal > 0 ? round(($laundry->total_amount / $totalRevModal) * 100, 1) : 0
+                            ];
+                        });
+                @endphp
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded border">
+                            <div class="text-muted small text-uppercase mb-1">Total revenue</div>
+                            <div class="fs-5 fw-bold text-success">₱{{ number_format($totalRevModal, 2) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded border">
+                            <div class="text-muted small text-uppercase mb-1">Laundry services</div>
+                            <div class="fs-5 fw-bold text-primary">₱{{ number_format($laundryRevenue, 2) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded border">
+                            <div class="text-muted small text-uppercase mb-1">Retail sales</div>
+                            <div class="fs-5 fw-bold text-warning">₱{{ number_format($retailRevenue, 2) }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                @if($revenueByService->count() > 0)
+                <h6 class="fw-bold mb-2">
+                    <i class="bi bi-table me-1"></i>Services laundry breakdown
+                </h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover" style="font-size:0.72rem;">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Customer</th>
+                                <th>Service</th>
+                                <th class="text-center">Loads/Pieces</th>
+                                <th class="text-center">Detergent</th>
+                                <th class="text-center">Fabcon</th>
+                                <th class="text-center">Bleach</th>
+                                <th class="text-center">Plastics</th>
+                                <th class="text-end">Revenue</th>
+                                <th class="text-end">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach($revenueByService as $svc)
+                        <tr>
+                            <td><span class="badge bg-primary">#{{ $svc['id'] }}</span></td>
+                            <td>{{ $svc['customer_name'] }}</td>
+                            <td>
+                                <i class="bi bi-droplet-fill text-primary me-1" style="font-size:0.7rem;"></i>
+                                {{ $svc['service_name'] }}
+                            </td>
+                            <td class="text-center">{{ $svc['loads'] }}</td>
+                            <td class="text-center">{{ $svc['detergent'] > 0 ? $svc['detergent'] : '—' }}</td>
+                            <td class="text-center">{{ $svc['fabcon'] > 0 ? $svc['fabcon'] : '—' }}</td>
+                            <td class="text-center">{{ $svc['bleach'] > 0 ? $svc['bleach'] : '—' }}</td>
+                            <td class="text-center">{{ $svc['plastics'] > 0 ? $svc['plastics'] : '—' }}</td>
+                            <td class="text-end fw-bold text-success">₱{{ number_format($svc['revenue'], 2) }}</td>
+                            <td class="text-end text-muted">{{ $svc['percentage'] }}%</td>
+                        </tr>
+                        @endforeach
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-active fw-bold">
+                                <td colspan="8" class="text-end">Total Laundry Revenue:</td>
+                                <td class="text-end text-success">₱{{ number_format($laundryRevenue, 2) }}</td>
+                                <td class="text-end text-muted">{{ $totalRevModal > 0 ? round(($laundryRevenue / $totalRevModal) * 100, 1) : 0 }}%</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                @else
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox" style="font-size:2rem;opacity:0.3;"></i>
+                    <p class="small mt-2">No service data for today</p>
+                </div>
+                @endif
+            </div>
+            <div class="modal-footer" style="border-color:#334155;">
+                <a href="{{ route('admin.finance.reports.profit-loss') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-graph-up me-1"></i>View full report
+                </a>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Profit Breakdown Modal --}}
+<div class="modal fade" id="profitBreakdownModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background:#0f172a;border:1px solid #334155;">
+            <div class="modal-header" style="border-color:#334155;">
+                <div>
+                    <h5 class="modal-title fw-bold" style="color:#f1f5f9;">
+                        <i class="bi bi-graph-up-arrow text-success me-2"></i>Today's profit breakdown
+                    </h5>
+                    <small style="color:#94a3b8;">{{ now()->format('l, F j, Y') }}</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @php
+                    $branchId = request('branch_id');
+                    $profitTotalRev  = \App\Models\Laundry::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereBetween('paid_at', [today(), today()->endOfDay()])
+                        ->whereIn('status', ['paid', 'completed'])->sum('total_amount')
+                        + \App\Models\RetailSale::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereDate('created_at', today())->sum('total_amount');
+                    $profitTotalExp  = \App\Models\Expense::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereDate('expense_date', today())->sum('amount');
+                    $profitNet       = $profitTotalRev - $profitTotalExp;
+                    $profitMarginMod = $profitTotalRev > 0 ? round(($profitNet / $profitTotalRev) * 100, 1) : 0;
+                    $expensesByCategory = \App\Models\Expense::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereDate('expense_date', today())
+                        ->selectRaw('expense_category_id, SUM(amount) as total')
+                        ->groupBy('expense_category_id')->with('category')->get();
+                @endphp
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);">
+                            <div style="color:#94a3b8;font-size:0.65rem;text-transform:uppercase;margin-bottom:4px;">Total revenue</div>
+                            <div style="font-size:1.4rem;font-weight:700;color:#10b981;">₱{{ number_format($profitTotalRev, 2) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);">
+                            <div style="color:#94a3b8;font-size:0.65rem;text-transform:uppercase;margin-bottom:4px;">Total expenses</div>
+                            <div style="font-size:1.4rem;font-weight:700;color:#f87171;">₱{{ number_format($profitTotalExp, 2) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded" style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);">
+                            <div style="color:#94a3b8;font-size:0.65rem;text-transform:uppercase;margin-bottom:4px;">Net profit</div>
+                            <div style="font-size:1.4rem;font-weight:700;color:{{ $profitNet >= 0 ? '#10b981' : '#f87171' }};">₱{{ number_format($profitNet, 2) }}</div>
+                            <div style="font-size:0.65rem;color:#475569;">Margin: {{ $profitMarginMod }}%</div>
+                        </div>
+                    </div>
+                </div>
+
+                @if($expensesByCategory->count() > 0)
+                <h6 class="fw-bold mb-2" style="color:#f1f5f9;font-size:0.8rem;">Expense breakdown</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr>
+                            <th style="font-size:0.7rem;">Category</th>
+                            <th class="text-end" style="font-size:0.7rem;">Amount</th>
+                            <th class="text-end" style="font-size:0.7rem;">% of expenses</th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach($expensesByCategory as $exp)
+                        <tr>
+                            <td style="font-size:0.75rem;color:#f1f5f9;">{{ $exp->category->name ?? 'Uncategorized' }}</td>
+                            <td class="text-end text-danger fw-bold" style="font-size:0.75rem;">₱{{ number_format($exp->total, 2) }}</td>
+                            <td class="text-end" style="font-size:0.72rem;color:#94a3b8;">{{ $profitTotalExp > 0 ? round(($exp->total/$profitTotalExp)*100, 1) : 0 }}%</td>
+                        </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @else
+                <div class="text-center py-4">
+                    <i class="bi bi-receipt" style="font-size:2rem;color:#334155;"></i>
+                    <p style="font-size:0.75rem;color:#475569;margin-top:8px;margin-bottom:0;">No expenses recorded today</p>
+                </div>
+                @endif
+            </div>
+            <div class="modal-footer" style="border-color:#334155;">
+                <a href="{{ route('admin.finance.reports.profit-loss') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-graph-up me-1"></i>View full report
+                </a>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Pending Pickups Modal --}}
+<div class="modal fade" id="pendingPickupsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content" style="background:#0f172a;border:1px solid #334155;">
+            <div class="modal-header" style="border-color:#334155;">
+                <div>
+                    <h5 class="modal-title fw-bold" style="color:#f1f5f9;">
+                        <i class="bi bi-truck text-warning me-2"></i>Pending pickup requests
+                    </h5>
+                    <small style="color:#94a3b8;">Awaiting acceptance and assignment</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @php
+                    $branchId = request('branch_id');
+                    $pendingPickups = \App\Models\PickupRequest::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->where('status', 'pending')
+                        ->with(['customer', 'branch'])
+                        ->orderBy('created_at', 'desc')->get();
+                @endphp
+                @if($pendingPickups->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead><tr>
+                            <th style="font-size:0.7rem;">ID</th>
+                            <th style="font-size:0.7rem;">Customer</th>
+                            <th style="font-size:0.7rem;">Branch</th>
+                            <th style="font-size:0.7rem;">Pickup address</th>
+                            <th style="font-size:0.7rem;">Date</th>
+                            <th class="text-end" style="font-size:0.7rem;">Fee</th>
+                            <th style="font-size:0.7rem;"></th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach($pendingPickups as $pickup)
+                        <tr>
+                            <td><span class="badge bg-warning">#{{ $pickup->id }}</span></td>
+                            <td style="font-size:0.75rem;color:#f1f5f9;">
+                                {{ $pickup->customer->name ?? '—' }}
+                                <div style="font-size:0.62rem;color:#475569;">{{ $pickup->contact_phone ?? $pickup->phone_number ?? '' }}</div>
+                            </td>
+                            <td style="font-size:0.75rem;color:#f1f5f9;">{{ $pickup->branch->name ?? '—' }}</td>
+                            <td style="font-size:0.72rem;color:#94a3b8;max-width:200px;">{{ Str::limit($pickup->pickup_address, 45) }}</td>
+                            <td style="font-size:0.72rem;color:#f1f5f9;">{{ $pickup->preferred_date->format('M d, Y') }}</td>
+                            <td class="text-end text-success fw-bold" style="font-size:0.75rem;">₱{{ number_format($pickup->total_fee, 2) }}</td>
+                            <td>
+                                <a href="{{ route('admin.pickups.show', $pickup->id) }}" class="dash-btn dash-btn-info" style="font-size:0.6rem;padding:3px 8px;">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @else
+                <div class="text-center py-5">
+                    <i class="bi bi-truck" style="font-size:2.5rem;color:#334155;"></i>
+                    <p style="font-size:0.8rem;color:#475569;margin-top:8px;margin-bottom:0;">No pending pickup requests</p>
+                </div>
+                @endif
+            </div>
+            <div class="modal-footer" style="border-color:#334155;">
+                <a href="{{ route('admin.pickups.index') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-list me-1"></i>View all pickups
+                </a>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Floating Action Button (FAB) for Quick Actions --}}
+<button class="fab" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Actions">
+    <i class="bi bi-lightning-charge-fill"></i>
+</button>
+<ul class="dropdown-menu dropdown-menu-end shadow-lg" style="min-width: 240px;">
+    <li><h6 class="dropdown-header"><i class="bi bi-lightning-charge me-2"></i>Quick Actions</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    
+    {{-- Laundry Actions --}}
+    @if(Route::has('admin.laundries.create'))
+    <li>
+        <a class="dropdown-item" href="{{ route('admin.laundries.create') }}">
+            <i class="bi bi-plus-circle text-primary me-2"></i>New Laundry Order
+        </a>
+    </li>
+    @endif
+    @if(Route::has('admin.customers.create'))
+    <li>
+        <a class="dropdown-item" href="{{ route('admin.customers.create') }}">
+            <i class="bi bi-person-plus text-success me-2"></i>Add Customer
+        </a>
+    </li>
+    @endif
+    @if(Route::has('admin.pickups.index'))
+    <li>
+        <a class="dropdown-item" href="{{ route('admin.pickups.index') }}">
+            <i class="bi bi-truck text-info me-2"></i>Pickup Requests
+        </a>
+    </li>
+    @endif
+    
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" style="font-size:0.75rem;color:#94a3b8;"><i class="bi bi-box-seam me-2"></i>Inventory Actions</h6></li>
+    
+    {{-- Inventory Quick Actions --}}
+    @if(Route::has('admin.inventory.purchases.create'))
+    <li>
+        <a class="dropdown-item" href="{{ route('admin.inventory.purchases.create') }}">
+            <i class="bi bi-cart-plus text-warning me-2"></i>Reorder Stock
+        </a>
+    </li>
+    @endif
+    @if(Route::has('admin.inventory.distributions.create'))
+    <li>
+        <a class="dropdown-item" href="{{ route('admin.inventory.distributions.create') }}">
+            <i class="bi bi-arrow-left-right text-info me-2"></i>Transfer Stock
+        </a>
+    </li>
+    @endif
+    @if(Route::has('admin.inventory.adjustments.create'))
+    <li>
+        <a class="dropdown-item" href="{{ route('admin.inventory.adjustments.create') }}">
+            <i class="bi bi-plus-square text-success me-2"></i>Add Stock
+        </a>
+    </li>
+    @endif
+    @if(Route::has('admin.inventory.index'))
+    <li>
+        <a class="dropdown-item" href="{{ route('admin.inventory.index') }}">
+            <i class="bi bi-eye text-primary me-2"></i>View Details
+        </a>
+    </li>
+    @endif
+    @if(Route::has('admin.inventory.adjustments.index'))
+    <li>
+        <a class="dropdown-item" href="{{ route('admin.inventory.adjustments.index') }}">
+            <i class="bi bi-sliders text-purple me-2"></i>Adjust Stock
+        </a>
+    </li>
+    @endif
+    <li>
+        <a class="dropdown-item" href="#" onclick="window.print(); return false;">
+            <i class="bi bi-printer text-secondary me-2"></i>Print Report
+        </a>
+    </li>
+    
+    <li><hr class="dropdown-divider"></li>
+    
+    {{-- Other Actions --}}
+    @if(Route::has('admin.finance.expenses.create'))
+    <li>
+        <a class="dropdown-item" href="{{ route('admin.finance.expenses.create') }}">
+            <i class="bi bi-receipt text-danger me-2"></i>Add Expense
+        </a>
+    </li>
+    @endif
+    @if(Route::has('admin.staff.index'))
+    <li>
+        <a class="dropdown-item" href="{{ route('admin.staff.index') }}">
+            <i class="bi bi-people text-purple me-2"></i>Staff Management
+        </a>
+    </li>
+    @endif
+    <li><hr class="dropdown-divider"></li>
+    @if(Route::has('admin.finance.reports.profit-loss'))
+    <li>
+        <a class="dropdown-item" href="{{ route('admin.finance.reports.profit-loss') }}">
+            <i class="bi bi-graph-up text-cyan me-2"></i>Financial Reports
+        </a>
+    </li>
+    @endif
+</ul>
 
 @endsection
 
+
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('assets/leaflet/leaflet.css') }}" />
-    <link rel="stylesheet" href="{{ asset('assets/leaflet/MarkerCluster.css') }}" />
-    <link rel="stylesheet" href="{{ asset('assets/leaflet/MarkerCluster.Default.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/leaflet/leaflet.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/leaflet/MarkerCluster.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/leaflet/MarkerCluster.Default.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/admin.css') }}">
-  
-@endpush
+    <style>
+        /* Floating Action Button (FAB) */
+        .fab {
+            position: fixed;
+            top: 24px;
+            right: 30px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050;
+            font-size: 18px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            transition: box-shadow 0.3s ease, transform 0.1s ease;
+            user-select: none;
+            touch-action: none;
+        }
 
-@push('scripts')
-    {{-- Load Chart.js from local assets --}}
-    <script src="{{ asset('assets/chart.js/chart.umd.min.js') }}"></script>
+        .fab.dragging {
+            cursor: grabbing;
+            transform: scale(1.1);
+            box-shadow: 0 8px 40px rgba(102, 126, 234, 0.6);
+        }
 
-    {{-- Load Leaflet from local assets --}}
-    <script src="{{ asset('assets/leaflet/leaflet.js') }}"></script>
+        .fab:hover:not(.dragging) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6);
+        }
 
-    {{-- Load Leaflet MarkerCluster from local assets --}}
-    <script src="{{ asset('assets/leaflet/leaflet.markercluster.js') }}"></script>
+        /* FAB Dropdown Menu Styling */
+        .fab + .dropdown-menu {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 0.5rem 0;
+            background: #1e293b;
+            margin-bottom: 10px;
+        }
 
-    {{-- Load Tab Fix --}}
-    <script src="{{ asset('assets/js/utils/tabFix.js') }}"></script>
-    
-    {{-- Load Data Stabilizer --}}
-    <script src="{{ asset('assets/js/utils/dataStabilizer.js') }}"></script>
-    
-    {{-- Load Post-Load Optimizer --}}
-    <script src="{{ asset('assets/js/utils/postLoadOptimizer.js') }}"></script>
-    
-    {{-- Load Performance Monitor Widget (Development) --}}
-    <script src="{{ asset('assets/js/utils/performanceMonitorWidget.js') }}"></script>
+        .fab + .dropdown-menu .dropdown-header {
+            color: #f1f5f9;
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 0.75rem 1rem;
+        }
 
-    {{-- Pass PHP data to JavaScript --}}
-    <script>
-        // Branch data
-        window.BRANCHES = @json($stats['branches'] ?? []);
+        .fab + .dropdown-menu .dropdown-item {
+            color: #cbd5e1;
+            padding: 0.6rem 1rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
 
-        // Pending pickups data
-        window.PENDING_PICKUPS = @json($stats['pendingPickups'] ?? []);
+        .fab + .dropdown-menu .dropdown-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: #f1f5f9;
+            padding-left: 1.25rem;
+        }
 
-        // Revenue chart data
-        window.REVENUE_DATA = {
-            labels: @json($stats['revenueLabels'] ?? []),
-            values: @json($stats['last7DaysRevenue'] ?? [])
-        };
+        .fab + .dropdown-menu .dropdown-item i {
+            width: 20px;
+            font-size: 1rem;
+        }
 
-        // Customer source data
-        window.CUSTOMER_SOURCE_DATA = @json($stats['customerRegistrationSource'] ?? []);
+        .fab + .dropdown-menu .dropdown-divider {
+            border-color: rgba(255, 255, 255, 0.1);
+            margin: 0.5rem 0;
+        }
 
-        // Customer branch pipeline data (for pie chart)
-        window.CUSTOMER_BRANCH_DATA = @json($stats['customerBranchPipeline'] ?? []);
-
-        // Top rated customers (for animated bars)
-        window.TOP_RATED_DATA = @json($stats['topRatedCustomers'] ?? []);
-
-        // Service chart data (full service + self service pie charts)
-        window.SERVICE_CHART_DATA = @json($stats['serviceChartData'] ?? []);
-
-        // New analytics data
-        window.DAILY_LAUNDRY_DATA = @json($stats['dailyLaundryCount'] ?? []);
-        window.PAYMENT_METHODS_DATA = @json($stats['paymentMethods'] ?? []);
-        window.TOP_SERVICES_DATA = @json($stats['topServices'] ?? []);
-        window.YOY_REVENUE_DATA = @json($stats['yoyRevenue'] ?? []);
-
-        // Dashboard stats (for refresh functionality)
-        window.DASHBOARD_STATS = @json($stats ?? []);
-
-        // Active date range (for chart labels and any JS-side awareness)
-        window.CURRENT_DATE_RANGE = '{{ $currentFilters["date_range"] ?? "last_30_days" }}';
-    </script>
-
-    {{-- Initialize dashboard with server data and data stabilization --}}
-    <script>
-        // Minimal DOMContentLoaded - only essential operations
-        document.addEventListener('DOMContentLoaded', function() {
-            // Do nothing heavy here - defer everything
-        });
-        
-        // Use window.load for non-critical initialization
-        window.addEventListener('load', function() {
-            // Defer all initialization by 300ms to let page fully render
-            setTimeout(() => {
-                initializeDashboardLazy();
-            }, 300);
-        });
-        
-        function initializeDashboardLazy() {
-            // Initialize data stabilizer monitoring for critical elements
-            if (window.dataStabilizer) {
-                requestIdleCallback(() => {
-                    const pipelineElements = document.querySelectorAll('.pipeline-tile .p-count');
-                    pipelineElements.forEach((el, index) => {
-                        if (el) {
-                            window.dataStabilizer.monitorDataStability(`pipeline_${index}`, el, 3000);
-                        }
-                    });
-                    
-                    const kpiElements = document.querySelectorAll('[data-kpi]');
-                    kpiElements.forEach((el) => {
-                        const kpiType = el.getAttribute('data-kpi');
-                        if (kpiType) {
-                            window.dataStabilizer.monitorDataStability(`kpi_${kpiType}`, el, 5000);
-                        }
-                    });
-                    
-                    window.dataStabilizer.cacheData('branches', window.BRANCHES);
-                    window.dataStabilizer.cacheData('dashboard_stats', window.DASHBOARD_STATS);
-                    window.dataStabilizer.cacheData('pending_pickups', window.PENDING_PICKUPS);
-                }, { timeout: 2000 });
-            }
-            
-            if (typeof window.initializeDashboardData === 'function') {
-                requestIdleCallback(() => {
-                    window.initializeDashboardData(window.BRANCHES, window.DASHBOARD_STATS);
-                }, { timeout: 2000 });
+        /* Responsive FAB */
+        @media (max-width: 768px) {
+            .fab {
+                width: 48px;
+                height: 48px;
+                top: 20px;
+                right: 20px;
+                font-size: 18px;
             }
         }
-        
-        // Handle data refresh requests
-        window.addEventListener('dataRefreshRequested', function(event) {
-            const { key } = event.detail;
-            
-            if (key.startsWith('pipeline_')) {
-                setTimeout(() => window.location.reload(), 1000);
+
+        /* Satisfaction Widgets */
+        .satisfaction-widget {
+            position: fixed;
+            width: 240px;
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, rgba(0,0,0,0.08));
+            border-radius: 10px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            z-index: 1040;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .satisfaction-widget.collapsed {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .satisfaction-widget.collapsed .satisfaction-header {
+            padding: 0;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            justify-content: center;
+        }
+
+        .satisfaction-widget.collapsed .satisfaction-header h3 {
+            font-size: 18px;
+        }
+
+        .satisfaction-widget.collapsed .satisfaction-header h3 span {
+            display: none;
+        }
+
+        .satisfaction-widget.collapsed .satisfaction-controls {
+            display: none;
+        }
+
+        .satisfaction-widget.collapsed .satisfaction-body {
+            display: none;
+        }
+
+        #serviceSatisfactionWidget {
+            bottom: 180px;
+            right: 24px;
+        }
+
+        #branchSatisfactionWidget {
+            bottom: 90px;
+            right: 24px;
+        }
+
+        .satisfaction-widget.minimized {
+            height: auto;
+        }
+
+        .satisfaction-widget.hidden {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
+
+        .satisfaction-widget.dragging {
+            cursor: grabbing;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .satisfaction-header {
+            padding: 10px 12px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+
+        .satisfaction-header h3 {
+            font-size: 12px;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .satisfaction-controls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .satisfaction-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            transition: background 0.2s;
+        }
+
+        .satisfaction-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .satisfaction-body {
+            padding: 12px;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .satisfaction-body.minimized {
+            display: none;
+        }
+
+        .satisfaction-overall {
+            text-align: center;
+            padding: 12px;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .satisfaction-score {
+            font-size: 28px;
+            font-weight: 700;
+            color: #fbbf24;
+            line-height: 1;
+        }
+
+        .satisfaction-stars {
+            color: #fbbf24;
+            font-size: 14px;
+            margin: 6px 0;
+        }
+
+        .satisfaction-label {
+            font-size: 10px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .satisfaction-item {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .satisfaction-item:last-child {
+            border-bottom: none;
+        }
+
+        .satisfaction-item-name {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .satisfaction-item-rating {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .satisfaction-item-stars {
+            display: flex;
+            gap: 1px;
+            color: #fbbf24;
+            font-size: 10px;
+        }
+
+        .satisfaction-item-stars .bi-star {
+            color: #d1d5db;
+        }
+
+        .satisfaction-item-score {
+            font-size: 11px;
+            font-weight: 700;
+            color: #fbbf24;
+        }
+
+        @media (max-width: 768px) {
+            .satisfaction-widget {
+                width: 200px;
             }
+            #branchSatisfactionWidget {
+                left: 220px;
+            }
+        }
+    </style>
+
+    {{-- FAB Drag Functionality --}}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fab = document.querySelector('.fab');
+        if (fab) {
+            let isDragging = false;
+            let currentX, currentY, initialX, initialY;
+            let xOffset = 0, yOffset = 0;
+
+            fab.addEventListener('mousedown', dragStart);
+            fab.addEventListener('touchstart', dragStart);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag);
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchend', dragEnd);
+
+            function dragStart(e) {
+                if (e.type === 'touchstart') {
+                    initialX = e.touches[0].clientX - xOffset;
+                    initialY = e.touches[0].clientY - yOffset;
+                } else {
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
+                }
+
+                if (e.target === fab || fab.contains(e.target)) {
+                    isDragging = true;
+                    fab.classList.add('dragging');
+                }
+            }
+
+            function drag(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    
+                    if (e.type === 'touchmove') {
+                        currentX = e.touches[0].clientX - initialX;
+                        currentY = e.touches[0].clientY - initialY;
+                    } else {
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+                    }
+
+                    xOffset = currentX;
+                    yOffset = currentY;
+
+                    setTranslate(currentX, currentY, fab);
+                }
+            }
+
+            function dragEnd(e) {
+                if (isDragging) {
+                    initialX = currentX;
+                    initialY = currentY;
+                    isDragging = false;
+                    fab.classList.remove('dragging');
+                }
+            }
+
+            function setTranslate(xPos, yPos, el) {
+                el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+            }
+        }
+
+        // Satisfaction Widgets Functionality
+        function initSatisfactionWidget(widgetId, headerId, minimizeBtnId, closeBtnId, bodyId, storageKey) {
+            const widget = document.getElementById(widgetId);
+            const header = document.getElementById(headerId);
+            const minimizeBtn = document.getElementById(minimizeBtnId);
+            const closeBtn = document.getElementById(closeBtnId);
+            const body = document.getElementById(bodyId);
+
+            if (!widget || !header) return;
+
+            // Click to expand/collapse
+            widget.addEventListener('click', function(e) {
+                if (widget.classList.contains('collapsed') && !e.target.closest('.satisfaction-btn')) {
+                    widget.classList.remove('collapsed');
+                }
+            });
+
+            // Dragging (only when expanded)
+            let isDragging = false;
+            let currentX, currentY, initialX, initialY;
+            let xOffset = 0, yOffset = 0;
+
+            header.addEventListener('mousedown', dragStart);
+            header.addEventListener('touchstart', dragStart);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag);
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchend', dragEnd);
+
+            function dragStart(e) {
+                if (widget.classList.contains('collapsed')) return;
+                
+                if (e.type === 'touchstart') {
+                    initialX = e.touches[0].clientX - xOffset;
+                    initialY = e.touches[0].clientY - yOffset;
+                } else {
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
+                }
+
+                if (e.target === header || header.contains(e.target)) {
+                    if (!e.target.closest('.satisfaction-btn')) {
+                        isDragging = true;
+                        widget.classList.add('dragging');
+                    }
+                }
+            }
+
+            function drag(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    
+                    if (e.type === 'touchmove') {
+                        currentX = e.touches[0].clientX - initialX;
+                        currentY = e.touches[0].clientY - initialY;
+                    } else {
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+                    }
+
+                    xOffset = currentX;
+                    yOffset = currentY;
+
+                    setTranslate(currentX, currentY, widget);
+                }
+            }
+
+            function dragEnd(e) {
+                if (isDragging) {
+                    initialX = currentX;
+                    initialY = currentY;
+                    isDragging = false;
+                    widget.classList.remove('dragging');
+                }
+            }
+
+            function setTranslate(xPos, yPos, el) {
+                el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+            }
+
+            // Minimize/Maximize
+            if (minimizeBtn && body) {
+                minimizeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    widget.classList.toggle('minimized');
+                    body.classList.toggle('minimized');
+                    const icon = minimizeBtn.querySelector('i');
+                    if (widget.classList.contains('minimized')) {
+                        icon.className = 'bi bi-plus';
+                        minimizeBtn.title = 'Maximize';
+                    } else {
+                        icon.className = 'bi bi-dash';
+                        minimizeBtn.title = 'Minimize';
+                    }
+                });
+            }
+
+            // Close - collapse back to button
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    widget.classList.add('collapsed');
+                    widget.classList.remove('minimized');
+                    if (body) body.classList.remove('minimized');
+                });
+            }
+        }
+
+        // Initialize both widgets
+        initSatisfactionWidget('serviceSatisfactionWidget', 'serviceHeader', 'serviceMinimizeBtn', 'serviceCloseBtn', 'serviceBody', 'serviceSatisfactionClosed');
+        initSatisfactionWidget('branchSatisfactionWidget', 'branchHeader', 'branchMinimizeBtn', 'branchCloseBtn', 'branchBody', 'branchSatisfactionClosed');
+    });
+    </script>
+@endpush
+
+
+@push('scripts')
+    <script src="{{ asset('assets/chart.js/chart.umd.min.js') }}"></script>
+    <script src="{{ asset('assets/leaflet/leaflet.js') }}"></script>
+    <script src="{{ asset('assets/leaflet/leaflet.markercluster.js') }}"></script>
+    <script src="{{ asset('assets/js/utils/tabFix.js') }}"></script>
+    <script src="{{ asset('assets/js/utils/dataStabilizer.js') }}"></script>
+    <script src="{{ asset('assets/js/utils/postLoadOptimizer.js') }}"></script>
+    <script src="{{ asset('assets/js/utils/performanceMonitorWidget.js') }}"></script>
+
+    {{-- Window globals consumed by admin.js modules --}}
+    <script>
+        window.BRANCHES              = @json($stats['branches'] ?? []);
+        window.PENDING_PICKUPS       = @json($stats['pendingPickups'] ?? []);
+        window.DASHBOARD_STATS       = @json($stats ?? []);
+        window.CURRENT_DATE_RANGE    = '{{ $currentFilters["date_range"] ?? "last_7_days" }}';
+        window.STAFF_ATTENDANCE_DATA = @json($stats['staffAttendanceTrends'] ?? []);
+        window.LAUNDRIES_STATUS_DATA = @json($stats['laundriesStatusTrends'] ?? []);
+        window.SERVICE_DEMAND_DATA   = @json($stats['serviceDemandTrends'] ?? []);
+        window.BRANCH_REVENUE_DATA   = @json($stats['branchRevenueComparison'] ?? []);
+        window.CUSTOMER_GROWTH_DATA  = @json($stats['customerGrowthTrend'] ?? []);
+        
+        // Debug: Log the laundries status data
+        console.log('=== LAUNDRIES STATUS DATA DEBUG ===');
+        console.log('Data exists:', !!window.LAUNDRIES_STATUS_DATA);
+        if (window.LAUNDRIES_STATUS_DATA) {
+            console.log('Labels:', window.LAUNDRIES_STATUS_DATA.labels);
+            console.log('Datasets count:', window.LAUNDRIES_STATUS_DATA.datasets ? window.LAUNDRIES_STATUS_DATA.datasets.length : 0);
+            if (window.LAUNDRIES_STATUS_DATA.datasets) {
+                window.LAUNDRIES_STATUS_DATA.datasets.forEach(ds => {
+                    console.log('Dataset:', ds.label, 'Total:', ds.data.reduce((a,b) => a+b, 0));
+                });
+            }
+        }
+        console.log('===================================');
+    </script>
+
+    {{-- Financial Charts --}}
+    <script>
+        (function initFinancialCharts() {
+            if (typeof Chart === 'undefined') {
+                return setTimeout(initFinancialCharts, 200);
+            }
+
+            const GRID  = 'rgba(255,255,255,0.04)';
+            const TICK  = '#334155';
+            const BASE  = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(10,14,28,0.95)',
+                        padding: 10,
+                        titleColor: '#94a3b8',
+                        bodyColor: '#e2e8f0'
+                    }
+                },
+                interaction: { intersect: false, mode: 'index' }
+            };
+            const SCALES_PESO = {
+                x: { grid: { color: GRID, drawBorder: false }, ticks: { color: TICK, font: { size: 10 } } },
+                y: { beginAtZero: true, grid: { color: GRID, drawBorder: false },
+                     ticks: { color: TICK, font: { size: 10 }, callback: v => '₱' + (v / 1000).toFixed(0) + 'k' } }
+            };
+            const SCALES_COUNT = {
+                x: { grid: { color: GRID, drawBorder: false }, ticks: { color: TICK, font: { size: 10 } } },
+                y: { beginAtZero: true, grid: { color: GRID, drawBorder: false },
+                     ticks: { color: TICK, font: { size: 10 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : '' } }
+            };
+
+            function mkLine(id, datasets, scales, aria) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', aria);
+                new Chart(el, { type: 'line', data: { labels: window.BRANCH_REVENUE_DATA?.labels || [], datasets }, options: { ...BASE, scales } });
+            }
+
+            // Revenue vs Expense Trend
+            const revEl = document.getElementById('revenueExpenseTrendChart');
+            if (revEl) {
+                const ret = window.DASHBOARD_STATS?.revenueExpenseTrend || {};
+                new Chart(revEl, {
+                    type: 'line',
+                    data: {
+                        labels: ret.labels || [],
+                        datasets: [
+                            { label: 'Revenue (₱)', data: ret.revenue || [],  borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#10b981', pointBorderColor: '#0b1120', pointBorderWidth: 2 },
+                            { label: 'Expenses (₱)', data: ret.expenses || [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.06)',  borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#ef4444', pointBorderColor: '#0b1120', pointBorderWidth: 2, borderDash: [5, 4] }
+                        ]
+                    },
+                    options: { ...BASE, scales: SCALES_PESO }
+                });
+            }
+
+            // Branch Revenue Comparison chart removed - moved to Analytics page
+
+            // Service Demand
+            const sdEl = document.getElementById('serviceDemandChart');
+            if (sdEl) {
+                const sd = window.SERVICE_DEMAND_DATA || {};
+                const sdColors = ['#60a5fa','#a78bfa','#fbbf24'];
+                if (!sd.datasets || sd.datasets.length === 0) {
+                    sdEl.closest('.card-body-modern').innerHTML =
+                        '<div class="text-center py-4" style="color:#475569;"><i class="bi bi-graph-up" style="font-size:1.5rem;opacity:.3;"></i><p style="font-size:0.72rem;margin-top:6px;">No service data yet</p></div>';
+                } else {
+                    new Chart(sdEl, {
+                        type: 'line',
+                        data: {
+                            labels: sd.labels || [],
+                            datasets: sd.datasets.map((ds, i) => ({
+                                label: ds.label,
+                                data: ds.data,
+                                borderColor: sdColors[i % sdColors.length],
+                                backgroundColor: i === 0 ? 'rgba(96,165,250,0.08)' : 'transparent',
+                                fill: i === 0,
+                                borderWidth: 2,
+                                tension: 0.4,
+                                pointRadius: 3,
+                                pointBackgroundColor: sdColors[i % sdColors.length],
+                                pointBorderColor: '#0b1120',
+                                pointBorderWidth: 2,
+                                borderDash: i > 0 ? [5, 4] : []
+                            }))
+                        },
+                        options: { ...BASE, scales: SCALES_COUNT }
+                    });
+                }
+            }
+
+            // Staff Attendance Trends
+            const saEl = document.getElementById('staffAttendanceTrendsChart');
+            if (saEl && window.STAFF_ATTENDANCE_DATA?.datasets?.length) {
+                const sa = window.STAFF_ATTENDANCE_DATA;
+                const saColors = ['#818cf8','#f59e0b','#10b981','#06b6d4','#8b5cf6'];
+                new Chart(saEl, {
+                    type: 'line',
+                    data: {
+                        labels: sa.labels || [],
+                        datasets: sa.datasets.map((ds, i) => ({
+                            label: ds.label,
+                            data: ds.data,
+                            borderColor: saColors[i % saColors.length],
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointBackgroundColor: saColors[i % saColors.length],
+                            pointBorderColor: '#0b1120',
+                            pointBorderWidth: 2,
+                            borderDash: i > 0 ? [5, 4] : []
+                        }))
+                    },
+                    options: {
+                        ...BASE,
+                        plugins: {
+                            legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 10 }, color: '#475569' } },
+                            tooltip: { backgroundColor: 'rgba(10,14,28,0.95)', padding: 10 }
+                        },
+                        scales: SCALES_COUNT
+                    }
+                });
+            }
+
+            // Profit Trend
+            const ptEl = document.getElementById('profitTrendChart');
+            if (ptEl && window.DASHBOARD_STATS?.profitTrend) {
+                const pd = window.DASHBOARD_STATS.profitTrend;
+                new Chart(ptEl, {
+                    type: 'line',
+                    data: {
+                        labels: pd.labels || [],
+                        datasets: [{ label: 'Profit (₱)', data: pd.data || [], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#10b981', pointBorderColor: '#0b1120', pointBorderWidth: 2 }]
+                    },
+                    options: { ...BASE, scales: SCALES_PESO }
+                });
+            }
+        })();
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('button[data-bs-toggle="pill"]').forEach(function (el) {
+                const tab = new bootstrap.Tab(el);
+                el.addEventListener('click', function (e) { e.preventDefault(); tab.show(); });
+            });
+        });
+
+        window.addEventListener('load', function () {
+            setTimeout(function () {
+                if (typeof window.initializeDashboardData === 'function') {
+                    requestIdleCallback(() => {
+                        window.initializeDashboardData(window.BRANCHES, window.DASHBOARD_STATS);
+                    }, { timeout: 2000 });
+                }
+            }, 300);
         });
     </script>
 
-    {{-- Main admin dashboard JavaScript (ES6 Module) --}}
     <script type="module" src="{{ asset('assets/js/admin.js') }}"></script>
 @endpush

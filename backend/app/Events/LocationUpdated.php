@@ -23,7 +23,7 @@ class LocationUpdated implements ShouldBroadcast
 
     public function broadcastOn()
     {
-        return new Channel('tracking');
+        return new Channel("pickup.{$this->pickupId}");
     }
 
     public function broadcastAs()

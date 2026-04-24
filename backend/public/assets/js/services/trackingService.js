@@ -30,7 +30,7 @@ class TrackingService {
      */
     setupWebSocket() {
         // Use Laravel Echo with Reverb
-        if (typeof window.Echo !== 'undefined') {
+        if (window.Echo) {
             console.log('📡 Connecting to Reverb WebSocket...');
             
             window.Echo.channel('tracking')
@@ -124,7 +124,7 @@ class TrackingService {
             // Provide user-friendly error message
             let errorMessage = 'Failed to start tracking';
             if (error.code === 1) {
-                errorMessage = 'Location access denied. Please enable location services.';
+                errorMessage = 'Location access denied or not available on this connection. For development, use localhost or enable HTTPS.';
             } else if (error.code === 2) {
                 errorMessage = 'Location unavailable. Please check your device settings.';
             } else if (error.code === 3) {
@@ -132,6 +132,8 @@ class TrackingService {
                 // Try to continue with cached position
                 this.startTrackingWithoutLocation(pickupId);
                 return;
+            } else if (error.message && error.message.includes('secure origins')) {
+                errorMessage = 'Geolocation requires HTTPS or localhost. For development, use localhost:8000 instead of IP address.';
             }
             
             eventBus.emit(EVENTS.TRACKING_ERROR, { error: errorMessage, pickupId });
@@ -204,7 +206,7 @@ class TrackingService {
             // Provide user-friendly error message
             let errorMessage = 'Failed to start multi-tracking';
             if (error.code === 1) {
-                errorMessage = 'Location access denied. Please enable location services.';
+                errorMessage = 'Location access denied or not available on this connection. For development, use localhost or enable HTTPS.';
             } else if (error.code === 2) {
                 errorMessage = 'Location unavailable. Please check your device settings.';
             } else if (error.code === 3) {
@@ -212,6 +214,8 @@ class TrackingService {
                 // Try to continue without location
                 this.startMultiTrackingWithoutLocation(pickupIds);
                 return;
+            } else if (error.message && error.message.includes('secure origins')) {
+                errorMessage = 'Geolocation requires HTTPS or localhost. For development, use localhost:8000 instead of IP address.';
             }
             
             eventBus.emit(EVENTS.TRACKING_ERROR, { error: errorMessage, pickupIds });
@@ -368,6 +372,19 @@ class TrackingService {
         return new Promise((resolve, reject) => {
             if (!navigator.geolocation) {
                 reject(new Error('Geolocation not supported'));
+                return;
+            }
+            
+            // Check if running on non-secure origin (not localhost or HTTPS)
+            const isSecureOrigin = window.location.protocol === 'https:' || 
+                                   window.location.hostname === 'localhost' || 
+                                   window.location.hostname === '127.0.0.1';
+            
+            if (!isSecureOrigin) {
+                const error = new GeolocationPositionError();
+                error.code = 1;
+                error.message = 'Only secure origins are allowed (see: https://goo.gl/Y0ZkNV). Please use HTTPS or localhost for geolocation.';
+                reject(error);
                 return;
             }
             

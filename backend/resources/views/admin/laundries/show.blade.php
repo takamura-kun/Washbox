@@ -261,7 +261,7 @@
                         </tr>
                     @endif
 
-                    {{-- Add-ons --}}
+                    {{-- Add-ons (Old AddOn model - for backward compatibility) --}}
                     @if($laundry->addons && $laundry->addons->count())
                         <tr>
                             <td colspan="2" class="pt-3 border-top">
@@ -276,6 +276,32 @@
                                     <span class="text-muted">({{ $addon->pivot->quantity }} × ₱{{ number_format($addon->pivot->price_at_purchase, 2) }})</span>
                                 </td>
                                 <td class="text-end">₱{{ number_format($addon->pivot->price_at_purchase * $addon->pivot->quantity, 2) }}</td>
+                            </tr>
+                        @endforeach
+                        <tr class="small border-top">
+                            <td class="ps-4 text-end"><strong>Add-ons Total:</strong></td>
+                            <td class="text-end fw-semibold text-success">₱{{ number_format($laundry->addons_total, 2) }}</td>
+                        </tr>
+                    @endif
+
+                    {{-- Add-ons (New InventoryItem model) --}}
+                    @if($laundry->inventoryItems && $laundry->inventoryItems->count())
+                        <tr>
+                            <td colspan="2" class="pt-3 border-top">
+                                <strong><i class="bi bi-plus-circle text-success me-1"></i> Add-ons</strong>
+                            </td>
+                        </tr>
+                        @foreach($laundry->inventoryItems as $item)
+                            <tr class="small">
+                                <td class="ps-4">
+                                    <i class="bi bi-circle-fill text-success me-2" style="font-size: 0.5rem;"></i>
+                                    {{ $item->name }}
+                                    @if($item->brand)
+                                        <span class="badge bg-secondary">{{ $item->brand }}</span>
+                                    @endif
+                                    <span class="text-muted">({{ $item->pivot->quantity }} {{ $item->distribution_unit }} × ₱{{ number_format($item->pivot->price_at_purchase, 2) }})</span>
+                                </td>
+                                <td class="text-end">₱{{ number_format($item->pivot->price_at_purchase * $item->pivot->quantity, 2) }}</td>
                             </tr>
                         @endforeach
                         <tr class="small border-top">

@@ -1,13 +1,38 @@
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, STORAGE_KEYS } from '../constants/config';
+import { isValidBackendUrl, sanitizePathParam, validateNumericId, validateUserType } from '../utils/urlValidator';
 
 class SimpleLocationTrackingService {
   constructor() {
+    // ✅ Validate API URL on initialization - SSRF Protection
+    if (!isValidBackendUrl(API_BASE_URL)) {
+      throw new Error('Invalid API_BASE_URL configuration - SSRF protection');
+    }
+    
     this.watchId = null;
     this.isTracking = false;
     this.currentPickupId = null;
+    this.userType = null;
     this.updateInterval = null;
+  }
+
+  // ✅ Safe fetch wrapper with URL validation - SSRF Protection
+  async safeFetch(endpoint, options = {}) {
+    try {
+      const fullUrl = `${API_BASE_URL}${endpoint}`;
+      
+      // Validate complete URL before making request
+      if (!isValidBackendUrl(fullUrl)) {
+        throw new Error('Invalid request URL - SSRF protection blocked');
+      }
+      
+      const response = await fetch(fullUrl, options);
+      return response;
+    } catch (error) {
+      console.error('Fetch error:', error);
+      throw error;
+    }
   }
 
   // Start tracking for pickup request
@@ -20,6 +45,7 @@ class SimpleLocationTrackingService {
       }
 
       this.currentPickupId = pickupRequestId;
+      this.userType = userType;
       this.isTracking = true;
 
       // Start location watching
@@ -50,7 +76,11 @@ class SimpleLocationTrackingService {
       const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
       if (!token) return false;
 
-      const response = await fetch(`${API_BASE_URL}/v1/location-tracking/start`, {
+      // ✅ Validate inputs - SSRF Protection
+      validateNumericId(pickupRequestId);
+      validateUserType(userType);
+
+      const response = await this.safeFetch('/v1/location-tracking/start', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -78,6 +108,9 @@ class SimpleLocationTrackingService {
       const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
       if (!token) return;
 
+      // ✅ Validate user type - SSRF Protection
+      validateUserType(userType);
+
       const locationData = {
         pickup_request_id: this.currentPickupId,
         user_type: userType,
@@ -88,7 +121,7 @@ class SimpleLocationTrackingService {
         heading: location.coords.heading || 0,
       };
 
-      await fetch(`${API_BASE_URL}/v1/location-tracking/update`, {
+      const response = await this.safeFetch('/v1/location-tracking/update', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -98,6 +131,9 @@ class SimpleLocationTrackingService {
         body: JSON.stringify(locationData),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
     } catch (error) {
       console.error('Failed to send location update:', error);
     }
@@ -129,7 +165,10 @@ class SimpleLocationTrackingService {
       const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
       if (!token) return;
 
-      await fetch(`${API_BASE_URL}/v1/location-tracking/stop`, {
+      // ✅ Validate user type - SSRF Protection
+      validateUserType(this.userType || 'customer');
+
+      await this.safeFetch('/v1/location-tracking/stop', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -138,6 +177,7 @@ class SimpleLocationTrackingService {
         },
         body: JSON.stringify({
           pickup_request_id: this.currentPickupId,
+          user_type: this.userType || 'customer',
         }),
       });
     } catch (error) {
@@ -172,17 +212,28 @@ class SimpleLocationTrackingService {
       const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
       if (!token) return null;
 
-      const response = await fetch(`${API_BASE_URL}/v1/location-tracking/pickup/${pickupRequestId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
+      // ✅ Validate and sanitize pickup request ID - SSRF Protection
+      const sanitizedId = sanitizePathParam(pickupRequestId);
+      validateNumericId(sanitizedId);
+
+      const response = await this.safeFetch(
+        `/v1/location-tracking/pickup/${sanitizedId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
 
       if (response.ok) {
         const result = await response.json();
         // Handle both old and new response formats
-        return result.success ? result.data : result;
+        // API returns: { success: true, data: { pickup_request, staff_location, customer_location, last_updated } }
+        if (result.success && result.data) {
+          return result.data;
+        }
+        return result;
       }
       return null;
     } catch (error) {

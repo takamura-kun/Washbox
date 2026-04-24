@@ -7,25 +7,26 @@
 
     {{-- Profile Header --}}
     <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-        <div class="bg-gradient position-relative" style="background: linear-gradient(135deg, #3D3B6B 0%, #605C9D 100%); min-height: 280px;">
-            <div class="position-absolute bottom-0 start-0 p-4 w-100">
-                <div class="d-flex align-items-end pb-4">
-                    <div class="avatar-container position-relative">
+        <div class="bg-gradient position-relative" style="background: linear-gradient(135deg, #3D3B6B 0%, #605C9D 100%); min-height: 200px; min-height: clamp(200px, 30vh, 280px);">
+            <div class="position-absolute bottom-0 start-0 p-3 p-md-4 w-100">
+                <div class="d-flex align-items-end pb-3 pb-md-4 flex-column flex-sm-row">
+                    <div class="avatar-container position-relative mb-3 mb-sm-0">
                         <div class="avatar-wrapper bg-white p-2 rounded-circle shadow-lg">
                             <div class="avatar-inner bg-gradient-primary rounded-circle d-flex align-items-center justify-content-center"
-                                 style="width: 120px; height: 120px;">
-                                <i class="bi bi-person-circle text-white" style="font-size: 5rem;"></i>
+                                 style="width: clamp(80px, 15vw, 120px); height: clamp(80px, 15vw, 120px);">
+                                <i class="bi bi-person-circle text-white" style="font-size: clamp(3rem, 8vw, 5rem);"></i>
                             </div>
                         </div>
-                        <div class="avatar-badge position-absolute bottom-0 end-0 bg-success rounded-circle p-2 border-3 border-white">
-                            <i class="bi bi-check text-white" style="font-size: 0.875rem;"></i>
+                        <div class="avatar-badge position-absolute bottom-0 end-0 bg-success rounded-circle p-2 border-3 border-white"
+                             style="width: clamp(28px, 5vw, 36px); height: clamp(28px, 5vw, 36px);">
+                            <i class="bi bi-check text-white" style="font-size: 0.75rem;"></i>
                         </div>
                     </div>
-                    <div class="ms-4 text-white flex-grow-1">
-                        <h1 class="fw-bold mb-1 text-white display-6">{{ $user->name }}</h1>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <span class="badge bg-white text-primary px-3 py-2 rounded-pill fw-semibold">
-                                <i class="bi bi-shield-check me-1"></i> System Administrator
+                    <div class="ms-0 ms-sm-4 text-white flex-grow-1 text-center text-sm-start">
+                        <h1 class="fw-bold mb-1 text-white" style="font-size: clamp(1.5rem, 5vw, 2.5rem);">{{ $user->name }}</h1>
+                        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-center justify-content-sm-start">
+                            <span class="badge bg-white text-primary px-2 px-md-3 py-1 py-md-2 rounded-pill fw-semibold" style="font-size: 0.75rem;">
+                                <i class="bi bi-shield-check me-1"></i> <span class="d-none d-sm-inline">System Administrator</span><span class="d-sm-none">Admin</span>
                             </span>
                             <span class="text-white-75 small">{{ $user->role ?? 'Admin' }}</span>
                         </div>
@@ -45,21 +46,21 @@
 
     <div class="row g-4">
         {{-- Profile Information --}}
-        <div class="col-xl-7 col-lg-6">
+        <div class="col-lg-7 col-md-12">
             <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
-                <div class="card-header bg-white py-3 px-4 border-bottom-0">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-3">
+                <div class="card-header bg-white py-3 px-3 px-md-4 border-bottom-0">
+                    <div class="d-flex align-items-center justify-content-between flex-column flex-md-row gap-2">
+                        <div class="d-flex align-items-center gap-2 gap-md-3">
                             <div class="icon-container bg-primary bg-opacity-10 rounded-circle p-2">
                                 <i class="bi bi-person text-primary fs-4"></i>
                             </div>
                             <div>
-                                <h5 class="fw-bold mb-0 text-dark">Personal Information</h5>
+                                <h5 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">Personal Information</h5>
                                 <p class="text-muted small mb-0">Update your profile details</p>
                             </div>
                         </div>
-                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill">
-                            <i class="bi bi-pencil me-1"></i> Editable
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 px-md-3 py-1 py-md-2 rounded-pill" style="font-size: 0.75rem;">
+                            <i class="bi bi-pencil me-1"></i> <span class="d-none d-sm-inline">Editable</span>
                         </span>
                     </div>
                 </div>
@@ -75,11 +76,11 @@
                                     <span class="input-group-text bg-light border-end-0 rounded-start-3">
                                         <i class="bi bi-person text-muted"></i>
                                     </span>
-                                    <input type="text" name="name" class="form-control border-start-0 rounded-end-3 py-3"
+                                    <input type="text" name="name" class="form-control border-start-0 rounded-end-3 py-2 py-md-3"
                                            value="{{ $user->name }}" required>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label fw-semibold small text-uppercase text-muted mb-2">
                                     <i class="bi bi-envelope me-1"></i> Email Address
                                 </label>
@@ -87,11 +88,11 @@
                                     <span class="input-group-text bg-light border-end-0 rounded-start-3">
                                         <i class="bi bi-envelope text-muted"></i>
                                     </span>
-                                    <input type="email" name="email" class="form-control border-start-0 rounded-end-3 py-3"
+                                    <input type="email" name="email" class="form-control border-start-0 rounded-end-3 py-2 py-md-3"
                                            value="{{ $user->email }}" required>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label fw-semibold small text-uppercase text-muted mb-2">
                                     <i class="bi bi-phone me-1"></i> Phone Number
                                 </label>
@@ -99,14 +100,14 @@
                                     <span class="input-group-text bg-light border-end-0 rounded-start-3">
                                         <i class="bi bi-phone text-muted"></i>
                                     </span>
-                                    <input type="text" name="phone" class="form-control border-start-0 rounded-end-3 py-3"
+                                    <input type="text" name="phone" class="form-control border-start-0 rounded-end-3 py-2 py-md-3"
                                            value="{{ $user->phone }}" placeholder="+63 900 000 0000">
                                 </div>
                             </div>
-                            <div class="col-12 mt-4">
-                                <button type="submit" class="btn btn-primary px-5 rounded-3 shadow-sm fw-bold py-3"
+                            <div class="col-12 mt-3 mt-md-4">
+                                <button type="submit" class="btn btn-primary w-100 w-md-auto px-3 px-md-5 rounded-3 shadow-sm fw-bold py-2 py-md-3"
                                         style="background: linear-gradient(135deg, #3D3B6B 0%, #605C9D 100%); border: none;">
-                                    <i class="bi bi-save me-2"></i> Save Profile Changes
+                                    <i class="bi bi-save me-2"></i> <span class="d-none d-sm-inline">Save Profile Changes</span><span class="d-sm-none">Save</span>
                                 </button>
                             </div>
                         </div>
@@ -116,21 +117,21 @@
         </div>
 
         {{-- Security Settings --}}
-        <div class="col-xl-5 col-lg-6">
+        <div class="col-lg-5 col-md-12">
             <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
-                <div class="card-header bg-white py-3 px-4 border-bottom-0">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-3">
+                <div class="card-header bg-white py-3 px-3 px-md-4 border-bottom-0">
+                    <div class="d-flex align-items-center justify-content-between flex-column flex-md-row gap-2">
+                        <div class="d-flex align-items-center gap-2 gap-md-3">
                             <div class="icon-container bg-danger bg-opacity-10 rounded-circle p-2">
                                 <i class="bi bi-shield-lock text-danger fs-4"></i>
                             </div>
                             <div>
-                                <h5 class="fw-bold mb-0 text-dark">Security Settings</h5>
+                                <h5 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">Security Settings</h5>
                                 <p class="text-muted small mb-0">Update your password</p>
                             </div>
                         </div>
-                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2 rounded-pill">
-                            <i class="bi bi-exclamation-triangle me-1"></i> Important
+                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 px-md-3 py-1 py-md-2 rounded-pill" style="font-size: 0.75rem;">
+                            <i class="bi bi-exclamation-triangle me-1"></i> <span class="d-none d-sm-inline">Important</span>
                         </span>
                     </div>
                 </div>
@@ -146,12 +147,12 @@
                     </div>
                     <form action="{{ route('admin.profile.password') }}" method="POST" id="passwordForm">
                         @csrf
-                        <div class="mb-4">
+                        <div class="mb-3 mb-md-4">
                             <label class="form-label fw-semibold small text-uppercase text-muted mb-2">
                                 <i class="bi bi-key me-1"></i> Current Password
                             </label>
                             <div class="password-input-container position-relative">
-                                <input type="password" name="current_password" class="form-control form-control-lg rounded-3 py-3"
+                                <input type="password" name="current_password" class="form-control form-control-lg rounded-3 py-2 py-md-3"
                                        placeholder="••••••••" required>
                                 <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y me-3 text-muted"
                                         onclick="togglePassword(this)">
@@ -159,12 +160,12 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="mb-4">
+                        <div class="mb-3 mb-md-4">
                             <label class="form-label fw-semibold small text-uppercase text-muted mb-2">
                                 <i class="bi bi-key-fill me-1"></i> New Password
                             </label>
                             <div class="password-input-container position-relative">
-                                <input type="password" name="password" class="form-control form-control-lg rounded-3 py-3"
+                                <input type="password" name="password" class="form-control form-control-lg rounded-3 py-2 py-md-3"
                                        placeholder="Enter new password" required>
                                 <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y me-3 text-muted"
                                         onclick="togglePassword(this)">
@@ -172,12 +173,12 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="mb-4">
+                        <div class="mb-3 mb-md-4">
                             <label class="form-label fw-semibold small text-uppercase text-muted mb-2">
                                 <i class="bi bi-key-fill me-1"></i> Confirm New Password
                             </label>
                             <div class="password-input-container position-relative">
-                                <input type="password" name="password_confirmation" class="form-control form-control-lg rounded-3 py-3"
+                                <input type="password" name="password_confirmation" class="form-control form-control-lg rounded-3 py-2 py-md-3"
                                        placeholder="Repeat new password" required>
                                 <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y me-3 text-muted"
                                         onclick="togglePassword(this)">
@@ -185,9 +186,9 @@
                                 </button>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-danger w-100 rounded-3 fw-bold shadow-sm py-3"
+                        <button type="submit" class="btn btn-danger w-100 rounded-3 fw-bold shadow-sm py-2 py-md-3"
                                 style="background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); border: none;">
-                            <i class="bi bi-shield-check me-2"></i> Update Security Credentials
+                            <i class="bi bi-shield-check me-2"></i> <span class="d-none d-sm-inline">Update Security Credentials</span><span class="d-sm-none">Update</span>
                         </button>
                     </form>
                 </div>
@@ -348,19 +349,51 @@
     }
 
     /* Responsive adjustments */
+    @media (max-width: 991px) {
+        .col-lg-7, .col-lg-5 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+
     @media (max-width: 768px) {
-        .avatar-inner {
-            width: 80px !important;
-            height: 80px !important;
+        .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
         }
 
-        .avatar-badge {
-            width: 28px;
-            height: 28px;
+        .input-group-lg .form-control,
+        .input-group-lg .input-group-text {
+            height: 44px;
         }
 
-        .display-6 {
-            font-size: 1.75rem;
+        .form-label {
+            font-size: 0.75rem;
+        }
+
+        .card-body {
+            padding: 1rem !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .container-fluid {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+        .card {
+            margin-bottom: 1rem;
+        }
+
+        .input-group-lg .form-control,
+        .input-group-lg .input-group-text {
+            height: 40px;
+            font-size: 0.875rem;
+        }
+
+        .btn {
+            font-size: 0.875rem;
         }
     }
 </style>

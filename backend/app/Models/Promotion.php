@@ -95,9 +95,9 @@ class Promotion extends Model
         return $this->belongsTo(Branch::class);
     }
 
-    public function specialItems(): HasMany
+    public function promotionItems(): HasMany
     {
-        return $this->hasMany(SpecialItemPricing::class);
+        return $this->hasMany(PromotionItem::class);
     }
 
     public function usages(): HasMany
@@ -542,5 +542,84 @@ class Promotion extends Model
         }
 
         return number_format($this->roi_percentage, 1) . '%';
+    }
+
+    // ========================================================================
+    // INVENTORY MANAGEMENT
+    // ========================================================================
+
+    /**
+     * Deduct inventory items when promotion is used
+     */
+    public function deductInventory(int $branchId, int $loads = 1): array
+    {
+        $deductions = [];
+        $errors = [];
+
+        foreach ($this->promotionItems()->where('is_active', true)->get() as $item) {
+            $inventoryItem = $item->inventoryItem;
+            $quantityNeeded = $item->quantity_per_use * $loads;
+
+            // Get branch stock
+            $branchStock = $inventoryItem->branchStocks()
+                ->where('branch_id', $branchId)
+                ->first();
+
+            if (!$branchStock) {
+                $errors[] = "No stock record for {$inventoryItem->name} at this branch";
+                continue;
+            }
+
+            if ($branchStock->current_stock < $quantityNeeded) {
+                $errors[] = "Insufficient stock for {$inventoryItem->name}. Need: {$quantityNeeded}, Available: {$branchStock->current_stock}";
+                continue;
+            }
+
+            // Deduct stock
+            $branchStock->decrement('current_stock', $quantityNeeded);
+
+            // Log stock history
+            StockHistory::create([
+                'inventory_item_id' => $inventoryItem->id,
+                'branch_id' => $branchId,
+                'type' => 'usage',
+                'quantity' => -$quantityNeeded,
+                'reference_type' => 'promotion',
+                'reference_id' => $this->id,
+                'notes' => "Used in promotion: {$this->name}",
+                'performed_by' => auth()->id(),
+            ]);
+
+            $deductions[] = [
+                'item' => $inventoryItem->name,
+                'quantity' => $quantityNeeded,
+                'unit' => $inventoryItem->distribution_unit,
+            ];
+        }
+
+        return [
+            'success' => empty($errors),
+            'deductions' => $deductions,
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * Check if promotion has sufficient inventory
+     */
+    public function hasInventoryAvailable(int $branchId, int $loads = 1): bool
+    {
+        foreach ($this->promotionItems()->where('is_active', true)->get() as $item) {
+            $quantityNeeded = $item->quantity_per_use * $loads;
+            $branchStock = $item->inventoryItem->branchStocks()
+                ->where('branch_id', $branchId)
+                ->first();
+
+            if (!$branchStock || $branchStock->current_stock < $quantityNeeded) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

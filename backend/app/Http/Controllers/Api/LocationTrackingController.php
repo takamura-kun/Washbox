@@ -43,6 +43,7 @@ class LocationTrackingController extends Controller
     {
         $request->validate([
             'pickup_request_id' => 'required|exists:pickup_requests,id',
+            'user_type' => 'required|in:staff,customer',
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
             'accuracy' => 'nullable|numeric',
@@ -64,13 +65,23 @@ class LocationTrackingController extends Controller
         ]);
 
         // Cache latest location for quick access
-        $locationKey = "location_{$request->pickup_request_id}_" . Auth::id();
+        $locationKey = "location_{$request->pickup_request_id}_{$request->user_type}";
         Cache::put($locationKey, [
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'accuracy' => $request->accuracy,
             'updated_at' => now()
         ], 300); // 5 minutes
+
+        // Broadcast location update to pickup-specific channel
+        event(new \App\Events\LocationUpdated($request->pickup_request_id, [
+            'user_id' => Auth::id(),
+            'user_type' => $request->user_type,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+            'accuracy' => $request->accuracy,
+            'timestamp' => now()->toIso8601String()
+        ]));
 
         return response()->json(['success' => true]);
     }
@@ -91,10 +102,10 @@ class LocationTrackingController extends Controller
         $customerLocation = null;
 
         if ($pickupRequest->assigned_to) {
-            $staffLocation = Cache::get("location_{$pickupRequestId}_{$pickupRequest->assigned_to}");
+            $staffLocation = Cache::get("location_{$pickupRequestId}_staff");
         }
 
-        $customerLocation = Cache::get("location_{$pickupRequestId}_{$pickupRequest->customer_id}");
+        $customerLocation = Cache::get("location_{$pickupRequestId}_customer");
 
         return response()->json([
             'success' => true,
@@ -111,11 +122,12 @@ class LocationTrackingController extends Controller
     public function stopTracking(Request $request)
     {
         $request->validate([
-            'pickup_request_id' => 'required|exists:pickup_requests,id'
+            'pickup_request_id' => 'required|exists:pickup_requests,id',
+            'user_type' => 'required|in:staff,customer'
         ]);
 
         // Remove tracking session from cache
-        $trackingKey = "tracking_{$request->pickup_request_id}_*_" . Auth::id();
+        $trackingKey = "tracking_{$request->pickup_request_id}_{$request->user_type}_" . Auth::id();
         Cache::forget($trackingKey);
 
         return response()->json(['success' => true]);
@@ -132,11 +144,14 @@ class LocationTrackingController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $history = LocationUpdate::where('pickup_request_id', $pickupRequestId)
+        $history = LocationUpdate::forPickup($pickupRequestId)
             ->with('user')
             ->orderBy('timestamp', 'desc')
             ->paginate(50);
 
-        return response()->json($history);
+        return response()->json([
+            'success' => true,
+            'data' => $history
+        ]);
     }
 }

@@ -20,7 +20,6 @@
             </form>
             <form action="{{ route('admin.notifications.delete-all-read') }}" method="POST" class="d-inline">
                 @csrf
-                @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger shadow-sm" onclick="return confirm('Delete all read notifications?')">
                     <i class="bi bi-trash me-1"></i>Clear Read
                 </button>

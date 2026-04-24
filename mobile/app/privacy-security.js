@@ -268,22 +268,6 @@ export default function PrivacySecurityScreen() {
       color: COLORS.primary,
       action: () => setShowPasswordModal(true),
     },
-    {
-      icon: 'shield-checkmark-outline',
-      title: 'Two-Factor Authentication',
-      subtitle: 'Add extra security to your account',
-      color: COLORS.success,
-      action: () => Alert.alert('Coming Soon', 'Two-factor authentication will be available soon!'),
-      badge: 'Coming Soon',
-    },
-    {
-      icon: 'finger-print-outline',
-      title: 'Biometric Login',
-      subtitle: 'Use fingerprint or face recognition',
-      color: COLORS.secondary,
-      action: () => Alert.alert('Coming Soon', 'Biometric login will be available soon!'),
-      badge: 'Coming Soon',
-    },
   ];
 
   const privacyItems = [
@@ -592,7 +576,7 @@ export default function PrivacySecurityScreen() {
             </View>
 
             {/* Confirmation Text */}
-            <Text style={styles.fieldLabel}>Type "DELETE_MY_ACCOUNT" to confirm</Text>
+            <Text style={styles.fieldLabel}>Type &quot;DELETE_MY_ACCOUNT&quot; to confirm</Text>
             <TextInput
               style={styles.confirmationInput}
               value={deleteForm.confirmation}

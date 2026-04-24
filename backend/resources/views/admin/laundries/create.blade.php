@@ -41,6 +41,55 @@
         </div>
     @endif
 
+    {{-- Weight Validation Warning Alert --}}
+    @if($errors->has('weight_warning'))
+        <div class="alert alert-warning alert-dismissible fade show border-2 border-warning mb-3" role="alert" style="z-index: 1050; position: relative;">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.25rem; color: #ff6b6b; flex-shrink: 0;"></i>
+                <div style="flex: 1;">
+                    @php
+                        $warningMsg = $errors->first('weight_warning');
+                        $isMinimum = str_contains($warningMsg, 'minimum') || str_contains($warningMsg, 'Not in minimum');
+                    @endphp
+                    <h5 class="alert-heading mb-2">
+                        @if($isMinimum)
+                            ⚠️ Minimum Weight Required
+                        @else
+                            ⚠️ Maximum Weight Exceeded
+                        @endif
+                    </h5>
+                    <p class="mb-2">{{ $warningMsg }}</p>
+                    <hr class="my-2">
+                    <p class="mb-0 small">
+                        <strong>Solution:</strong>
+                        @if($isMinimum)
+                            Please add more laundry to meet the minimum weight requirement.
+                        @else
+                            Please adjust the weight to meet the service requirements or split the laundry into multiple loads.
+                        @endif
+                    </p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="flex-shrink: 0;"></button>
+            </div>
+        </div>
+    @endif
+
+    {{-- Error Alert --}}
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle me-2"></i>
+            <strong>Please fix the following errors:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach($errors->all() as $error)
+                    @if($error !== $errors->first('weight_warning'))
+                        <li>{{ $error }}</li>
+                    @endif
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     {{-- Pickup Info Alert --}}
     @if(isset($pickup))
         <div class="pickup-alert">
@@ -181,7 +230,41 @@
                             {{-- Service --}}
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Service <span class="text-danger">*</span></label>
-                                <select name="service_id" class="form-select @error('service_id') is-invalid @enderror" id="serviceSelect">
+                                @if(isset($pickup) && $pickup->service_id)
+                                    {{-- Service is locked when from pickup --}}
+                                    <input type="hidden" name="service_id" value="{{ $pickup->service_id }}"
+                                        data-pricing-type="{{ $pickup->service->pricing_type ?? 'per_load' }}"
+                                        data-service-type="{{ $pickup->service->service_type ?? 'full_service' }}"
+                                        data-price-per-load="{{ $pickup->service->price_per_load ?? 0 }}"
+                                        data-price-per-piece="{{ $pickup->service->price_per_piece ?? 0 }}"
+                                        data-max-weight="{{ $pickup->service->max_weight ?? 0 }}">
+                                    <div class="alert alert-info border-info mb-0">
+                                        <div class="d-flex align-items-start">
+                                            <i class="bi bi-lock-fill me-2 mt-1"></i>
+                                            <div>
+                                                <strong>{{ $pickup->service->name }}</strong>
+                                                @if($pickup->service->description)
+                                                    <p class="mb-1 small text-muted">{{ $pickup->service->description }}</p>
+                                                @endif
+                                                <div class="mt-2">
+                                                    @if($pickup->service->price_per_kilo)
+                                                        <span class="badge bg-primary">₱{{ number_format($pickup->service->price_per_kilo, 2) }}/kg</span>
+                                                    @endif
+                                                    @if($pickup->service->price_per_load)
+                                                        <span class="badge bg-success">₱{{ number_format($pickup->service->price_per_load, 2) }}/load</span>
+                                                    @endif
+                                                    @if($pickup->service->turnaround_time)
+                                                        <span class="badge bg-secondary">{{ $pickup->service->turnaround_time }}</span>
+                                                    @endif
+                                                </div>
+                                                <small class="text-muted d-block mt-2">
+                                                    <i class="bi bi-info-circle"></i> Service is locked from pickup request
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @else
+                                    <select name="service_id" class="form-select @error('service_id') is-invalid @enderror" id="serviceSelect">
                                     <option value="">Select service...</option>
 
                                     {{-- Drop Off --}}
@@ -242,6 +325,7 @@
                                 </select>
                                 @error('service_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 <div id="serviceDescription" class="service-description"></div>
+                                @endif
                             </div>
 
                             {{-- Weight Input --}}
@@ -271,15 +355,6 @@
                                 <small class="text-muted" id="loadsHelp">Number of loads/pieces</small>
                             </div>
 
-                            {{-- Extra Weight Warning --}}
-                            <div class="col-12" id="extraWeightWarning" style="display: none;">
-                                <div class="extra-weight-warning">
-                                    <i class="bi bi-exclamation-triangle"></i>
-                                    <strong>Extra Load Required:</strong>
-                                    <span id="extraWeightMessage"></span>
-                                    <span id="autoExtraLoad" class="auto-adjust"></span>
-                                </div>
-                            </div>
 
                             {{-- Promotion --}}
                             <div class="col-md-6">
@@ -309,39 +384,30 @@
                                 <small class="text-muted" id="promotionDescription"></small>
                             </div>
 
-                            {{-- Staff Assignment --}}
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Assign Staff (Optional)</label>
-                                <select name="staff_id" class="form-select @error('staff_id') is-invalid @enderror">
-                                    <option value="">Select staff member...</option>
-                                    @foreach($staff as $member)
-                                        <option value="{{ $member->id }}" {{ old('staff_id') == $member->id ? 'selected' : '' }}>{{ $member->name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('staff_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                            </div>
-
                             {{-- Add-ons with Quantity Controls --}}
                             <div class="col-12 mt-3">
                                 <label class="form-label fw-semibold">Add-ons (Optional)</label>
-                                <p class="text-muted small mb-2">Select additional services and specify quantities</p>
+                                <p class="text-muted small mb-2">Select additional items (detergent, fabric conditioner, bleach, etc.)</p>
                                 <div class="row g-2" id="addonsContainer">
                                     @foreach($addons as $addon)
                                         <div class="col-md-6 col-lg-4">
                                             <div class="addon-item" data-addon-id="{{ $addon->id }}">
                                                 <div class="addon-header">
                                                     <span class="addon-name">{{ $addon->name }}</span>
-                                                    <span class="text-success fw-bold">₱{{ number_format($addon->price, 2) }}</span>
+                                                    <span class="text-success fw-bold">₱{{ number_format($addon->unit_cost_price ?? 0, 2) }}</span>
                                                 </div>
                                                 <div class="addon-description">
-                                                    {{ $addon->description }}
+                                                    @if($addon->brand)
+                                                        <span class="badge bg-secondary">{{ $addon->brand }}</span>
+                                                    @endif
+                                                    <small class="text-muted">{{ $addon->category->name ?? '' }}</small>
                                                 </div>
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <div class="form-check">
                                                         <input class="form-check-input addon-checkbox" type="checkbox"
                                                             name="addons[{{ $addon->id }}][id]" value="{{ $addon->id }}"
                                                             id="addon{{ $addon->id }}"
-                                                            data-price="{{ $addon->price }}"
+                                                            data-price="{{ $addon->unit_cost_price ?? 0 }}"
                                                             data-name="{{ $addon->name }}">
                                                         <label class="form-check-label" for="addon{{ $addon->id }}">
                                                             <small>Select</small>
@@ -352,7 +418,7 @@
                                                             <i class="bi bi-dash"></i>
                                                         </button>
                                                         <input type="number" name="addons[{{ $addon->id }}][quantity]"
-                                                            class="addon-quantity" value="1" min="1" max="99"
+                                                            class="addon-quantity" value="1" min="0.01" step="0.01" max="999"
                                                             data-addon-id="{{ $addon->id }}"
                                                             id="quantity{{ $addon->id }}"
                                                             disabled>
@@ -599,6 +665,7 @@
 
         {{-- Fallback: ensures weight=0 reaches the server when weightContainer is hidden (per-piece services) --}}
         <input type="hidden" name="_weight_fallback" value="0" id="weightFallback">
+        <input type="hidden" name="extra_services" value="" id="extraServicesInput">
     </form>
 </div>
 

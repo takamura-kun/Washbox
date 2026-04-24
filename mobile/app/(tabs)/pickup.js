@@ -16,9 +16,8 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -221,12 +220,14 @@ const PickupCard = ({ pickupAddress, pickupCoords, onPickupPress, onAddressSelec
       )}
 
       {/* Delivery info banner */}
-      <View style={routeStyles.deliveryBanner}>
-        <Ionicons name="refresh-outline" size={14} color={COLORS.primary} />
-        <Text style={routeStyles.deliveryBannerText}>
-          Your laundry will be delivered back to the same address
-        </Text>
-      </View>
+      {pickupAddress && (
+        <View style={routeStyles.deliveryBanner}>
+          <Ionicons name="refresh-outline" size={14} color={COLORS.primary} />
+          <Text style={routeStyles.deliveryBannerText}>
+            Your laundry will be delivered back to the same address
+          </Text>
+        </View>
+      )}
 
       {/* Delivery Fee Info */}
       {deliveryFeeInfo && (
@@ -423,6 +424,13 @@ const summaryRowStyles = StyleSheet.create({
 // MAIN SCREEN
 // ─────────────────────────────────────────────
 export default function PickupRequestScreen() {
+  // Get service params from navigation
+  const params = useLocalSearchParams();
+  const selectedServiceId = params.serviceId;
+  const selectedServiceName = params.serviceName;
+  const selectedServicePrice = params.servicePrice;
+  const selectedServicePriceType = params.servicePriceType;
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -442,8 +450,9 @@ export default function PickupRequestScreen() {
   const [mapRegion, setMapRegion] = useState(null);
 
   // Form
-  const [branches, setBranches] = useState([]);
-  const [selectedBranch, setSelectedBranch] = useState('');
+  const [customerBranch, setCustomerBranch] = useState(null);
+  const [branchLoading, setBranchLoading] = useState(true);
+  const [branchError, setBranchError] = useState(null);
   const [pickupAddress, setPickupAddress] = useState('');
   const [pickupCoordinates, setPickupCoordinates] = useState(null);
   const [pickupDate, setPickupDate] = useState(new Date());
@@ -470,12 +479,13 @@ export default function PickupRequestScreen() {
 
   // ─── Memoized values ───
   const formComplete = useMemo(() => {
-    const basicComplete = !!(pickupAddress && selectedBranch && phoneNumber);
+    // Must have branch, address, and phone
+    const basicComplete = !!(pickupAddress && customerBranch && phoneNumber && !branchLoading && !branchError);
     if (requireProofPhoto) {
       return basicComplete && !!proofPhoto;
     }
     return basicComplete;
-  }, [pickupAddress, selectedBranch, phoneNumber, requireProofPhoto, proofPhoto]);
+  }, [pickupAddress, customerBranch, phoneNumber, requireProofPhoto, proofPhoto, branchLoading, branchError]);
 
   const timePickerValue = useMemo(() => {
     const [h, m] = (pickupTime || '09:00').split(':');
@@ -514,7 +524,7 @@ export default function PickupRequestScreen() {
       await initializeLocation();
       await Promise.all([
         fetchServiceStatus(),
-        fetchBranches(), 
+        fetchCustomerBranch(), 
         fetchCustomerData(), 
         fetchSavedAddresses()
       ]);
@@ -562,23 +572,63 @@ export default function PickupRequestScreen() {
     }
   };
 
-  const fetchBranches = async () => {
+  const fetchCustomerBranch = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/v1/branches`, {
-        headers: { 'Accept': 'application/json' },
+      setBranchLoading(true);
+      setBranchError(null);
+      const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
+      const customerData = await AsyncStorage.getItem(STORAGE_KEYS.CUSTOMER);
+      
+      if (!token) {
+        setBranchError('Not authenticated');
+        setBranchLoading(false);
+        return;
+      }
+      
+      // First, try to get branch from stored customer data
+      if (customerData) {
+        try {
+          const customer = JSON.parse(customerData);
+          if (customer.branch) {
+            setCustomerBranch(customer.branch);
+            setBranchLoading(false);
+            return; // Branch found in local storage, no need to fetch
+          }
+        } catch (e) {
+          console.log('Could not parse customer data:', e);
+        }
+      }
+      
+      // If not in local storage, fetch from API
+      const response = await fetch(`${API_BASE_URL}/v1/my-branch`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json' 
+        },
       });
+      
       if (response.ok) {
         const data = await response.json();
-        let arr = [];
-        if (data.success && data.data?.branches) arr = data.data.branches;
-        else if (Array.isArray(data.data)) arr = data.data;
-        else if (Array.isArray(data)) arr = data;
-        setBranches(arr);
-        if (arr.length > 0) setSelectedBranch(arr[0].id.toString());
+        if (data.success && data.data) {
+          setCustomerBranch(data.data);
+        } else {
+          setBranchError('No branch data received');
+        }
+      } else if (response.status === 404) {
+        setBranchError('No branch assigned');
+        Alert.alert(
+          'No Branch Assigned',
+          'You need to be registered with a branch to request pickups. Please contact support.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        setBranchError('Failed to load branch');
       }
     } catch (error) {
-      console.error('Error fetching branches:', error);
-      setBranches([]);
+      console.error('Error fetching customer branch:', error);
+      setBranchError('Connection error');
+    } finally {
+      setBranchLoading(false);
     }
   };
 
@@ -593,8 +643,17 @@ export default function PickupRequestScreen() {
         const data = await response.json();
         if (data.success && data.data?.customer) {
           const customer = data.data.customer;
+          // Update local storage with latest customer data including branch
+          await AsyncStorage.setItem(STORAGE_KEYS.CUSTOMER, JSON.stringify(customer));
+          
           if (customer.address) setPickupAddress(customer.address);
           if (customer.phone) setPhoneNumber(customer.phone);
+          
+          // Set branch if available
+          if (customer.branch) {
+            setCustomerBranch(customer.branch);
+            setBranchLoading(false);
+          }
         }
       }
     } catch (error) {
@@ -636,17 +695,35 @@ export default function PickupRequestScreen() {
   const handleLocationSelect = async (location) => {
     try {
       if (!location?.coordinate) return;
-      const address = await LocationService.getAddressFromCoordinate(location.coordinate);
-      setPickupAddress(address);
-      setPickupCoordinates(location.coordinate);
-      setShowMapModal(false);
-      
-      // Check delivery fee
-      if (selectedBranch) {
-        await checkDeliveryFee(address, selectedBranch);
+
+      let address;
+      let coordinates = location.coordinate;
+
+      if (location.geotag?.manuallyEdited) {
+        // User typed address + pinned on map
+        address = location.geotag.address;
+        coordinates = { latitude: location.geotag.latitude, longitude: location.geotag.longitude };
+      } else if (location.geotag?.address) {
+        // Pinned on map (reverse geocoded)
+        address = location.geotag.address;
+        coordinates = { latitude: location.geotag.latitude, longitude: location.geotag.longitude };
+      } else if (location.displayName || location.name) {
+        // Search result from LocationSearch — use the name directly, no extra reverse geocode
+        address = location.displayName || location.name;
+      } else {
+        address = await LocationService.getAddressFromCoordinate(location.coordinate);
       }
-    } catch {
-      Alert.alert('Error', 'Could not get address for selected location');
+
+      setPickupAddress(address);
+      setPickupCoordinates(coordinates);
+      setShowMapModal(false);
+
+      if (customerBranch) {
+        await checkDeliveryFee(address, customerBranch.id);
+      }
+    } catch (error) {
+      console.error('Error in handleLocationSelect:', error);
+      Alert.alert('Error', 'Could not process location selection');
     }
   };
 
@@ -655,17 +732,44 @@ export default function PickupRequestScreen() {
       setIsLoadingLocation(true);
       const location = await LocationService.getCurrentLocation();
       const address = await LocationService.getAddressFromCoordinate(location);
+      
+      // Create geotag data for current location
+      const geotagData = {
+        ...location,
+        timestamp: new Date().toISOString(),
+        accuracy: 'gps', // GPS-based location
+        address,
+      };
+      
+      console.log('Current location geotagged:', geotagData);
+      
       setPickupAddress(address);
       setPickupCoordinates(location);
       setSelectedAddressId(null); // Clear saved address selection
       setShowMapModal(false);
       
       // Check delivery fee
-      if (selectedBranch) {
-        await checkDeliveryFee(address, selectedBranch);
+      if (customerBranch) {
+        await checkDeliveryFee(address, customerBranch.id);
       }
-    } catch {
-      Alert.alert('Error', 'Unable to get your current location');
+      
+      // Show success feedback with geotag info
+      Alert.alert(
+        '✓ Location Set',
+        `Your current location has been set as the pickup address.\n\nCoordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error getting current location:', error);
+      Alert.alert(
+        'Location Error',
+        'Unable to get your current location. Please check if location services are enabled and try again, or select a location manually.',
+        [
+          { text: 'Try Again', onPress: handleUseCurrentLocation },
+          { text: 'Choose Manually', onPress: () => setShowMapModal(true) },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
     } finally {
       setIsLoadingLocation(false);
     }
@@ -694,8 +798,8 @@ export default function PickupRequestScreen() {
     }
     
     // Check delivery fee
-    if (selectedBranch) {
-      checkDeliveryFee(address.full_address, selectedBranch);
+    if (customerBranch) {
+      checkDeliveryFee(address.full_address, customerBranch.id);
     }
     
     setShowAddressModal(false);
@@ -779,30 +883,6 @@ export default function PickupRequestScreen() {
     }
   };
 
-  const handlePickPhoto = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Photo library permission is needed');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setProofPhoto(result.assets[0]);
-      }
-    } catch (error) {
-      console.error('Error picking photo:', error);
-      Alert.alert('Error', 'Failed to pick photo');
-    }
-  };
-
   const handleRemovePhoto = () => {
     Alert.alert(
       'Remove Photo',
@@ -817,8 +897,16 @@ export default function PickupRequestScreen() {
   // ─── Validation ───
 
   const validateForm = () => {
-    if (!selectedBranch) {
-      Alert.alert('Missing Info', 'Please select a branch');
+    if (branchLoading) {
+      Alert.alert('Please Wait', 'Loading branch information...');
+      return false;
+    }
+    if (branchError || !customerBranch) {
+      Alert.alert(
+        'No Branch Assigned',
+        'You need to be registered with a branch to request pickups. Please contact support to get assigned to a branch.',
+        [{ text: 'OK' }]
+      );
       return false;
     }
     if (!pickupAddress.trim()) {
@@ -864,7 +952,7 @@ export default function PickupRequestScreen() {
       }
 
       const formData = new FormData();
-      formData.append('branch_id', parseInt(selectedBranch));
+      formData.append('branch_id', customerBranch.id);
       formData.append('pickup_address', pickupAddress);
       formData.append('latitude', pickupCoordinates?.latitude || 0);
       formData.append('longitude', pickupCoordinates?.longitude || 0);
@@ -872,6 +960,11 @@ export default function PickupRequestScreen() {
       formData.append('preferred_time', pickupTime);
       formData.append('phone_number', phoneNumber);
       if (notes) formData.append('notes', notes);
+      
+      // Add selected service if available
+      if (selectedServiceId) {
+        formData.append('service_id', selectedServiceId);
+      }
 
       if (proofPhoto) {
         const filename = proofPhoto.uri.split('/').pop();
@@ -893,37 +986,33 @@ export default function PickupRequestScreen() {
         body: formData,
       });
 
+      console.log('Pickup submission response status:', response.status);
       const data = await response.json();
+      console.log('Pickup submission response data:', JSON.stringify(data, null, 2));
 
       if (response.ok && data.success) {
+        // Clear form
+        setPickupAddress('');
+        setPickupCoordinates(null);
+        setNotes('');
+        setProofPhoto(null);
+        setCurrentStep(0);
+        
         Alert.alert(
           '🎉 Pickup Scheduled!',
           "We'll confirm your request shortly and deliver your laundry back to the same address.",
           [{
             text: 'View My Laundries',
-            onPress: () => {
-              setPickupAddress('');
-              setPickupCoordinates(null);
-              setNotes('');
-              setProofPhoto(null);
-              setCurrentStep(0);
-              router.push('/(tabs)/laundry');
-            },
+            onPress: () => router.push('/(tabs)/laundry'),
           },
           {
             text: 'Done',
             style: 'cancel',
-            onPress: () => {
-              setPickupAddress('');
-              setPickupCoordinates(null);
-              setNotes('');
-              setProofPhoto(null);
-              setCurrentStep(0);
-              router.push('/(tabs)/');
-            },
+            onPress: () => router.push('/(tabs)/'),
           }]
         );
       } else {
+        console.error('Pickup submission failed:', data.message);
         Alert.alert('Error', data.message || 'Failed to submit pickup request');
       }
     } catch (error) {
@@ -935,11 +1024,6 @@ export default function PickupRequestScreen() {
   };
 
   // ─── Helpers ───
-
-  const getSelectedBranchName = () => {
-    const branch = branches.find(b => b.id.toString() === selectedBranch);
-    return branch ? branch.name : 'Select Branch';
-  };
 
   const formatPickupDate = () => pickupDate.toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -1046,9 +1130,35 @@ export default function PickupRequestScreen() {
           </TouchableOpacity>
         </View>
         <Text style={styles.headerSubtitle}>
-          We'll pick up and deliver back to your address — free of charge
+          We&apos;ll pick up and deliver back to your address - free of charge
         </Text>
       </View>
+
+      {/* Selected Service Banner */}
+      {selectedServiceName && (
+        <View style={styles.selectedServiceBanner}>
+          <View style={styles.selectedServiceContent}>
+            <View style={styles.selectedServiceIcon}>
+              <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+            </View>
+            <View style={styles.selectedServiceInfo}>
+              <Text style={styles.selectedServiceLabel}>Selected Service</Text>
+              <Text style={styles.selectedServiceName}>{selectedServiceName}</Text>
+              {selectedServicePrice && (
+                <Text style={styles.selectedServicePrice}>
+                  ₱{parseFloat(selectedServicePrice).toFixed(2)} {selectedServicePriceType === 'per_kilo' ? '/ kg' : '/ load'}
+                </Text>
+              )}
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.changeServiceButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.changeServiceText}>Change</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Steps */}
       <StepIndicator currentStep={currentStep} steps={STEPS} />
@@ -1071,7 +1181,7 @@ export default function PickupRequestScreen() {
               <View style={styles.warningBanner}>
                 <Ionicons name="warning" size={18} color={COLORS.warning} />
                 <Text style={styles.warningText}>
-                  Delivery service is currently unavailable. You'll need to pick up your laundry from the branch.
+                  Delivery service is currently unavailable. You&apos;ll need to pick up your laundry from the branch.
                 </Text>
               </View>
             )}
@@ -1099,20 +1209,29 @@ export default function PickupRequestScreen() {
               deliveryFeeInfo={deliveryFeeInfo}
             />
 
-            {/* Quick action */}
+            {/* Current Location Quick Action - More Prominent */}
             {!pickupAddress && (
-              <View style={styles.quickActions}>
+              <View style={styles.currentLocationBanner}>
+                <View style={styles.bannerContent}>
+                  <View style={[styles.bannerIcon, { backgroundColor: COLORS.pickup + '20' }]}>
+                    <Ionicons name="locate" size={20} color={COLORS.pickup} />
+                  </View>
+                  <View style={styles.bannerText}>
+                    <Text style={styles.bannerTitle}>Having trouble?</Text>
+                    <Text style={styles.bannerSubtitle}>Use your current location</Text>
+                  </View>
+                </View>
                 <TouchableOpacity
-                  style={styles.quickActionButton}
+                  style={styles.bannerButton}
                   onPress={handleUseCurrentLocation}
                   disabled={isLoadingLocation}
                 >
                   {isLoadingLocation ? (
-                    <ActivityIndicator size="small" color={COLORS.pickup} />
+                    <ActivityIndicator size="small" color="#FFF" />
                   ) : (
                     <>
-                      <Ionicons name="locate" size={16} color={COLORS.pickup} />
-                      <Text style={styles.quickActionText}>Use my current location</Text>
+                      <Ionicons name="locate" size={14} color="#FFF" />
+                      <Text style={styles.bannerButtonText}>Use Now</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -1125,7 +1244,7 @@ export default function PickupRequestScreen() {
                 <Ionicons name="calendar" size={14} color={COLORS.primary} />
               </View>
               <Text style={styles.sectionTitle}>Schedule & Details</Text>
-              {selectedBranch && phoneNumber && (
+              {customerBranch && phoneNumber && (
                 <View style={styles.sectionCheck}>
                   <Ionicons name="checkmark-circle" size={16} color={COLORS.pickup} />
                 </View>
@@ -1133,38 +1252,52 @@ export default function PickupRequestScreen() {
             </View>
 
             <View style={styles.formCard}>
-              {/* Branch */}
+              {/* Branch - Read Only */}
               <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Branch</Text>
-                <View style={styles.pickerWrapper}>
-                  <Ionicons name="business-outline" size={18} color={COLORS.textMuted} style={styles.fieldIcon} />
-                  <Picker
-                    selectedValue={selectedBranch}
-                    onValueChange={(value) => {
-                      setSelectedBranch(value);
-                      // Re-check delivery fee when branch changes
-                      if (pickupAddress) {
-                        checkDeliveryFee(pickupAddress, value);
-                      }
-                    }}
-                    style={styles.picker}
-                    dropdownIconColor={COLORS.primary}
-                    itemStyle={{ color: COLORS.textPrimary }}
-                  >
-                    {branches.length > 0 ? (
-                      branches.map((branch) => (
-                        <Picker.Item
-                          key={branch.id}
-                          label={`${branch.name}${branch.city ? ' — ' + branch.city : ''}`}
-                          value={branch.id.toString()}
-                          color={Platform.OS === 'ios' ? COLORS.textPrimary : '#000000'}
-                        />
-                      ))
-                    ) : (
-                      <Picker.Item label="No branches available" value="" color={COLORS.textMuted} />
-                    )}
-                  </Picker>
-                </View>
+                <Text style={styles.fieldLabel}>Your Branch</Text>
+                {branchLoading ? (
+                  <View style={styles.branchReadOnly}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                    <Text style={styles.branchLoading}>Loading your branch...</Text>
+                  </View>
+                ) : branchError ? (
+                  <View style={[styles.branchReadOnly, { borderColor: COLORS.danger + '40' }]}>
+                    <View style={[styles.branchIconWrap, { backgroundColor: COLORS.danger + '20' }]}>
+                      <Ionicons name="alert-circle" size={20} color={COLORS.danger} />
+                    </View>
+                    <View style={styles.branchInfo}>
+                      <Text style={[styles.branchName, { color: COLORS.danger }]}>Branch Error</Text>
+                      <Text style={styles.branchAddress}>{branchError}</Text>
+                    </View>
+                    <TouchableOpacity onPress={fetchCustomerBranch} style={styles.retryButton}>
+                      <Ionicons name="refresh" size={16} color={COLORS.primary} />
+                    </TouchableOpacity>
+                  </View>
+                ) : customerBranch ? (
+                  <View style={styles.branchReadOnly}>
+                    <View style={styles.branchIconWrap}>
+                      <Ionicons name="business" size={20} color={COLORS.primary} />
+                    </View>
+                    <View style={styles.branchInfo}>
+                      <Text style={styles.branchName}>{customerBranch.name}</Text>
+                      {customerBranch.address && (
+                        <Text style={styles.branchAddress} numberOfLines={1}>
+                          {customerBranch.address}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.branchBadge}>
+                      <Text style={styles.branchBadgeText}>Registered</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={[styles.branchReadOnly, { borderColor: COLORS.warning + '40' }]}>
+                    <View style={[styles.branchIconWrap, { backgroundColor: COLORS.warning + '20' }]}>
+                      <Ionicons name="warning" size={20} color={COLORS.warning} />
+                    </View>
+                    <Text style={styles.branchLoading}>No branch assigned</Text>
+                  </View>
+                )}
               </View>
 
               {/* Date & Time */}
@@ -1252,29 +1385,19 @@ export default function PickupRequestScreen() {
                       <TouchableOpacity style={styles.photoActionBtn} onPress={handleTakePhoto}>
                         <Ionicons name="camera" size={18} color="#FFF" />
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.photoActionBtn} onPress={handlePickPhoto}>
-                        <Ionicons name="images" size={18} color="#FFF" />
-                      </TouchableOpacity>
                       <TouchableOpacity style={[styles.photoActionBtn, styles.photoRemoveBtn]} onPress={handleRemovePhoto}>
                         <Ionicons name="trash" size={18} color="#FFF" />
                       </TouchableOpacity>
                     </View>
                   </View>
                 ) : (
-                  <View style={styles.photoButtons}>
-                    <TouchableOpacity style={styles.photoButton} onPress={handleTakePhoto}>
-                      <View style={styles.photoButtonIcon}>
-                        <Ionicons name="camera" size={24} color={COLORS.primary} />
-                      </View>
-                      <Text style={styles.photoButtonText}>Take Photo</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.photoButton} onPress={handlePickPhoto}>
-                      <View style={styles.photoButtonIcon}>
-                        <Ionicons name="images" size={24} color={COLORS.primary} />
-                      </View>
-                      <Text style={styles.photoButtonText}>Choose Photo</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity style={styles.photoButtonSingle} onPress={handleTakePhoto}>
+                    <View style={styles.photoButtonIcon}>
+                      <Ionicons name="camera" size={32} color={COLORS.primary} />
+                    </View>
+                    <Text style={styles.photoButtonText}>Take Photo</Text>
+                    <Text style={styles.photoButtonHint}>Camera only - for verification</Text>
+                  </TouchableOpacity>
                 )}
               </View>
             </View>
@@ -1295,7 +1418,7 @@ export default function PickupRequestScreen() {
                     style={styles.summaryGradient}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                   >
-                    <SummaryRow icon="business" label="Branch" value={getSelectedBranchName()} />
+                    <SummaryRow icon="business" label="Branch" value={branchLoading ? 'Loading...' : (customerBranch?.name || 'No branch')} />
                     <SummaryRow icon="location" label="Address" value={pickupAddress} numberOfLines={2} />
                     <SummaryRow icon="refresh" label="Delivery" value="Back to same address" />
                     <SummaryRow icon="calendar" label="Schedule" value={`${formatPickupDate()} at ${formatPickupTime()}`} />
@@ -1386,6 +1509,10 @@ export default function PickupRequestScreen() {
               onLocationSelect={handleLocationSelect}
               currentLocationButton={false}
             />
+            <View style={styles.tapHint}>
+              <Ionicons name="hand-left-outline" size={14} color={COLORS.primary} />
+              <Text style={styles.tapHintText}>Drag the map to position the pin, then tap "Pin This Location"</Text>
+            </View>
           </View>
 
           {mapRegion && (
@@ -1487,7 +1614,7 @@ export default function PickupRequestScreen() {
                   {address.contact_person && (
                     <Text style={styles.addressContact}>
                       Contact: {address.contact_person}
-                      {address.contact_phone && ` • ${address.contact_phone}`}
+                      {address.contact_phone && ` - ${address.contact_phone}`}
                     </Text>
                   )}
                 </View>
@@ -1635,14 +1762,59 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, flex: 1 },
   sectionCheck: { marginLeft: 'auto' },
 
-  quickActions: { paddingHorizontal: 24, marginTop: 12 },
-  quickActionButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+  currentLocationBanner: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    marginBottom: 20,
     backgroundColor: COLORS.pickupGlow,
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderRadius: 12, borderWidth: 1, borderColor: COLORS.pickup + '20',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.pickup + '40',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  quickActionText: { fontSize: 13, fontWeight: '500', color: COLORS.pickup },
+  bannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  bannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bannerText: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.pickup,
+    marginBottom: 2,
+  },
+  bannerSubtitle: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+  bannerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.pickup,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  bannerButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFF',
+  },
 
   formCard: {
     backgroundColor: COLORS.surface,
@@ -1660,13 +1832,61 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   fieldIcon: { marginLeft: 14 },
-  picker: { 
-    flex: 1, 
-    color: COLORS.textPrimary, 
-    backgroundColor: 'transparent',
-    ...(Platform.OS === 'android' && {
-      color: COLORS.textPrimary,
-    }),
+  branchReadOnly: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '20',
+  },
+  branchIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primarySoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  branchInfo: {
+    flex: 1,
+  },
+  branchName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  branchAddress: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  branchBadge: {
+    backgroundColor: COLORS.pickup + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  branchBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.pickup,
+    textTransform: 'uppercase',
+  },
+  branchLoading: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginLeft: 12,
+  },
+  retryButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.primarySoft,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceElevated, borderRadius: 14 },
   textField: { flex: 1, padding: 14, color: COLORS.textPrimary, fontSize: 14 },
@@ -1894,6 +2114,22 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   modalSearchWrap: { paddingHorizontal: 20, paddingVertical: 14, backgroundColor: COLORS.background },
+  tapHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: 10,
+  },
+  tapHintText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.primary,
+    flex: 1,
+  },
   map: { flex: 1 },
   modalFooter: {
     padding: 20,
@@ -1992,15 +2228,10 @@ const styles = StyleSheet.create({
   },
 
   // Proof Photo
-  photoButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  photoButton: {
-    flex: 1,
+  photoButtonSingle: {
     backgroundColor: COLORS.surfaceElevated,
     borderRadius: 14,
-    padding: 16,
+    padding: 20,
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
@@ -2015,9 +2246,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   photoButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: COLORS.textPrimary,
+  },
+  photoButtonHint: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    fontStyle: 'italic',
   },
   photoPreview: {
     position: 'relative',
@@ -2047,5 +2283,66 @@ const styles = StyleSheet.create({
   },
   photoRemoveBtn: {
     backgroundColor: COLORS.danger + 'CC',
+  },
+
+  // Selected Service Banner
+  selectedServiceBanner: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: COLORS.success + '15',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.success + '40',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectedServiceContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  selectedServiceIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.success + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedServiceInfo: {
+    flex: 1,
+  },
+  selectedServiceLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  selectedServiceName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  selectedServicePrice: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.success,
+  },
+  changeServiceButton: {
+    backgroundColor: COLORS.surfaceElevated,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  changeServiceText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
 });

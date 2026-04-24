@@ -23,6 +23,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 
+import RatingModal from '../../components/RatingModal';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const COLORS = {
@@ -207,11 +209,32 @@ export default function LaundryDetailsScreen() {
   const [loadingQR, setLoadingQR] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [hasShownRating, setHasShownRating] = useState(false);
 
   useEffect(() => { 
     fetchLaundryDetails();
     fetchPaymentProof();
   }, [id]);
+
+  // Show rating modal when laundry is completed
+  useEffect(() => {
+    if (laundry && !hasShownRating) {
+      const isCompleted = laundry.status?.toLowerCase() === 'completed';
+      const hasRating = laundry.rating && laundry.rating > 0;
+      
+      // Show rating modal if completed and not yet rated
+      if (isCompleted && !hasRating) {
+        // Delay to allow the screen to fully load
+        const timer = setTimeout(() => {
+          setShowRatingModal(true);
+          setHasShownRating(true);
+        }, 1000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [laundry, hasShownRating]);
 
   useEffect(() => {
     if (laundry) {
@@ -1026,7 +1049,7 @@ export default function LaundryDetailsScreen() {
                   <View style={styles.receiptTip}>
                     <Ionicons name="bulb-outline" size={16} color={COLORS.warning} />
                     <Text style={styles.receiptTipText}>
-                      <Text style={styles.receiptTipBold}>Tip:</Text> Take a clear photo of your complete payment confirmation screen or receipt. Don't crop the image - capture the full screen for faster verification.
+                      <Text style={styles.receiptTipBold}>Tip:</Text> Take a clear photo of your complete payment confirmation screen or receipt. Don&apos;t crop the image - capture the full screen for faster verification.
                     </Text>
                   </View>
                 </View>
@@ -1160,6 +1183,16 @@ export default function LaundryDetailsScreen() {
           </ScrollView>
         </View>
       </Modal>
+
+      {/* Rating Modal */}
+      <RatingModal
+        visible={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        laundry={laundry}
+        onRatingSubmitted={() => {
+          fetchLaundryDetails();
+        }}
+      />
     </View>
   );
 }
@@ -1301,9 +1334,9 @@ const styles = StyleSheet.create({
   
   // Loading and Error States
   loadingContainer:      { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
-  loadingText:           { fontSize: 14, color: COLORS.textSecondary, marginTop: 16 },
+  paymentLoadingText:    { fontSize: 14, color: COLORS.textSecondary, marginTop: 16 },
   errorContainer:        { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
-  errorText:             { fontSize: 16, color: COLORS.textSecondary, marginTop: 16, textAlign: 'center' },
+  paymentErrorText:      { fontSize: 16, color: COLORS.textSecondary, marginTop: 16, textAlign: 'center' },
   retryBtn:              { backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 20 },
   retryBtnText:          { fontSize: 14, fontWeight: '600', color: '#FFF' },
   

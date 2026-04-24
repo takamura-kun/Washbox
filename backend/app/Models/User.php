@@ -6,10 +6,10 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class User extends Authenticatable
 {
-    use Notifiable;
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
@@ -51,10 +51,19 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
         'hire_date' => 'date',
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Get the user's password attribute (automatically hashed).
+     */
+    protected function password(): Attribute
+    {
+        return Attribute::make(
+            set: fn (string $value) => bcrypt($value),
+        );
+    }
 
     /**
      * Get the branch that the staff member belongs to.
@@ -78,6 +87,22 @@ class User extends Authenticatable
     public function pickupRequests()
     {
         return $this->hasMany(PickupRequest::class, 'assigned_staff_id');
+    }
+
+    /**
+     * Get the staff member's salary information.
+     */
+    public function salaryInfo()
+    {
+        return $this->hasOne(StaffSalaryInfo::class);
+    }
+
+    /**
+     * Get all payroll items for this staff member.
+     */
+    public function payrollItems()
+    {
+        return $this->hasMany(PayrollItem::class);
     }
 
     /**

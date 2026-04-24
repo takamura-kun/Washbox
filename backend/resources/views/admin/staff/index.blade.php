@@ -14,6 +14,22 @@
         </a>
     </div>
 
+    {{-- Quick Navigation --}}
+    <div class="btn-group mb-4 w-100" role="group" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <a href="{{ route('admin.staff.index') }}" class="btn btn-info">
+            <i class="bi bi-people me-1"></i>Staff List
+        </a>
+        <a href="{{ route('admin.finance.payroll.index') }}" class="btn btn-outline-primary">
+            <i class="bi bi-list-ul me-1"></i>Payroll Periods
+        </a>
+        <a href="{{ route('admin.staff.salary-management') }}" class="btn btn-outline-success">
+            <i class="bi bi-cash-stack me-1"></i>Salary Management
+        </a>
+        <a href="{{ route('admin.attendance.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-calendar-check me-1"></i>Attendance
+        </a>
+    </div>
+
     {{-- Stats Overview --}}
     <div class="row g-3 mb-4">
         <div class="col-md-3">
@@ -47,16 +63,16 @@
         </div>
 
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-secondary border-4" style="background-color: var(--card-bg) !important;">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-warning border-4" style="background-color: var(--card-bg) !important;">
                 <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="bg-secondary bg-opacity-10 p-2 rounded-3">
-                            <i class="bi bi-pause-circle fs-5 text-secondary"></i>
+                        <div class="bg-warning bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-cash-stack fs-5 text-warning"></i>
                         </div>
                     </div>
-                    <h6 class="text-muted mb-1" style="color: var(--text-secondary) !important; font-size: 0.75rem;">Inactive Staff</h6>
-                    <h3 class="fw-bold mb-0" style="color: var(--text-primary) !important; font-size: 1.5rem;">{{ $stats['inactive'] }}</h3>
-                    <small class="text-muted" style="color: var(--text-secondary) !important; font-size: 0.7rem;">Not working</small>
+                    <h6 class="text-muted mb-1" style="color: var(--text-secondary) !important; font-size: 0.75rem;">With Salary Info</h6>
+                    <h3 class="fw-bold mb-0" style="color: var(--text-primary) !important; font-size: 1.5rem;">{{ $stats['with_salary'] }}</h3>
+                    <small class="text-muted" style="color: var(--text-secondary) !important; font-size: 0.7rem;">Ready for payroll</small>
                 </div>
             </div>
         </div>
@@ -126,7 +142,7 @@
     {{-- Staff Cards --}}
     <div class="row g-4 mb-4" style="background-color: transparent !important;">
         @forelse($staff as $member)
-        <div class="col-lg-3 col-md-4 col-sm-6">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
             <div class="card border-0 shadow-sm rounded-4 h-100 staff-card" style="background-color: var(--card-bg) !important;">
                 {{-- Photo --}}
                 <div class="position-relative text-center pt-4" style="background-color: var(--card-bg) !important;">
@@ -186,7 +202,7 @@
                             <div class="staff-stats-box rounded p-2">
                                 <div class="fw-bold text-primary">
                                     @if($member->hire_date)
-                                        {{ \Carbon\Carbon::parse($member->hire_date)->diffInMonths(now()) }}m
+                                        {{ (int) \Carbon\Carbon::parse($member->hire_date)->diffInMonths(now()) }}m
                                     @else
                                         N/A
                                     @endif
@@ -197,15 +213,36 @@
                     </div>
 
                     {{-- Actions --}}
-                    <div class="d-flex gap-2">
-                        <a href="{{ route('admin.staff.show', $member) }}"
-                            class="btn btn-outline-secondary btn-sm flex-fill">
-                            <i class="bi bi-eye"></i> View
+                    <div class="d-flex gap-2 flex-column">
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('admin.staff.show', $member) }}"
+                                class="btn btn-outline-secondary btn-sm flex-fill">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            <a href="{{ route('admin.staff.edit', $member) }}"
+                                class="btn btn-sm flex-fill text-white" style="background: #3D3B6B;">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                        </div>
+                        <a href="{{ route('admin.staff.show', $member) }}#payroll-tab"
+                            class="btn btn-outline-success btn-sm w-100"
+                            onclick="localStorage.setItem('activeTab', 'payroll');">
+                            <i class="bi bi-cash-stack me-1"></i>Payroll
                         </a>
-                        <a href="{{ route('admin.staff.edit', $member) }}"
-                            class="btn btn-sm flex-fill text-white" style="background: #3D3B6B;">
-                            <i class="bi bi-pencil"></i> Edit
-                        </a>
+                        <form action="{{ route('admin.staff.toggle-status', $member->id) }}" method="POST" class="w-100" onsubmit="return confirm('Are you sure you want to {{ $member->is_active ? 'deactivate' : 'activate' }} {{ $member->name }}?');">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-{{ $member->is_active ? 'warning' : 'success' }} btn-sm w-100" onclick="toggleButtonLoading(this)">
+                                <i class="bi bi-{{ $member->is_active ? 'pause' : 'play' }}-circle me-1"></i>
+                                {{ $member->is_active ? 'Deactivate' : 'Activate' }}
+                            </button>
+                        </form>
+                        <form action="{{ route('admin.staff.destroy', $member) }}" method="POST" class="w-100" onsubmit="return confirm('Are you sure you want to delete {{ $member->name }}? This action cannot be undone.');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger btn-sm w-100" onclick="toggleButtonLoading(this)">
+                                <i class="bi bi-trash me-1"></i>Delete
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -263,8 +300,7 @@
     .staff-stats-box small {
         color: var(--text-secondary) !important;
     }
-    
-    /* Dark mode support */
+
     [data-theme="dark"] .staff-card .fw-bold,
     [data-theme="dark"] .staff-card h6 {
         color: var(--text-primary) !important;
@@ -285,5 +321,17 @@
         border-color: var(--border-color) !important;
     }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+function toggleButtonLoading(button) {
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+    setTimeout(function() {
+        button.form.submit();
+    }, 300);
+}
+</script>
 @endpush
 @endsection

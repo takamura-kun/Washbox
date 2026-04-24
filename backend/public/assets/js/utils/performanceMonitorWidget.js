@@ -72,12 +72,12 @@ class PerformanceMonitorWidget {
                     bottom: 20px;
                     right: 20px;
                     width: 250px;
-                    background: rgba(15, 23, 42, 0.95);
-                    color: white;
+                    background: var(--card-bg);
+                    color: var(--text-primary);
                     border-radius: 12px;
-                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                    box-shadow: var(--shadow-lg);
                     backdrop-filter: blur(10px);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border: 1px solid var(--border-color);
                     font-family: system-ui, -apple-system, sans-serif;
                     font-size: 12px;
                     z-index: 10000;
@@ -90,19 +90,20 @@ class PerformanceMonitorWidget {
                     justify-content: space-between;
                     align-items: center;
                     padding: 12px 16px;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    border-bottom: 1px solid var(--border-color);
                     cursor: pointer;
                 }
                 
                 .perf-widget-title {
                     font-weight: 600;
                     font-size: 13px;
+                    color: var(--text-primary);
                 }
                 
                 .perf-widget-toggle {
                     background: none;
                     border: none;
-                    color: white;
+                    color: var(--text-primary);
                     cursor: pointer;
                     padding: 4px;
                     border-radius: 4px;
@@ -110,7 +111,7 @@ class PerformanceMonitorWidget {
                 }
                 
                 .perf-widget-toggle:hover {
-                    background: rgba(255, 255, 255, 0.1);
+                    background: var(--border-color);
                 }
                 
                 .perf-widget-content {
@@ -131,7 +132,7 @@ class PerformanceMonitorWidget {
                 }
                 
                 .perf-label {
-                    color: rgba(255, 255, 255, 0.7);
+                    color: var(--text-secondary);
                 }
                 
                 .perf-value {
@@ -152,14 +153,14 @@ class PerformanceMonitorWidget {
                     gap: 8px;
                     margin-top: 12px;
                     padding-top: 12px;
-                    border-top: 1px solid rgba(255, 255, 255, 0.1);
+                    border-top: 1px solid var(--border-color);
                 }
                 
                 .perf-btn {
                     flex: 1;
-                    background: rgba(59, 130, 246, 0.2);
+                    background: rgba(59, 130, 246, 0.1);
                     border: 1px solid rgba(59, 130, 246, 0.3);
-                    color: #60a5fa;
+                    color: #3b82f6;
                     padding: 6px 12px;
                     border-radius: 6px;
                     cursor: pointer;
@@ -168,8 +169,12 @@ class PerformanceMonitorWidget {
                 }
                 
                 .perf-btn:hover {
-                    background: rgba(59, 130, 246, 0.3);
+                    background: rgba(59, 130, 246, 0.2);
                     border-color: rgba(59, 130, 246, 0.5);
+                }
+                
+                [data-theme="dark"] .perf-btn {
+                    color: #60a5fa;
                 }
             </style>
         `;

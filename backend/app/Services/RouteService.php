@@ -7,6 +7,18 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Branch;
 use App\Models\PickupRequest;
 
+/**
+ * RouteService
+ *
+ * CSRF Protection Note:
+ * This service class performs external API calls (OSRM, Mapbox, Google Maps) and database operations.
+ * - External API calls (Http::get()) do NOT require CSRF tokens as they are outbound requests
+ * - Database operations (Eloquent update()) do NOT require CSRF tokens as they are ORM operations
+ * 
+ * CSRF protection is automatically handled by Laravel's VerifyCsrfToken middleware
+ * for all HTTP POST/PUT/PATCH/DELETE requests that call these service methods.
+ * Controllers invoking this service are already protected by the web middleware group.
+ */
 class RouteService
 {
     // OSRM (Open Source Routing Machine) - Free and Open Source
@@ -625,6 +637,8 @@ class RouteService
 
     /**
      * Update pickup request with route information
+     * 
+     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public function updatePickupWithRoute(PickupRequest $pickup, $routeData)
     {

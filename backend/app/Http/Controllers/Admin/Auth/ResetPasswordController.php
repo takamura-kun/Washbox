@@ -10,6 +10,10 @@ use Illuminate\Support\Str;
 
 class ResetPasswordController extends Controller
 {
+    // Validation configuration constants
+    private const MIN_PASSWORD_LENGTH = 8;
+    private const REMEMBER_TOKEN_LENGTH = 60;
+    
     /**
      * Show reset password form
      */
@@ -26,18 +30,20 @@ class ResetPasswordController extends Controller
      */
     public function reset(Request $request)
     {
-        $request->validate([
+        $validationRules = [
             'token' => 'required',
             'email' => 'required|email',
-            'password' => 'required|min:8|confirmed',
-        ]);
+            'password' => 'required|min:' . self::MIN_PASSWORD_LENGTH . '|confirmed',
+        ];
+        
+        $request->validate($validationRules);
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
                 $user->forceFill([
                     'password' => Hash::make($password)
-                ])->setRememberToken(Str::random(60));
+                ])->setRememberToken(Str::random(self::REMEMBER_TOKEN_LENGTH));
 
                 $user->save();
             }

@@ -22,7 +22,7 @@
       },
       "env": {
         "APP_ENV": "staging",
-        "API_URL": "https://washboxlaundry.infinityfreeapp.com/api"
+        "EXPO_PUBLIC_API_URL": "https://lightblue-porcupine-372767.hostingersite.com/api"
       }
     },
     "preview-signed": {
@@ -32,7 +32,7 @@
       },
       "env": {
         "APP_ENV": "staging",
-        "API_URL": "https://washboxlaundry.infinityfreeapp.com/api"
+        "EXPO_PUBLIC_API_URL": "https://lightblue-porcupine-372767.hostingersite.com/api"
       }
     },
     "production": {
@@ -42,7 +42,7 @@
       },
       "env": {
         "APP_ENV": "production",
-        "API_URL": "https://washboxlaundry.infinityfreeapp.com/api"
+        "EXPO_PUBLIC_API_URL": "https://lightblue-porcupine-372767.hostingersite.com/api"
       },
       "channel": "production"
     }

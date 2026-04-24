@@ -174,23 +174,7 @@
                     <div class="card-body p-4" style="background-color: var(--card-bg) !important;">
                         <div class="alert alert-info border-0 mb-3">
                             <i class="bi bi-info-circle me-2"></i>
-                            Staff member will use these credentials to log in to their account.
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
-                                <input type="password" name="password" class="form-control @error('password') is-invalid @enderror"
-                                    placeholder="Minimum 8 characters" required>
-                                @error('password')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
-                                <input type="password" name="password_confirmation" class="form-control"
-                                    placeholder="Re-enter password" required>
-                            </div>
+                            Staff records are for HR and payroll purposes only. Staff login using their branch credentials.
                         </div>
                     </div>
                 </div>

@@ -220,16 +220,19 @@
                         </div>
                     </div>
 
-                    {{-- Reset Password Card --}}
+                    {{-- Login Info Card --}}
                     <div class="card border-0 shadow-sm rounded-4 mb-3" style="background-color: var(--card-bg) !important;">
                         <div class="card-body p-4">
                             <h6 class="fw-bold mb-3">
-                                <i class="bi bi-shield-lock text-warning me-2"></i>Reset Password
+                                <i class="bi bi-info-circle text-info me-2"></i>Login Information
                             </h6>
-                            <p class="small text-muted mb-3">Need to reset this staff member's password?</p>
-                            <button type="button" class="btn btn-outline-warning btn-sm w-100" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
-                                <i class="bi bi-key me-2"></i>Reset Password
-                            </button>
+                            <div class="alert alert-info border-0 mb-0">
+                                <small>
+                                    <i class="bi bi-shield-lock me-1"></i>
+                                    Staff members login using their <strong>branch credentials</strong>, not individual accounts.
+                                    This record is for HR and payroll purposes only.
+                                </small>
+                            </div>
                         </div>
                     </div>
 
@@ -240,8 +243,8 @@
                                 <i class="bi bi-graph-up text-info me-2"></i>Quick Stats
                             </h6>
                             <div class="d-flex justify-content-between mb-2">
-                                <span class="small text-muted">Total Laundries:</span>
-                                <strong>{{ $staff->laundries()->count() }}</strong>
+                                <span class="small text-muted">Attendance Days:</span>
+                                <strong>{{ \App\Models\Attendance::where('user_id', $staff->id)->count() }}</strong>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="small text-muted">Member Since:</span>
@@ -259,41 +262,6 @@
             </div>
         </div>
     </form>
-</div>
-
-{{-- Reset Password Modal --}}
-<div class="modal fade" id="resetPasswordModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow rounded-4" style="background-color: var(--card-bg) !important;">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold" style="color: var(--text-primary) !important;">Reset Password</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ route('admin.staff.reset-password', $staff) }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <div class="alert alert-warning border-0 mb-3">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        This will reset {{ $staff->name }}'s password. They will need to use the new password to log in.
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" style="color: var(--text-primary) !important;">New Password</label>
-                        <input type="password" name="password" class="form-control" placeholder="Minimum 8 characters" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" style="color: var(--text-primary) !important;">Confirm New Password</label>
-                        <input type="password" name="password_confirmation" class="form-control" placeholder="Re-enter password" required>
-                    </div>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="bi bi-key me-2"></i>Reset Password
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
 
 @push('scripts')

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\User;
 use App\Models\Laundry;
-use App\Models\AddOn;
+
 use App\Models\Branch;
 use App\Models\Service;
 use App\Models\Customer;
@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Services\LaundryNotificationService;
+
+use Illuminate\Support\MessageBag;
 
 class LaundryController extends Controller
 {
@@ -74,9 +76,16 @@ class LaundryController extends Controller
             'customers'  => Customer::active()->get(),
             'branches'   => Branch::active()->get(),
             'services'   => Service::active()->get(),
-            'addons'     => AddOn::active()->get(),
+            'addons'     => \App\Models\InventoryItem::where('is_active', true)
+                ->whereHas('category', function($q) {
+                    $q->whereIn('name', ['Detergent', 'Fabric Conditioner', 'Bleach', 'Softener']);
+                })
+                ->with('category')
+                ->orderBy('name')
+                ->get(),
             'staff'      => User::staff()->active()->get(),
             'promotions' => $promotions,
+            'extraServices' => \App\Models\ExtraServiceSetting::active()->ordered()->get(),
         ]);
     }
 
@@ -90,12 +99,13 @@ class LaundryController extends Controller
             'number_of_loads'       => 'required|integer|min:1',
             'pickup_fee'            => 'nullable|numeric|min:0',
             'delivery_fee'          => 'nullable|numeric|min:0',
+            'extra_services'        => 'nullable|string',
             'staff_id'              => 'nullable|exists:users,id',
             'promotion_id'          => 'nullable|exists:promotions,id',
             'notes'                 => 'nullable|string|max:1000',
             'addons'                => 'nullable|array',
-            'addons.*.id'           => 'required_with:addons|integer|exists:add_ons,id',
-            'addons.*.quantity'     => 'nullable|integer|min:1|max:99',
+            'addons.*.id'           => 'required_with:addons|integer|exists:inventory_items,id',
+            'addons.*.quantity'     => 'nullable|numeric|min:0.01|max:999',
             'pickup_request_id'     => 'nullable|exists:pickup_requests,id',
         ]);
 
@@ -111,15 +121,135 @@ class LaundryController extends Controller
             }
         }
 
+        $loads = (int) $validated['number_of_loads'];
+        $weight = (isset($validated['weight']) && $validated['weight'] !== null && $validated['weight'] !== '')
+            ? (float) $validated['weight']
+            : 0;
+
+        // Validate weight against service limits AND check stock availability
+        if (!empty($validated['service_id'])) {
+            $service = Service::findOrFail($validated['service_id']);
+            $pricingType = $service->pricing_type ?? 'per_load';
+
+            // Only validate weight for per_load services (not per_piece)
+            if ($pricingType !== 'per_piece') {
+                // Check minimum weight
+                if ($service->min_weight && $service->min_weight > 0) {
+                    if ($weight < $service->min_weight) {
+                        $errors = new MessageBag();
+                        $errors->add('weight', "Weight must be at least {$service->min_weight} kg for this service");
+                        $errors->add('weight_warning', "Laundry cannot be created: Not in minimum kg limit. Service '{$service->name}' requires minimum {$service->min_weight} kg, but {$weight} kg was entered.");
+                        return back()->withErrors($errors)->withInput();
+                    }
+                }
+
+                // Check maximum weight - if exceeded and excess weight is NOT allowed, reject
+                if ($service->max_weight && $service->max_weight > 0) {
+                    if ($weight > $service->max_weight && !$service->allow_excess_weight) {
+                        $errors = new MessageBag();
+                        $errors->add('weight', "Weight cannot exceed {$service->max_weight} kg per load for this service");
+                        $errors->add('weight_warning', "Laundry cannot be created: Maximum weight exceeded! Service '{$service->name}' allows maximum {$service->max_weight} kg, but {$weight} kg was entered. Either reduce weight or increase number of loads.");
+                        return back()->withErrors($errors)->withInput();
+                    }
+                }
+            }
+
+            // Check if service has supplies and if they're in stock
+            $supplies = $service->supplies;
+            if ($supplies->isNotEmpty()) {
+                $insufficientStock = [];
+                $outOfStock = [];
+
+                foreach ($supplies as $supply) {
+                    $quantityRequired = $supply->pivot->quantity_required * $loads;
+                    
+                    // Get branch stock for this supply
+                    $branchStock = \App\Models\BranchStock::where('branch_id', $validated['branch_id'])
+                        ->where('inventory_item_id', $supply->id)
+                        ->first();
+
+                    // Only block if a stock record EXISTS and is insufficient.
+                    // If no record exists, stock tracking isn't set up yet — allow creation.
+                    if (!$branchStock) continue;
+
+                    $currentStock = $branchStock->current_stock;
+
+                    if ($currentStock <= 0) {
+                        $outOfStock[] = "{$supply->name} (Required: {$quantityRequired} {$supply->distribution_unit}, Available: 0)";
+                    } elseif ($currentStock < $quantityRequired) {
+                        $insufficientStock[] = "{$supply->name} (Required: {$quantityRequired} {$supply->distribution_unit}, Available: {$currentStock} {$supply->distribution_unit})";
+                    }
+                }
+
+                if (!empty($outOfStock) || !empty($insufficientStock)) {
+                    $errors = new MessageBag();
+                    
+                    if (!empty($outOfStock)) {
+                        $errors->add('stock_error', 'Cannot create laundry: The following items are OUT OF STOCK:');
+                        foreach ($outOfStock as $item) {
+                            $errors->add('stock_items', "• {$item}");
+                        }
+                    }
+                    
+                    if (!empty($insufficientStock)) {
+                        $errors->add('stock_error', 'Cannot create laundry: INSUFFICIENT STOCK for the following items:');
+                        foreach ($insufficientStock as $item) {
+                            $errors->add('stock_items', "• {$item}");
+                        }
+                    }
+                    
+                    $errors->add('stock_solution', 'Please request stock from admin or reduce the number of loads.');
+                    return back()->withErrors($errors)->withInput();
+                }
+            }
+        }
+
+        // Check add-ons stock availability
+        if (!empty($validated['addons'])) {
+            $addonStockErrors = [];
+            
+            foreach ($validated['addons'] as $addonEntry) {
+                $itemId = (int) $addonEntry['id'];
+                $quantity = (float) ($addonEntry['quantity'] ?? 1);
+                if ($quantity < 0.01) $quantity = 1;
+
+                $item = \App\Models\InventoryItem::find($itemId);
+                if (!$item) continue;
+
+                // Get branch stock for this add-on
+                $branchStock = \App\Models\BranchStock::where('branch_id', $validated['branch_id'])
+                    ->where('inventory_item_id', $itemId)
+                    ->first();
+
+                // Only block if a stock record EXISTS and is insufficient.
+                if (!$branchStock) continue;
+
+                $currentStock = $branchStock->current_stock;
+
+                if ($currentStock <= 0) {
+                    $addonStockErrors[] = "{$item->name} is OUT OF STOCK (Required: {$quantity} {$item->distribution_unit})";
+                } elseif ($currentStock < $quantity) {
+                    $addonStockErrors[] = "{$item->name} has INSUFFICIENT STOCK (Required: {$quantity} {$item->distribution_unit}, Available: {$currentStock} {$item->distribution_unit})";
+                }
+            }
+
+            if (!empty($addonStockErrors)) {
+                $errors = new MessageBag();
+                $errors->add('addon_stock_error', 'Cannot create laundry: Add-on stock issues:');
+                foreach ($addonStockErrors as $error) {
+                    $errors->add('addon_stock_items', "• {$error}");
+                }
+                $errors->add('stock_solution', 'Please remove these add-ons or request stock from admin.');
+                return back()->withErrors($errors)->withInput();
+            }
+        }
+
         $service               = null;
         $serviceSubtotal       = 0;
         $snapshotPricePerPiece = 0;
         $snapshotPricePerLoad  = 0;
-
-        $loads  = (int) $validated['number_of_loads'];
-        $weight = (isset($validated['weight']) && $validated['weight'] !== null && $validated['weight'] !== '')
-            ? (float) $validated['weight']
-            : 0;
+        $excessWeight          = 0;
+        $excessWeightFee       = 0;
 
         if (!empty($validated['service_id'])) {
             $service     = Service::findOrFail($validated['service_id']);
@@ -132,6 +262,14 @@ class LaundryController extends Controller
             $snapshotPricePerPiece = $pricingType === 'per_piece' ? $unitPrice : 0;
             $snapshotPricePerLoad  = $pricingType === 'per_piece' ? 0 : $unitPrice;
             $serviceSubtotal       = $unitPrice * $loads;
+
+            // Calculate excess weight fee if applicable
+            if ($pricingType !== 'per_piece' && $service->max_weight && $service->max_weight > 0 && $service->allow_excess_weight) {
+                if ($weight > $service->max_weight) {
+                    $excessWeight = $weight - $service->max_weight;
+                    $excessWeightFee = $excessWeight * ($service->excess_weight_charge_per_kg ?? 0);
+                }
+            }
         }
 
         // ── Promotion ────────────────────────────────────────────────────────
@@ -160,38 +298,58 @@ class LaundryController extends Controller
 
         $pickupFee   = (float) ($validated['pickup_fee']   ?? 0);
         $deliveryFee = (float) ($validated['delivery_fee'] ?? 0);
+        
+        $extraServicesTotal = 0;
+        $extraServicesNote = '';
+        if (!empty($validated['extra_services'])) {
+            try {
+                $extraServices = json_decode($validated['extra_services'], true);
+                if (is_array($extraServices) && !empty($extraServices)) {
+                    foreach ($extraServices as $service) {
+                        $extraServicesTotal += (float) ($service['price'] ?? 0);
+                    }
+                    $serviceNames = array_map(function($s) {
+                        return ucfirst($s['name'] ?? 'Unknown') . ' (₱' . number_format($s['price'] ?? 0, 2) . ')';
+                    }, $extraServices);
+                    $extraServicesNote = "\n[Extra Services: " . implode(', ', $serviceNames) . "]";
+                }
+            } catch (\Exception $e) {
+                \Log::error('Extra services JSON parse error: ' . $e->getMessage());
+            }
+        }
 
         // ── Add-ons: build pivot data with quantity and calculate total ──────
         $addonsTotal = 0;
-        $addonPivot  = [];  // [ addonId => ['price_at_purchase' => x, 'quantity' => y] ]
+        $addonPivot  = [];  // [ inventoryItemId => ['price_at_purchase' => x, 'quantity' => y] ]
 
         if (!empty($validated['addons'])) {
             foreach ($validated['addons'] as $addonEntry) {
-                $addonId  = (int) $addonEntry['id'];
-                $quantity = (int) ($addonEntry['quantity'] ?? 1);
-                if ($quantity < 1) $quantity = 1;
+                $itemId   = (int) $addonEntry['id'];
+                $quantity = (float) ($addonEntry['quantity'] ?? 1);
+                if ($quantity < 0.01) $quantity = 1;
 
-                $addon = AddOn::find($addonId);
-                if (!$addon) continue;
+                $item = \App\Models\InventoryItem::find($itemId);
+                if (!$item) continue;
 
-                $lineTotal    = (float) $addon->price * $quantity;
+                $price = (float) ($item->unit_cost_price ?? 0);
+                $lineTotal    = $price * $quantity;
                 $addonsTotal += $lineTotal;
 
-                $addonPivot[$addonId] = [
-                    'price_at_purchase' => (float) $addon->price,
+                $addonPivot[$itemId] = [
+                    'price_at_purchase' => $price,
                     'quantity'          => $quantity,
                 ];
             }
         }
 
-        $totalAmount = $finalSubtotal + $pickupFee + $deliveryFee + $addonsTotal;
+        $totalAmount = $finalSubtotal + $pickupFee + $deliveryFee + $addonsTotal + $extraServicesTotal + $excessWeightFee;
 
         $laundry = DB::transaction(function () use (
             $validated, $service, $loads, $weight,
             $snapshotPricePerLoad, $snapshotPricePerPiece,
             $serviceSubtotal, $discountAmount, $promotionOverrideTotal,
-            $promotionPricePerLoad, $pickupFee, $deliveryFee,
-            $addonsTotal, $totalAmount, $finalSubtotal, $addonPivot
+            $promotionPricePerLoad, $pickupFee, $deliveryFee, $extraServicesTotal, $extraServicesNote,
+            $addonsTotal, $totalAmount, $finalSubtotal, $addonPivot, $excessWeight, $excessWeightFee
         ) {
             $laundry = Laundry::create([
                 'tracking_number'          => $this->generateTrackingNumber(),
@@ -201,11 +359,13 @@ class LaundryController extends Controller
                 'created_by'               => Auth::id(),
                 'staff_id'                 => $validated['staff_id'] ?? null,
                 'weight'                   => $weight,
+                'excess_weight'            => $excessWeight,
+                'excess_weight_fee'        => $excessWeightFee,
                 'number_of_loads'          => $loads,
                 'price_per_piece'          => $snapshotPricePerPiece,
                 'price_per_load'           => $snapshotPricePerLoad,
                 'subtotal'                 => $serviceSubtotal,
-                'addons_total'             => $addonsTotal,
+                'addons_total'             => $addonsTotal + $extraServicesTotal,
                 'discount_amount'          => $discountAmount,
                 'total_amount'             => $totalAmount,
                 'promotion_id'             => $validated['promotion_id'] ?? null,
@@ -214,14 +374,18 @@ class LaundryController extends Controller
                 'pickup_request_id'        => $validated['pickup_request_id'] ?? null,
                 'pickup_fee'               => $pickupFee,
                 'delivery_fee'             => $deliveryFee,
-                'notes'                    => $validated['notes'] ?? null,
+                'notes'                    => ($validated['notes'] ?? '') . $extraServicesNote,
                 'status'                   => 'received',
                 'payment_status'           => 'pending',
                 'received_at'              => now(),
             ]);
 
+            // Attach inventory items as add-ons
             if (!empty($addonPivot)) {
-                $laundry->addons()->attach($addonPivot);
+                $laundry->inventoryItems()->attach($addonPivot);
+                
+                // Deduct add-on inventory from branch stock
+                $this->deductAddonInventory($addonPivot, $validated['branch_id'], $laundry->id);
             }
 
             $laundry->statusHistories()->create([
@@ -230,8 +394,32 @@ class LaundryController extends Controller
                 'notes'      => 'Laundry created' . ($service ? '' : ' with fixed price promotion'),
             ]);
 
+            // Automatically deduct supplies from branch stock
+            if (!empty($validated['service_id'])) {
+                $serviceModel = Service::with('supplies')->find($validated['service_id']);
+                if ($serviceModel && $serviceModel->supplies->isNotEmpty()) {
+                    $this->deductServiceSupplies($serviceModel, $validated['branch_id'], $loads);
+                }
+            }
+
             return $laundry;
         });
+
+        // Notify customer about new laundry
+        if ($laundry->customer_id) {
+            \App\Services\NotificationService::sendToCustomer(
+                $laundry->customer_id,
+                'laundry_received',
+                'Laundry Received',
+                "Your laundry #{$laundry->tracking_number} has been received and is being processed.",
+                $laundry->id,
+                null,
+                [
+                    'laundry_id' => $laundry->id,
+                    'tracking_number' => $laundry->tracking_number,
+                ]
+            );
+        }
 
         return redirect()->route('admin.laundries.show', $laundry)
             ->with('success', 'Laundry created! Tracking #: ' . $laundry->tracking_number);
@@ -248,7 +436,7 @@ class LaundryController extends Controller
             'createdBy',
             'statusHistories.changedBy',
             'payment',
-            'addons',
+            'inventoryItems',
             'promotion',
             'pickupRequest',
         ]);
@@ -278,9 +466,33 @@ class LaundryController extends Controller
             'notes'          => 'nullable|string|max:1000',
         ]);
 
+        $weight = (isset($validated['weight']) && $validated['weight'] !== null) ? (float) $validated['weight'] : 0;
         $service     = Service::findOrFail($validated['service_id']);
         $loads       = $validated['number_of_loads'] ?? $laundry->number_of_loads ?? 1;
         $pricingType = $service->pricing_type ?? 'per_load';
+
+        // Validate weight against service limits (only for per-load services)
+        if ($pricingType !== 'per_piece') {
+            // Check minimum weight
+            if ($service->min_weight && $service->min_weight > 0) {
+                if ($weight < $service->min_weight) {
+                    $errors = new MessageBag();
+                    $errors->add('weight', "Weight must be at least {$service->min_weight} kg for this service");
+                    $errors->add('weight_warning', "Laundry cannot be updated: Not in minimum kg limit. Service '{$service->name}' requires minimum {$service->min_weight} kg, but {$weight} kg was entered.");
+                    return back()->withErrors($errors)->withInput();
+                }
+            }
+
+            // Check maximum weight
+            if ($service->max_weight && $service->max_weight > 0) {
+                if ($weight > $service->max_weight) {
+                    $errors = new MessageBag();
+                    $errors->add('weight', "Weight cannot exceed {$service->max_weight} kg per load for this service");
+                    $errors->add('weight_warning', "Laundry cannot be updated: Maximum weight exceeded! Service '{$service->name}' allows maximum {$service->max_weight} kg, but {$weight} kg was entered.");
+                    return back()->withErrors($errors)->withInput();
+                }
+            }
+        }
 
         $unitPrice = $pricingType === 'per_piece'
             ? (float) ($service->price_per_piece ?? 0)
@@ -302,7 +514,7 @@ class LaundryController extends Controller
         $deliveryFee = $laundry->delivery_fee ?? 0;
         $totalAmount = $subtotal - $discountAmount + $pickupFee + $deliveryFee + ($laundry->addons_total ?? 0);
 
-        $validated['weight']          = (isset($validated['weight']) && $validated['weight'] !== null) ? (float) $validated['weight'] : 0;
+        $validated['weight']          = $weight;
         $validated['price_per_piece'] = $pricingType === 'per_piece' ? $unitPrice : null;
         $validated['price_per_load']  = $pricingType === 'per_piece' ? null       : $unitPrice;
         $validated['number_of_loads'] = $loads;
@@ -395,10 +607,109 @@ class LaundryController extends Controller
                 'notes'      => 'Payment recorded successfully',
             ]);
 
+            // Record financial transactions - LaundryObserver handles recordLaundrySale automatically
+            $financialService = app(\App\Services\FinancialTransactionService::class);
+            $financialService->recordPickupDeliveryFee($laundry);
+
             app(LaundryNotificationService::class)->onStatusChange($laundry, 'paid');
         });
 
         return redirect()->route('admin.laundries.show', $laundry)
             ->with('success', 'Payment recorded and Laundry updated!');
+    }
+
+    /**
+     * Automatically deduct supplies from branch stock when service is used
+     */
+    private function deductServiceSupplies(Service $service, int $branchId, int $numberOfLoads = 1)
+    {
+        $supplies = $service->supplies;
+        
+        if ($supplies->isEmpty()) {
+            return;
+        }
+
+        foreach ($supplies as $supply) {
+            $quantityRequired = $supply->pivot->quantity_required * $numberOfLoads;
+            
+            // Get or create branch stock for this supply
+            $branchStock = \App\Models\BranchStock::firstOrCreate(
+                [
+                    'branch_id' => $branchId,
+                    'inventory_item_id' => $supply->id,
+                ],
+                [
+                    'current_stock' => 0,
+                    'reorder_point' => $supply->reorder_point ?? 0,
+                    'max_stock_level' => $supply->max_level ?? 0,
+                ]
+            );
+
+            // Deduct from branch stock
+            $previousStock = $branchStock->current_stock;
+            $newStock = max(0, $previousStock - $quantityRequired);
+            $branchStock->update(['current_stock' => $newStock]);
+
+            // Log the stock history
+            \App\Models\StockHistory::create([
+                'inventory_item_id' => $supply->id,
+                'branch_id' => $branchId,
+                'type' => 'usage',
+                'quantity' => -$quantityRequired,
+                'previous_stock' => $previousStock,
+                'new_stock' => $newStock,
+                'balance_after' => $newStock,
+                'reference_type' => 'service_usage',
+                'reference_id' => $service->id,
+                'performed_by' => Auth::id(),
+                'notes' => "Auto-deducted for service: {$service->name} ({$numberOfLoads} load(s))",
+            ]);
+        }
+    }
+
+    /**
+     * Deduct add-on inventory items from branch stock
+     */
+    private function deductAddonInventory(array $addonPivot, int $branchId, int $laundryId)
+    {
+        foreach ($addonPivot as $itemId => $pivotData) {
+            $quantity = $pivotData['quantity'];
+            
+            $item = \App\Models\InventoryItem::find($itemId);
+            if (!$item) continue;
+            
+            // Get or create branch stock
+            $branchStock = \App\Models\BranchStock::firstOrCreate(
+                [
+                    'branch_id' => $branchId,
+                    'inventory_item_id' => $itemId,
+                ],
+                [
+                    'current_stock' => 0,
+                    'reorder_point' => $item->reorder_point ?? 0,
+                    'max_stock_level' => $item->max_level ?? 0,
+                ]
+            );
+
+            // Deduct from branch stock
+            $previousStock = $branchStock->current_stock;
+            $newStock = max(0, $previousStock - $quantity);
+            $branchStock->update(['current_stock' => $newStock]);
+
+            // Log the stock history
+            \App\Models\StockHistory::create([
+                'inventory_item_id' => $itemId,
+                'branch_id' => $branchId,
+                'type' => 'usage',
+                'quantity' => -$quantity,
+                'previous_stock' => $previousStock,
+                'new_stock' => $newStock,
+                'balance_after' => $newStock,
+                'reference_type' => 'laundry_addon',
+                'reference_id' => $laundryId,
+                'performed_by' => Auth::id(),
+                'notes' => "Add-on used: {$item->name} ({$quantity} {$item->distribution_unit})",
+            ]);
+        }
     }
 }

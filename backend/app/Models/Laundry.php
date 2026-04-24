@@ -21,6 +21,8 @@ class Laundry extends Model
         'created_by',
         'staff_id',
         'weight',
+        'excess_weight',
+        'excess_weight_fee',
         'number_of_loads',
         'price_per_piece',
         'subtotal',
@@ -49,10 +51,13 @@ class Laundry extends Model
         'is_unclaimed',
         'unclaimed_at',
         'storage_fee',
+        'inventory_cost',
     ];
 
     protected $casts = [
         'weight' => 'decimal:2',
+        'excess_weight' => 'decimal:2',
+        'excess_weight_fee' => 'decimal:2',
         'number_of_loads' => 'integer',
         'price_per_piece' => 'decimal:2',
         'subtotal' => 'decimal:2',
@@ -62,6 +67,7 @@ class Laundry extends Model
         'discount_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'storage_fee' => 'decimal:2',
+        'inventory_cost' => 'decimal:2',
         'received_at' => 'datetime',
         'processing_at' => 'datetime',
         'ready_at' => 'datetime',
@@ -135,13 +141,33 @@ class Laundry extends Model
 
 
     /**
-     * Calculate add-ons total from pivot table
+     * Calculate add-ons total from inventory items pivot table
      */
     public function getCalculatedAddonsTotalAttribute(): float
     {
-        return $this->addons->sum(function ($addon) {
-            return (float) $addon->pivot->price_at_purchase * (int) $addon->pivot->quantity;
+        return $this->inventoryItems->sum(function ($item) {
+            return (float) $item->pivot->price_at_purchase * (float) $item->pivot->quantity;
         });
+    }
+
+    /**
+     * Calculate inventory cost (COGS) from add-ons used
+     */
+    public function calculateInventoryCost(): float
+    {
+        return $this->inventoryItems->sum(function ($item) {
+            // Use cost_price from central stock for COGS calculation
+            $costPrice = $item->centralStock->cost_price ?? 0;
+            return (float) $costPrice * (float) $item->pivot->quantity;
+        });
+    }
+
+    /**
+     * Auto-update inventory cost when add-ons are attached
+     */
+    public function updateInventoryCost(): void
+    {
+        $this->update(['inventory_cost' => $this->calculateInventoryCost()]);
     }
 
     public function promotionUsage(): HasOne
@@ -332,44 +358,19 @@ class Laundry extends Model
         $this->update(['staff_id' => $staffId]);
     }
 
-    /**
-     * Sync add-ons to laundry with proper pricing
-     */
-    public function syncAddons(array $addonIds): void
-    {
-        $addonData = [];
-        $addonsTotal = 0;
 
-        foreach ($addonIds as $addonId) {
-            $addon = AddOn::findOrFail($addonId);
-            $addonsTotal += $addon->price;
-
-            $addonData[$addonId] = [
-                'price_at_purchase' => $addon->price,
-                'quantity' => 1
-            ];
-        }
-
-        $this->addons()->sync($addonData);
-
-        // Update laundry totals
-        $this->update([
-            'addons_total' => $addonsTotal,
-            'total_amount' => ($this->subtotal - $this->discount_amount + $this->pickup_fee + $this->delivery_fee + $addonsTotal)
-        ]);
-    }
 
     /**
-     * Get all add-ons as a formatted string
+     * Get all add-ons (inventory items) as a formatted string
      */
     public function getAddonsListAttribute(): string
     {
-        if ($this->addons->isEmpty()) {
+        if ($this->inventoryItems->isEmpty()) {
             return 'None';
         }
 
-        return $this->addons->map(function ($addon) {
-            return $addon->name . ' (₱' . number_format($addon->pivot->price_at_purchase, 2) . ')';
+        return $this->inventoryItems->map(function ($item) {
+            return $item->name . ' (₱' . number_format($item->pivot->price_at_purchase, 2) . ')';
         })->implode(', ');
     }
 
@@ -440,12 +441,25 @@ class Laundry extends Model
             'completed' => $this->completed_at,
         ];
     }
+    
+
+    /**
+     * Inventory items used as add-ons for this laundry
+     */
+    public function inventoryItems(): BelongsToMany
+    {
+        return $this->belongsToMany(InventoryItem::class, 'laundry_inventory_items', 'laundries_id', 'inventory_item_id')
+            ->withPivot('price_at_purchase', 'quantity')
+            ->withTimestamps();
+    }
+    
+    /**
+     * Alias for inventoryItems - for backward compatibility
+     */
     public function addons(): BelongsToMany
-{
-    return $this->belongsToMany(AddOn::class, 'laundry_addon', 'laundries_id', 'add_on_id')
-        ->withPivot('price_at_purchase', 'quantity')
-        ->withTimestamps();
-}
+    {
+        return $this->inventoryItems();
+    }
 public function rating()
 {
     return $this->hasOne(CustomerRating::class);
@@ -466,13 +480,75 @@ public function latestPaymentProof()
     return $this->hasOne(PaymentProof::class)->latest();
 }
 
- /**
+    /**
      * Record that a reminder was sent for this laundry
      */
     public function recordReminderSent()
     {
-        // Simple fix - just return true
-        // This will stop the error immediately
+        $this->update([
+            'last_reminder_at' => now(),
+            'reminder_count' => ($this->reminder_count ?? 0) + 1,
+        ]);
         return true;
-}
+    }
+
+    /**
+     * Get days until disposal (30 days from ready_at)
+     */
+    public function getDaysUntilDisposalAttribute(): int
+    {
+        if (!$this->ready_at || $this->status !== 'ready') {
+            return 0;
+        }
+        $disposalThreshold = config('unclaimed.disposal_threshold_days', 30);
+        $daysRemaining = $disposalThreshold - $this->days_unclaimed;
+        return max(0, $daysRemaining);
+    }
+
+    /**
+     * Get unclaimed timeline for display
+     */
+    public function getUnclaimedTimeline(): array
+    {
+        $days = $this->days_unclaimed;
+        $readyDate = $this->ready_at;
+
+        return [
+            [
+                'day' => 1,
+                'label' => 'Ready for Pickup',
+                'date' => $readyDate,
+                'completed' => $days >= 1,
+                'status' => 'success',
+            ],
+            [
+                'day' => 3,
+                'label' => 'First Reminder',
+                'date' => $readyDate->addDays(3),
+                'completed' => $days >= 3,
+                'status' => 'info',
+            ],
+            [
+                'day' => 7,
+                'label' => 'Storage Fees Start',
+                'date' => $readyDate->addDays(7),
+                'completed' => $days >= 7,
+                'status' => 'warning',
+            ],
+            [
+                'day' => 14,
+                'label' => 'Critical Alert',
+                'date' => $readyDate->addDays(14),
+                'completed' => $days >= 14,
+                'status' => 'danger',
+            ],
+            [
+                'day' => 30,
+                'label' => 'Disposal Eligible',
+                'date' => $readyDate->addDays(30),
+                'completed' => $days >= 30,
+                'status' => 'danger',
+            ],
+        ];
+    }
 }

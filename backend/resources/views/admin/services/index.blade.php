@@ -4,8 +4,8 @@
 @section('page-title', 'Services & Add-Ons Management')
 
 @php
-    // Fetch add-ons with usage count
-    $addons = $addons ?? \App\Models\AddOn::withCount('laundries')->latest()->get();
+    // Fetch inventory items used as add-ons with usage count
+    $addons = $addons ?? \App\Models\InventoryItem::whereHas('laundries')->withCount('laundries')->latest()->get();
 
     // Load services with laundries count
     $services = $services ?? \App\Models\Service::withCount('laundries')->latest()->get();
@@ -35,9 +35,6 @@
                 <i class="bi bi-plus-circle me-2"></i>New Service
             </button>
 
-            <button type="button" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#createAddonModal">
-                <i class="bi bi-plus-lg me-2"></i>New Add-On
-            </button>
         </div>
     </div>
 
@@ -436,9 +433,7 @@
                 <input class="form-check-input" type="checkbox" id="showInactiveAddons" checked>
                 <label class="form-check-label small fw-semibold" for="showInactiveAddons">Show Inactive</label>
             </div>
-            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#createAddonModal">
-                <i class="bi bi-plus-circle me-1"></i>New Add-On
-            </button>
+
         </div>
     </div>
 
@@ -462,9 +457,9 @@
         @endphp
         <div class="addon-row" data-active="{{ $addon->is_active ? '1' : '0' }}" data-id="{{ $addon->id }}">
             <div class="addon-card {{ !$addon->is_active ? 'inactive' : '' }}">
-                @if($addon->image)
+                @if($addon->image_path)
                     <div class="addon-image" style="width: 100%; height: 120px; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
-                        <img src="{{ asset('storage/addons/' . $addon->image) }}" style="width: 100%; height: 100%; object-fit: cover;">
+                        <img src="{{ asset('storage/' . $addon->image_path) }}" style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
                 @else
                     <div class="addon-icon">
@@ -472,9 +467,12 @@
                     </div>
                 @endif
                 <div class="addon-name">{{ $addon->name }}</div>
+                @if($addon->brand)
+                    <div class="text-muted small">{{ $addon->brand }}</div>
+                @endif
                 <div class="addon-price">
-                    ₱{{ number_format($addon->price, 2) }}
-                    <small>each</small>
+                    ₱{{ number_format($addon->unit_cost_price, 2) }}
+                    <small>per {{ $addon->distribution_unit }}</small>
                 </div>
                 @if($addon->description)
                     <div class="addon-description">{{ $addon->description }}</div>
@@ -487,8 +485,6 @@
                         <span class="status-badge {{ $addon->is_active ? 'active' : 'inactive' }}">
                             {{ $addon->is_active ? 'Active' : 'Inactive' }}
                         </span>
-                        <div class="toggle-switch {{ $addon->is_active ? 'active' : '' }} addon-status-toggle"
-                             data-id="{{ $addon->id }}" style="transform:scale(.8);"></div>
                     </div>
                     <span class="addon-usage">
                         <i class="bi bi-receipt"></i> {{ $usageCount }} {{ Str::plural('use', $usageCount) }}
@@ -496,37 +492,9 @@
                 </div>
 
                 <div class="addon-actions justify-content-end mt-3">
-                    <button type="button" class="btn btn-outline-info btn-sm view-addon" title="View Details"
-                            data-bs-toggle="modal"
-                            data-bs-target="#viewAddonModal"
-                            data-addon-id="{{ $addon->id }}"
-                            data-addon-name="{{ $addon->name }}"
-                            data-addon-slug="{{ $addon->slug }}"
-                            data-addon-description="{{ $addon->description }}"
-                            data-addon-price="{{ $addon->price }}"
-                            data-addon-is-active="{{ $addon->is_active }}"
-                            data-addon-created="{{ $addon->created_at->format('F d, Y') }}"
-                            data-addon-updated="{{ $addon->updated_at->format('F d, Y') }}"
-                            data-addon-usage="{{ $usageCount }}">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-warning btn-sm edit-addon" title="Edit"
-                            data-bs-toggle="modal"
-                            data-bs-target="#editAddonModal"
-                            data-addon-id="{{ $addon->id }}"
-                            data-addon-name="{{ $addon->name }}"
-                            data-addon-slug="{{ $addon->slug }}"
-                            data-addon-description="{{ $addon->description }}"
-                            data-addon-price="{{ $addon->price }}"
-                            data-addon-is-active="{{ $addon->is_active }}">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-danger btn-sm delete-addon" title="Delete"
-                            data-id="{{ $addon->id }}"
-                            data-name="{{ $addon->name }}"
-                            data-usage="{{ $usageCount }}">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                    <a href="{{ route('admin.inventory.items.edit', $addon->id) }}" class="btn btn-outline-info btn-sm" title="Edit Item">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
                 </div>
             </div>
         </div>
@@ -535,11 +503,11 @@
     @else
     <div class="empty-state mb-4">
         <i class="bi bi-plus-circle" style="font-size: 3rem; color: #F59E0B;"></i>
-        <h5>No add-ons yet</h5>
-        <p class="text-muted">Create your first add-on service</p>
-        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#createAddonModal">
-            <i class="bi bi-plus-lg me-2"></i>Create First Add-On
-        </button>
+        <h5>No add-ons used yet</h5>
+        <p class="text-muted">Inventory items will appear here when used as add-ons in laundries</p>
+        <a href="{{ route('admin.inventory.items.create') }}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-lg me-2"></i>Add Inventory Item
+        </a>
     </div>
     @endif
 </div>
@@ -620,7 +588,7 @@
                     <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Create New Service</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4">
+                <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
                     <div class="row g-3">
                         <!-- Service Name -->
                         <div class="col-md-6">
@@ -731,6 +699,35 @@
                                 <label class="form-check-label fw-semibold" for="serviceActive">Active Service</label>
                             </div>
                             <small class="text-muted">Inactive services won't appear in laundry creation</small>
+                        </div>
+
+                        <!-- Supplies Section -->
+                        <div class="col-12">
+                            <hr class="my-3">
+                            <h6 class="fw-bold mb-3">
+                                <i class="bi bi-box me-2" style="color: #3D3B6B;"></i>Service Supplies (Optional)
+                            </h6>
+                            <p class="text-muted small mb-3">Add supplies that will be automatically consumed when this service is used</p>
+
+                            <div id="suppliesContainer" class="mb-3">
+                                <!-- Supplies will be added here dynamically -->
+                            </div>
+
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <select id="supplySelect" class="form-select form-select-sm">
+                                        <option value="">-- Select a supply --</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="number" id="quantityInput" class="form-control form-control-sm" placeholder="Qty" min="1" value="1">
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100" id="addSupplyBtn">
+                                        <i class="bi bi-plus"></i> Add
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -930,6 +927,7 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('assets/js/service-supplies.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Set form action URLs

@@ -370,7 +370,10 @@ export const LocationService = {
       const { status } = await Location.getForegroundPermissionsAsync();
 
       if (status !== 'granted') {
-        await this.requestPermissions();
+        const perms = await this.requestPermissions();
+        if (perms.foreground !== 'granted') {
+          throw new Error('Location permission not granted');
+        }
       }
 
       const location = await Location.getCurrentPositionAsync({
@@ -394,13 +397,15 @@ export const LocationService = {
       await this.storeLocation(locationData);
       return locationData;
     } catch (error) {
-      console.error('Location error:', error.message);
+      console.warn('Location error:', error.message);
 
       const lastLocation = await this.getLastKnownLocation();
       if (lastLocation) {
+        console.log('Using cached location');
         return { ...lastLocation, source: 'cached', isFallback: true };
       }
 
+      console.log('Using default location');
       return await this.getDefaultLocation();
     }
   },

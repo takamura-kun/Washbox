@@ -170,15 +170,32 @@ public function store(Request $request)
 
         $customer = $request->user();
 
+        // Check if customer has a registered branch
+        // Use preferred_branch_id as primary, fallback to branch_id for backward compatibility
+        $branchId = $customer->preferred_branch_id ?? $customer->branch_id;
+        
+        if (!$branchId) {
+            \Log::warning('Customer attempted pickup without registered branch', [
+                'customer_id' => $customer->id,
+                'customer_name' => $customer->name,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'You must be registered to a branch to request pickup. Please contact us to complete your registration.',
+            ], 400);
+        }
+
         // Check if customer proof photo is required
         $requireProof = (bool) \App\Models\SystemSetting::get('require_customer_proof_photo', true);
 
         $validated = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => 'nullable|exists:branches,id', // Accept but ignore - will use customer's registered branch
             'pickup_address' => 'required|string|max:500',
+            'manual_address' => 'nullable|string|max:500',
+            'address_manually_edited' => 'nullable|boolean',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
-            'preferred_date' => 'required|date|after_or_equal:today',
+            'preferred_date' => 'required|date|after_or_equal:yesterday', // Changed from 'today' to 'yesterday' to handle timezone differences
             'preferred_time' => 'nullable|string',
             'notes' => 'nullable|string|max:500',
             'service_id' => 'nullable|exists:services,id',
@@ -186,6 +203,20 @@ public function store(Request $request)
             'phone_number' => 'required|string|max:20',
             'customer_proof_photo' => $requireProof ? 'required|image|mimes:jpeg,png,jpg|max:5120' : 'nullable|image|mimes:jpeg,png,jpg|max:5120',
         ]);
+
+        // Additional check: if preferred_date is in the past, set it to today
+        $preferredDate = \Carbon\Carbon::parse($validated['preferred_date']);
+        if ($preferredDate->isPast()) {
+            $preferredDate = \Carbon\Carbon::today();
+            \Log::info('Adjusted past preferred_date to today', [
+                'customer_id' => $customer->id,
+                'original_date' => $validated['preferred_date'],
+                'adjusted_date' => $preferredDate->format('Y-m-d'),
+            ]);
+        }
+
+        // Use customer's registered branch (prefer preferred_branch_id, fallback to branch_id)
+        // Note: branch_id from request is ignored for security
 
         // Validate service type availability
         $serviceType = $validated['service_type'] ?? 'both'; // Default to both
@@ -215,16 +246,18 @@ public function store(Request $request)
         }
 
         // Calculate pickup and delivery fees using the proper DeliveryFee model
-        $deliveryFee = \App\Models\DeliveryFee::getOrCreateForBranch($validated['branch_id']);
+        $deliveryFee = \App\Models\DeliveryFee::getOrCreateForBranch($branchId);
         $fees = $deliveryFee->calculateFee($serviceType);
 
         $pickup = PickupRequest::create([
             'customer_id' => $customer->id,
-            'branch_id' => $validated['branch_id'],
+            'branch_id' => $branchId,
             'pickup_address' => $validated['pickup_address'],
+            'manual_address' => $validated['manual_address'] ?? null,
+            'address_manually_edited' => $validated['address_manually_edited'] ?? false,
             'latitude' => $validated['latitude'] ?? 0,
             'longitude' => $validated['longitude'] ?? 0,
-            'preferred_date' => $validated['preferred_date'],
+            'preferred_date' => $preferredDate->format('Y-m-d'),
             'preferred_time' => $validated['preferred_time'] ?? null,
             'notes' => $validated['notes'] ?? null,
             'phone_number' => $validated['phone_number'],
@@ -257,13 +290,21 @@ public function store(Request $request)
             ]
         ], 201);
     } catch (\Illuminate\Validation\ValidationException $e) {
+        \Log::warning('Pickup request validation failed', [
+            'customer_id' => $request->user()->id ?? null,
+            'errors' => $e->errors(),
+            'input' => $request->except(['customer_proof_photo', 'password']),
+        ]);
         return response()->json([
             'success' => false,
             'message' => 'Validation failed',
             'errors' => $e->errors(),
         ], 422);
     } catch (\Exception $e) {
-        Log::error('Error creating pickup request: ' . $e->getMessage());
+        Log::error('Error creating pickup request: ' . $e->getMessage(), [
+            'customer_id' => $request->user()->id ?? null,
+            'trace' => $e->getTraceAsString(),
+        ]);
 
         return response()->json([
             'success' => false,

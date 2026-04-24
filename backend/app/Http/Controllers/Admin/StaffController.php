@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Branch;
+use App\Models\StaffSalaryInfo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -59,6 +60,7 @@ class StaffController extends Controller
             'active' => User::where('role', 'staff')->where('is_active', true)->count(),
             'inactive' => User::where('role', 'staff')->where('is_active', false)->count(),
             'total_laundries' => User::where('role', 'staff')->withCount('laundries')->get()->sum('laundries_count'),
+            'with_salary' => \App\Models\StaffSalaryInfo::where('is_active', true)->distinct('user_id')->count('user_id'),
         ];
 
         return view('admin.staff.index', compact('staff', 'branches', 'stats'));
@@ -82,7 +84,6 @@ class StaffController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string|max:50',
-            'password' => ['required', 'confirmed', Password::min(8)],
             'branch_id' => 'required|exists:branches,id',
             'employee_id' => 'nullable|string|max:50|unique:users,employee_id',
             'position' => 'nullable|string|max:255',
@@ -99,9 +100,9 @@ class StaffController extends Controller
             $validated['profile_photo_path'] = $request->file('photo')->store('staff', 'public');
         }
 
-        // Set role and hash password
+        // Set role and dummy password (staff use branch credentials to login)
         $validated['role'] = 'staff';
-        $validated['password'] = Hash::make($validated['password']);
+        $validated['password'] = Hash::make('dummy_password_' . uniqid());
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
         User::create($validated);
@@ -116,27 +117,42 @@ class StaffController extends Controller
     public function show(User $staff)
     {
         // Load relationships
-        $staff->load(['branch', 'laundries' => function($query) {
-            $query->with(['customer', 'service'])->latest()->take(10);
-        }]);
+        $staff->load(['branch']);
 
-        // Calculate statistics
-        $stats = [
-            'total_laundries' => $staff->laundries()->count(),
-            'completed_laundries' => $staff->laundries()->where('status', 'completed')->count(),
-            'pending_laundries' => $staff->laundries()->whereIn('status', ['pending', 'processing'])->count(),
-            'total_revenue' => $staff->laundries()->where('status', 'completed')->sum('total_amount'),
-            'avg_laundry_value' => $staff->laundries()->where('status', 'completed')->avg('total_amount') ?? 0,
-        ];
-
-        // Recent laundries
-        $recent_laundries = $staff->laundries()
-            ->with(['customer', 'service'])
+        // Get payroll history first
+        $payrollHistory = \App\Models\PayrollItem::where('user_id', $staff->id)
+            ->with(['payrollPeriod'])
             ->latest()
             ->take(10)
             ->get();
 
-        return view('admin.staff.show', compact('staff', 'stats', 'recent_laundries'));
+        // Calculate attendance statistics
+        $attendances = \App\Models\Attendance::where('user_id', $staff->id)->get();
+        
+        // Calculate total earnings from PAID payroll items
+        $totalEarningsFromPayroll = \App\Models\PayrollItem::where('user_id', $staff->id)
+            ->where('status', 'paid')
+            ->sum('net_pay');
+        
+        $stats = [
+            'total_days' => $attendances->count(),
+            'present_days' => $attendances->whereIn('status', ['present', 'late', 'on_leave'])->count(),
+            'total_hours' => $attendances->sum('hours_worked') ?? 0,
+            'total_earnings' => $totalEarningsFromPayroll, // Use actual paid payroll
+        ];
+
+        // Recent attendance
+        $recent_attendance = \App\Models\Attendance::where('user_id', $staff->id)
+            ->latest('attendance_date')
+            ->take(10)
+            ->get();
+
+        // Payroll data
+        $salaryInfo = \App\Models\StaffSalaryInfo::where('user_id', $staff->id)
+            ->where('is_active', true)
+            ->first();
+
+        return view('admin.staff.show', compact('staff', 'stats', 'recent_attendance', 'salaryInfo', 'payrollHistory'));
     }
 
     /**
@@ -219,28 +235,166 @@ class StaffController extends Controller
         $status = $staff->is_active ? 'activated' : 'deactivated';
 
         return redirect()->route('admin.staff.index')
-            ->with('success', "Staff member {$status} successfully!");
+            ->with('success', "Staff member {$staff->name} {$status} successfully!")
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     /**
-     * Reset staff member password
+     * Update staff salary information
      */
-    public function resetPassword(Request $request, User $user)
+    public function updateSalary(Request $request, User $user)
     {
-        try {
-            $validated = $request->validate([
-                'password' => ['required', 'confirmed', Password::min(8)],
-            ]);
+        $validated = $request->validate([
+            'salary_type' => 'required|in:monthly,daily,hourly',
+            'base_rate' => 'required|numeric|min:0',
+            'pay_period' => 'required|in:weekly,bi-weekly,monthly',
+            'effectivity_date' => 'required|date',
+        ]);
 
-            $user->update([
-                'password' => Hash::make($validated['password'])
-            ]);
+        // Deactivate old salary info
+        \App\Models\StaffSalaryInfo::where('user_id', $user->id)
+            ->update(['is_active' => false]);
 
-            return redirect()->route('admin.staff.edit', $user)
-                ->with('success', 'Password reset successfully!');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Failed to reset password: ' . $e->getMessage());
+        // Create new salary info
+        \App\Models\StaffSalaryInfo::create([
+            'user_id' => $user->id,
+            'branch_id' => $user->branch_id,
+            'salary_type' => $validated['salary_type'],
+            'base_rate' => $validated['base_rate'],
+            'pay_period' => $validated['pay_period'],
+            'effectivity_date' => $validated['effectivity_date'],
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('admin.staff.show', $user)
+            ->with('success', 'Salary information updated successfully!');
+    }
+
+    /**
+     * Delete staff salary information
+     */
+    public function deleteSalary(User $user)
+    {
+        \App\Models\StaffSalaryInfo::where('user_id', $user->id)
+            ->update(['is_active' => false]);
+
+        return redirect()->back()
+            ->with('success', 'Salary information deactivated successfully!');
+    }
+
+    /**
+     * Salary management page
+     */
+    public function salaryManagement(Request $request)
+    {
+        $query = User::where('role', 'staff')
+            ->with(['branch', 'salaryInfo' => function($q) {
+                $q->where('is_active', true);
+            }])
+            ->where('is_active', true);
+
+        // Filter by branch
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
         }
+
+        // Filter by salary type
+        if ($request->filled('salary_type')) {
+            if ($request->salary_type === 'none') {
+                $query->doesntHave('salaryInfo');
+            } else {
+                $query->whereHas('salaryInfo', function($q) use ($request) {
+                    $q->where('salary_type', $request->salary_type)
+                      ->where('is_active', true);
+                });
+            }
+        }
+
+        // Filter by status
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($request->status === 'inactive') {
+                $query->where('is_active', false);
+            }
+        }
+
+        $staff = $query->paginate(20);
+        $branches = Branch::active()->get();
+
+        // Calculate summary
+        $totalStaff = User::where('role', 'staff')->where('is_active', true)->count();
+        $withSalary = \App\Models\StaffSalaryInfo::where('is_active', true)
+            ->distinct('user_id')
+            ->count('user_id');
+        $withoutSalary = $totalStaff - $withSalary;
+        
+        // Calculate total monthly (approximate)
+        $totalMonthly = \App\Models\StaffSalaryInfo::where('is_active', true)
+            ->get()
+            ->sum(function($salary) {
+                if ($salary->salary_type === 'monthly') {
+                    return $salary->base_rate;
+                } elseif ($salary->salary_type === 'daily') {
+                    return $salary->base_rate * 26; // Approximate monthly
+                } else {
+                    return $salary->base_rate * 8 * 26; // Hourly * 8 hours * 26 days
+                }
+            });
+        
+        // Add default rate for staff without salary info
+        $totalMonthly += ($withoutSalary * 480 * 26);
+
+        $summary = [
+            'total_staff' => $totalStaff,
+            'with_salary' => $withSalary,
+            'without_salary' => $withoutSalary,
+            'total_monthly' => $totalMonthly,
+        ];
+
+        return view('admin.staff.salary-management', compact('staff', 'branches', 'summary'));
+    }
+
+    /**
+     * Bulk salary update
+     */
+    public function bulkSalaryUpdate(Request $request)
+    {
+        $validated = $request->validate([
+            'branch_id' => 'required|exists:branches,id',
+            'salary_type' => 'required|in:monthly,daily,hourly',
+            'base_rate' => 'required|numeric|min:0',
+            'pay_period' => 'required|in:weekly,bi-weekly,monthly',
+            'effectivity_date' => 'required|date',
+        ]);
+
+        $staff = User::where('role', 'staff')
+            ->where('branch_id', $validated['branch_id'])
+            ->where('is_active', true)
+            ->get();
+
+        $count = 0;
+        foreach ($staff as $member) {
+            // Deactivate old salary info
+            \App\Models\StaffSalaryInfo::where('user_id', $member->id)
+                ->update(['is_active' => false]);
+
+            // Create new salary info
+            \App\Models\StaffSalaryInfo::create([
+                'user_id' => $member->id,
+                'branch_id' => $member->branch_id,
+                'salary_type' => $validated['salary_type'],
+                'base_rate' => $validated['base_rate'],
+                'pay_period' => $validated['pay_period'],
+                'effectivity_date' => $validated['effectivity_date'],
+                'is_active' => true,
+            ]);
+            $count++;
+        }
+
+        return redirect()->route('admin.staff.salary-management')
+            ->with('success', "Salary information updated for {$count} staff members!");
     }
 }

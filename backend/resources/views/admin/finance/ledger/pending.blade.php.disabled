@@ -1,0 +1,548 @@
+@extends('admin.layouts.app')
+
+@section('title', 'Pending Transactions — WashBox')
+@section('page-title', 'Pending Transactions')
+
+@push('styles')
+<!-- Google Fonts - Inter -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="{{ asset('assets/css/inventory.css') }}">
+<style>
+/* Pending Transactions - Inter Font Family */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.5;
+    font-size: 0.813rem;
+}
+
+.container-xl,
+.inventory-card,
+.inventory-table,
+.form-label,
+.form-control,
+.form-select,
+.btn-inventory {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+h2, h3, h4, h5, h6 {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 700;
+}
+
+/* Compact Table Styling */
+.inventory-table {
+    font-size: 0.75rem !important;
+    width: 100%;
+    table-layout: auto;
+}
+
+.inventory-table thead th {
+    padding: 0.625rem 0.5rem !important;
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+}
+
+.inventory-table tbody td {
+    padding: 0.625rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    vertical-align: middle !important;
+    line-height: 1.4;
+}
+
+.inventory-table tbody td:first-child {
+    font-size: 0.7rem !important;
+    font-weight: 600;
+}
+
+.inventory-table tbody td:nth-child(2) {
+    font-size: 0.7rem !important;
+    white-space: nowrap;
+}
+
+.transaction-type-income,
+.transaction-type-expense {
+    font-size: 0.7rem !important;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.transaction-type-income {
+    color: #10b981;
+}
+
+.transaction-type-expense {
+    color: #ef4444;
+}
+
+.badge {
+    font-size: 0.65rem !important;
+    padding: 0.25rem 0.5rem !important;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+}
+
+.inventory-table tbody td:nth-child(5) {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.7rem !important;
+}
+
+.inventory-table tbody td:nth-child(6) {
+    font-size: 0.7rem !important;
+    white-space: nowrap;
+}
+
+.inventory-table tbody td:nth-child(7) {
+    font-size: 0.8125rem !important;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* Pending Status Highlight */
+.pending-row {
+    background: #fffbeb !important;
+    border-left: 3px solid #fbbf24;
+}
+
+.pending-row:hover {
+    background: #fef3c7 !important;
+}
+
+/* Action Buttons */
+.btn-approve-sm {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-approve-sm:hover {
+    background: #059669;
+    color: white;
+}
+
+.btn-reject-sm {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-reject-sm:hover {
+    background: #dc2626;
+    color: white;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.7rem !important;
+}
+
+/* Alert Banner */
+.pending-alert {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #fbbf24;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.pending-alert h5 {
+    color: #92400e;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.pending-alert p {
+    color: #78350f;
+    font-size: 0.75rem;
+    margin-bottom: 0;
+}
+
+/* Modal Styling */
+.modal-content {
+    font-family: 'Inter', sans-serif;
+}
+
+.modal-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.modal-body label {
+    font-size: 0.813rem;
+    font-weight: 600;
+}
+
+.modal-body textarea {
+    font-size: 0.813rem;
+    font-family: 'Inter', sans-serif;
+}
+
+h3 {
+    font-size: 1.5rem !important;
+}
+
+.text-muted {
+    font-size: 0.75rem !important;
+}
+
+.form-label.small {
+    font-size: 0.7rem !important;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.form-select-sm,
+.form-control-sm {
+    font-size: 0.75rem !important;
+    padding: 0.375rem 0.5rem !important;
+}
+
+@media (min-width: 1200px) {
+    .container-xl {
+        max-width: 100%;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+</style>
+@endpush
+
+@section('content')
+<div class="container-xl px-4 py-4">
+    {{-- Success/Error Messages --}}
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>
+        <strong>Success!</strong> {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Error!</strong> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
+    @if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Validation Error:</strong>
+        <ul class="mb-0 mt-2">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
+    {{-- Header --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Pending Transactions</h2>
+            <p class="text-muted mb-0">Review and approve pending financial transactions</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn-inventory btn-inventory-success" data-bs-toggle="modal" data-bs-target="#createPendingModal">
+                <i class="bi bi-plus-circle me-2"></i>Add Pending Transaction
+            </button>
+            <a href="{{ route('admin.finance.ledger.index') }}" class="btn-inventory btn-inventory-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Back to Ledger
+            </a>
+        </div>
+    </div>
+
+    {{-- Alert Banner --}}
+    @if($transactions->count() > 0)
+    <div class="pending-alert">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-clock-history text-warning me-3" style="font-size: 2rem;"></i>
+            <div>
+                <h5 class="mb-1">
+                    <i class="bi bi-exclamation-circle me-1"></i>{{ $transactions->total() }} Transaction{{ $transactions->total() > 1 ? 's' : '' }} Awaiting Approval
+                </h5>
+                <p>Please review and approve or reject the transactions below to process them.</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Filters --}}
+    <div class="inventory-card mb-4">
+        <div class="inventory-card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small">Branch</label>
+                    <select name="branch_id" class="form-select form-select-sm">
+                        <option value="">All Branches</option>
+                        @foreach($branches as $branch)
+                            <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                                {{ $branch->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Type</label>
+                    <select name="type" class="form-select form-select-sm">
+                        <option value="">All Types</option>
+                        <option value="income" {{ request('type') == 'income' ? 'selected' : '' }}>Income</option>
+                        <option value="expense" {{ request('type') == 'expense' ? 'selected' : '' }}>Expense</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Date From</label>
+                    <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Date To</label>
+                    <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request('date_to') }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn-inventory btn-inventory-primary btn-sm flex-grow-1">
+                        <i class="bi bi-search me-1"></i>Filter
+                    </button>
+                    <a href="{{ route('admin.finance.ledger.pending') }}" class="btn-inventory btn-inventory-secondary btn-sm">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Transactions Table --}}
+    <div class="inventory-card">
+        <div class="inventory-card-body">
+            <div class="table-responsive">
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Transaction #</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Branch</th>
+                            <th class="text-end">Amount</th>
+                            <th>Created By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($transactions as $transaction)
+                            <tr class="pending-row">
+                                <td>
+                                    <a href="{{ route('admin.finance.ledger.show', ['transaction' => $transaction, 'from' => 'pending']) }}" class="text-primary fw-semibold">
+                                        {{ $transaction->transaction_number }}
+                                    </a>
+                                </td>
+                                <td>{{ $transaction->transaction_date->format('M d, Y') }}</td>
+                                <td>
+                                    <span class="transaction-type-{{ $transaction->type }}">
+                                        <i class="bi bi-{{ $transaction->type == 'income' ? 'arrow-up' : 'arrow-down' }}-circle me-1"></i>
+                                        {{ ucfirst($transaction->type) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ str_replace('_', ' ', ucwords($transaction->category)) }}
+                                    </span>
+                                </td>
+                                <td>{{ Str::limit($transaction->description, 50) }}</td>
+                                <td>{{ $transaction->branch->name ?? 'N/A' }}</td>
+                                <td class="text-end fw-bold {{ $transaction->type == 'income' ? 'text-success' : 'text-danger' }}">
+                                    {{ $transaction->type == 'income' ? '+' : '-' }}₱{{ number_format($transaction->amount, 2) }}
+                                </td>
+                                <td>{{ $transaction->creator->name ?? 'System' }}</td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <form action="{{ route('admin.finance.ledger.approve', $transaction) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-approve-sm" onclick="return confirm('Approve this transaction?')" title="Approve">
+                                                <i class="bi bi-check-circle"></i>
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-reject-sm" data-bs-toggle="modal" data-bs-target="#rejectModal{{ $transaction->id }}" title="Reject">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                        <a href="{{ route('admin.finance.ledger.show', ['transaction' => $transaction, 'from' => 'pending']) }}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            {{-- Rejection Modal for each transaction --}}
+                            <div class="modal fade" id="rejectModal{{ $transaction->id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form action="{{ route('admin.finance.ledger.reject', $transaction) }}" method="POST">
+                                            @csrf
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">
+                                                    <i class="bi bi-x-circle text-danger me-2"></i>Reject Transaction
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="alert alert-warning" role="alert">
+                                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                                    <strong>Transaction:</strong> {{ $transaction->transaction_number }}
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="reason{{ $transaction->id }}" class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                                                    <textarea class="form-control" id="reason{{ $transaction->id }}" name="reason" rows="4" required placeholder="Please provide a reason for rejecting this transaction..."></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                    <i class="bi bi-x me-1"></i>Cancel
+                                                </button>
+                                                <button type="submit" class="btn btn-danger">
+                                                    <i class="bi bi-x-circle me-1"></i>Reject Transaction
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <tr>
+                                <td colspan="9" class="text-center py-5 text-muted">
+                                    <i class="bi bi-check-circle display-4 d-block mb-3 text-success"></i>
+                                    <h5>No Pending Transactions</h5>
+                                    <p class="mb-0">All transactions have been processed.</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Pagination --}}
+            @if($transactions->hasPages())
+                <div class="mt-4">
+                    {{ $transactions->links() }}
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
+
+{{-- Create Pending Transaction Modal --}}
+<div class="modal fade" id="createPendingModal" tabindex="-1" aria-labelledby="createPendingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ route('admin.finance.ledger.create') }}" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createPendingModalLabel">
+                        <i class="bi bi-plus-circle text-success me-2"></i>Create Pending Transaction
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="type" class="form-label">Transaction Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="type" name="type" required>
+                                <option value="">Select Type</option>
+                                <option value="income">Income</option>
+                                <option value="expense">Expense</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="">Select Category</option>
+                                <option value="laundry_sale">Laundry Sale</option>
+                                <option value="retail_sale">Retail Sale</option>
+                                <option value="pickup_fee">Pickup/Delivery Fee</option>
+                                <option value="expense">Expense</option>
+                                <option value="payroll">Payroll</option>
+                                <option value="inventory_purchase">Inventory Purchase</option>
+                                <option value="adjustment">Adjustment</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="amount" class="form-label">Amount (₱) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0" required placeholder="0.00">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="branch_id" class="form-label">Branch <span class="text-danger">*</span></label>
+                            <select class="form-select" id="branch_id" name="branch_id" required>
+                                <option value="">Select Branch</option>
+                                @foreach($branches as $branch)
+                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="transaction_date" class="form-label">Transaction Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="transaction_date" name="transaction_date" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="payment_method" class="form-label">Payment Method</label>
+                            <select class="form-select" id="payment_method" name="payment_method">
+                                <option value="">Select Payment Method</option>
+                                <option value="cash">Cash</option>
+                                <option value="gcash">GCash</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="credit_card">Credit Card</option>
+                                <option value="check">Check</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="description" name="description" rows="3" required placeholder="Enter transaction description..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label for="reference_number" class="form-label">Reference Number</label>
+                            <input type="text" class="form-control" id="reference_number" name="reference_number" placeholder="Optional reference number">
+                        </div>
+                        <div class="col-12">
+                            <div class="alert alert-info" role="alert">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Note:</strong> This transaction will be created with <strong>Pending</strong> status and will require approval before being included in financial reports.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i>Create Pending Transaction
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endsection

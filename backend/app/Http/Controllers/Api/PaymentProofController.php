@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Laundry;
 use App\Models\PaymentProof;
 use App\Services\SecureFileUploadService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -82,6 +83,13 @@ class PaymentProofController extends Controller
 
         // Update laundry payment status to pending verification
         $laundry->update(['payment_status' => 'pending_verification']);
+
+        // Notify branch staff about new payment proof
+        NotificationService::notifyPaymentProofSubmitted(
+            $laundry,
+            $request->amount,
+            $request->reference_number
+        );
 
         return response()->json([
             'success' => true,

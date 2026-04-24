@@ -31,27 +31,27 @@ class AdminDashboard {
     async init() {
         try {
             PerformanceMonitor.startTimer('dashboard_init');
-            
+
             // Error boundary is already initialized when imported
-            
+
             // Initialize core modules
             await this.initializeModules();
-            
+
             // Setup event listeners
             this.setupEventListeners();
-            
+
             // Initialize dashboard when DOM is ready
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => this.initializeDashboard());
             } else {
                 this.initializeDashboard();
             }
-            
+
             PerformanceMonitor.endTimer('dashboard_init');
             this.initialized = true;
-            
+
             console.log('✅ Modular Admin Dashboard initialized successfully');
-            
+
         } catch (error) {
             ErrorBoundary.handleError(error, 'AdminDashboard.init');
         }
@@ -66,26 +66,26 @@ class AdminDashboard {
         this.modules.routing = Routing;
         this.modules.charts = Charts;
         this.modules.pickupService = PickupService;
-        
+
         // Initialize advanced services
         this.modules.tracking = trackingService;
         this.modules.routeOptimizer = routeOptimizer;
         this.modules.analytics = analyticsService;
-        
+
         // Initialize UX enhancements
         this.modules.loading = loadingManager;
         this.modules.keyboard = keyboardManager;
         this.modules.accessibility = accessibilityManager;
-        
+
         // Initialize components
         // Components are available as classes, not a singleton
         console.log('📦 Components available:', Object.keys(Components));
-        
+
         // Initialize dashboard data if provided and state module is ready
         if (window.BRANCHES && this.modules.state) {
             this.initializeDashboardData(window.BRANCHES, window.DASHBOARD_STATS);
         }
-        
+
         console.log('📦 All modules initialized');
     }
 
@@ -93,22 +93,22 @@ class AdminDashboard {
         // Dashboard events
         EventBus.on('DASHBOARD_REFRESH', () => this.refreshDashboard());
         EventBus.on('TAB_CHANGED', (data) => this.handleTabChange(data));
-        
+
         // Map events
         EventBus.on('MAP_INITIALIZED', () => this.onMapReady());
         EventBus.on('PICKUP_SELECTED', (data) => this.handlePickupSelection(data));
         EventBus.on('ROUTE_CALCULATED', (data) => this.handleRouteCalculated(data));
-        
+
         // Advanced features events
         EventBus.on('TRACKING_STARTED', (data) => this.handleTrackingStarted(data));
         EventBus.on('LOCATION_UPDATED', (data) => this.handleLocationUpdate(data));
         EventBus.on('ROUTE_OPTIMIZED', (data) => this.handleRouteOptimized(data));
         EventBus.on('ANALYTICS_UPDATED', (data) => this.handleAnalyticsUpdate(data));
         EventBus.on('ANALYTICS_ALERT', (data) => this.handleAnalyticsAlert(data));
-        
+
         // Error events
         EventBus.on('ERROR_OCCURRED', (error) => this.handleError(error));
-        
+
         console.log('🔗 Event listeners setup complete');
     }
 
@@ -119,7 +119,7 @@ class AdminDashboard {
                 if (window.performanceGuard) {
                     window.performanceGuard.pauseMonitoring();
                 }
-                
+
                 const dashboardTasks = [
                     () => this.initializeCharts(),
                     () => this.initializeTabs(),
@@ -127,7 +127,8 @@ class AdminDashboard {
                     () => this.initializeDateUpdater(),
                     () => this.initMapAddressSearch(),
                     () => {
-                        if (document.getElementById('operations-tab')?.classList.contains('active')) {
+                        // Initialize logistics map if container exists
+                        if (document.getElementById('logisticsMap')) {
                             taskScheduler.schedule(() => this.modules.maps.initLogisticsMap(), 500);
                         }
                     },
@@ -139,12 +140,12 @@ class AdminDashboard {
                         }
                     }
                 ];
-                
+
                 let taskIndex = 0;
-                
+
                 const executeNextBatch = () => {
                     if (taskIndex >= dashboardTasks.length) return;
-                    
+
                     // Use requestIdleCallback for better performance
                     if ('requestIdleCallback' in window) {
                         requestIdleCallback(() => {
@@ -172,11 +173,11 @@ class AdminDashboard {
                         }, 0);
                     }
                 };
-                
+
                 executeNextBatch();
             }, 200);
         };
-        
+
         // Wait for window.load instead of DOMContentLoaded
         if (document.readyState === 'complete') {
             initWhenReady();
@@ -190,9 +191,9 @@ class AdminDashboard {
             console.error('State module not initialized');
             return;
         }
-        
+
         this.modules.state.initializeDashboardData(branches, stats);
-        
+
         console.log(`📍 Loaded ${branches.length} branch location(s) for map`);
     }
 
@@ -201,7 +202,7 @@ class AdminDashboard {
             console.warn('Chart.js is not loaded. Charts will not be displayed.');
             return;
         }
-        
+
         this.modules.charts.initializeCharts();
     }
 
@@ -218,7 +219,7 @@ class AdminDashboard {
             tab.addEventListener('shown.bs.tab', (event) => {
                 const activeTabName = event.target.getAttribute('id').replace('-tab', '');
                 localStorage.setItem(DASHBOARD_CONFIG.cacheKey, activeTabName);
-                
+
                 EventBus.emit('TAB_CHANGED', { tab: activeTabName });
             });
         });
@@ -228,7 +229,7 @@ class AdminDashboard {
 
     handleTabChange(data) {
         const { tab } = data;
-        
+
         // Use task scheduler for all tab operations
         const performTabOperations = async () => {
             // Initialize map if operations tab is shown
@@ -237,8 +238,13 @@ class AdminDashboard {
                     if (!this.modules.maps.logisticsMapInstance) {
                         this.modules.maps.initLogisticsMap();
                     } else {
-                        this.modules.maps.logisticsMapInstance.invalidateSize();
-                        this.modules.maps.refreshMapMarkers();
+                        // Add delay to ensure container is fully visible before invalidating size
+                        setTimeout(() => {
+                            if (this.modules.maps.logisticsMapInstance) {
+                                this.modules.maps.logisticsMapInstance.invalidateSize();
+                                this.modules.maps.refreshMapMarkers();
+                            }
+                        }, 200);
                     }
                 });
             }
@@ -253,7 +259,7 @@ class AdminDashboard {
                 await taskScheduler.schedule(() => this.animateServiceBars());
             }
         };
-        
+
         // Schedule all operations as non-blocking tasks
         taskScheduler.schedule(performTabOperations);
     }
@@ -283,7 +289,7 @@ class AdminDashboard {
 
         try {
             const result = await this.modules.api.geocodeAddress(address);
-            
+
             if (result) {
                 this.displaySearchResult({
                     lat: parseFloat(result.lat),
@@ -291,8 +297,8 @@ class AdminDashboard {
                     address: result.display_name
                 });
                 this.modules.maps.addDraggableSearchMarker(
-                    parseFloat(result.lat), 
-                    parseFloat(result.lon), 
+                    parseFloat(result.lat),
+                    parseFloat(result.lon),
                     result.display_name
                 );
                 this.modules.utils.showToast('📍 Location found!', 'success');
@@ -310,7 +316,7 @@ class AdminDashboard {
         if (resultsDiv) {
             resultsDiv.style.display = 'block';
             document.getElementById('result-address-text').textContent = result.address;
-            document.getElementById('result-coords-text').textContent = 
+            document.getElementById('result-coords-text').textContent =
                 `📍 ${result.lat.toFixed(6)}, ${result.lng.toFixed(6)}`;
         }
     }
@@ -330,8 +336,8 @@ class AdminDashboard {
                     address: address
                 });
                 this.modules.maps.addDraggableSearchMarker(
-                    currentPosition.coords.latitude, 
-                    currentPosition.coords.longitude, 
+                    currentPosition.coords.latitude,
+                    currentPosition.coords.longitude,
                     address
                 );
                 this.modules.utils.showToast('📍 Current location found!', 'success');
@@ -346,15 +352,15 @@ class AdminDashboard {
     async getRouteToPickup(pickupId) {
         try {
             PerformanceMonitor.startTimer('route_calculation');
-            
+
             const routeData = await this.modules.routing.getRouteToPickup(pickupId);
-            
+
             if (routeData) {
                 this.modules.utils.showToast('Route loaded successfully!', 'success');
             }
-            
+
             PerformanceMonitor.endTimer('route_calculation');
-            
+
         } catch (error) {
             ErrorBoundary.handleError(error, 'AdminDashboard.getRouteToPickup');
             this.modules.utils.showToast('Failed to calculate route', 'danger');
@@ -363,18 +369,20 @@ class AdminDashboard {
 
     async getOptimizedMultiRoute() {
         const selectedPickups = this.modules.state.getSelectedPickupIds();
-        
+
         if (selectedPickups.length < 2) {
             this.modules.utils.showToast('Please select at least 2 pickups for route optimization', 'warning');
             return;
         }
 
+        const branchId = document.getElementById('routeBranchFilter')?.value || null;
+
         try {
             PerformanceMonitor.startTimer('multi_route_optimization');
-            
+
             // Get pickup data
             const pickupData = await this.modules.api.getPickupsByIds(selectedPickups);
-            
+
             // Use advanced route optimizer
             const optimizedRoute = await this.modules.routeOptimizer.optimizeRoute(pickupData, {
                 vehicleId: 'default',
@@ -382,13 +390,13 @@ class AdminDashboard {
                 considerTraffic: true,
                 allowReordering: true
             });
-            
+
             if (optimizedRoute) {
                 await this.modules.maps.drawMultiStopRoute(optimizedRoute);
                 this.showAdvancedRouteSummary(optimizedRoute);
                 this.modules.utils.showToast('Route optimized with AI! 🧠', 'success');
             }
-            
+
         } catch (error) {
             ErrorBoundary.handleError(error, 'AdminDashboard.getOptimizedMultiRoute');
             this.modules.utils.showToast('Failed to optimize route', 'danger');
@@ -401,20 +409,20 @@ class AdminDashboard {
     togglePickupSelection(pickupId) {
         const wasSelected = this.modules.state.togglePickupSelection(pickupId);
         this.updateSelectedPickupCount();
-        
+
         // Update marker visual state
         this.modules.maps.updateMarkerSelection(pickupId, !wasSelected);
-        
+
         EventBus.emit('PICKUP_SELECTED', { pickupId, selected: !wasSelected });
     }
 
     updateSelectedPickupCount() {
         const count = this.modules.state.getSelectedCount();
-        
+
         // Batch all DOM updates in a single requestAnimationFrame to prevent multiple reflows
         requestAnimationFrame(() => {
             const updates = [];
-            
+
             // Collect all elements first
             const countElements = document.querySelectorAll('#selectedCount, #selectedCountTop');
             const countBadge = document.getElementById('selectedPickupCount');
@@ -422,21 +430,21 @@ class AdminDashboard {
             const multiRouteTopBtn = document.getElementById('multiRouteTopBtn');
             const modalMultiRouteBtn = document.getElementById('modalMultiRouteBtn');
             const modalSelectedCount = document.getElementById('modalSelectedCount');
-            
+
             // Prepare all updates
             const showMultiRoute = count > 1 ? 'block' : 'none';
             const showMultiRouteInline = count > 1 ? 'inline-block' : 'none';
-            
+
             // Apply all updates at once
             countElements.forEach(el => {
                 if (el) el.textContent = count;
             });
-            
+
             if (countBadge) {
                 countBadge.textContent = count;
                 countBadge.style.display = count > 0 ? 'inline-block' : 'none';
             }
-            
+
             if (multiRouteBtn) multiRouteBtn.style.display = showMultiRoute;
             if (multiRouteTopBtn) multiRouteTopBtn.style.display = showMultiRoute;
             if (modalMultiRouteBtn) modalMultiRouteBtn.style.display = showMultiRouteInline;
@@ -451,8 +459,12 @@ class AdminDashboard {
     }
 
     selectAllPending() {
+        const branchId = document.getElementById('routeBranchFilter')?.value || null;
         const pickupData = window.PENDING_PICKUPS || [];
-        pickupData.forEach(pickup => {
+        const filtered = branchId
+            ? pickupData.filter(p => String(p.branch_id) === String(branchId))
+            : pickupData;
+        filtered.forEach(pickup => {
             if (pickup.status === 'pending' || pickup.status === 'accepted') {
                 this.modules.state.addSelection(parseInt(pickup.id));
             }
@@ -467,9 +479,9 @@ class AdminDashboard {
         try {
             // Start tracking first
             await this.modules.tracking.startTracking(pickupId);
-            
+
             const result = await this.modules.api.startNavigation(pickupId);
-            
+
             if (result.success) {
                 this.modules.utils.showToast('📡 Navigation & tracking started!', 'success');
                 this.modules.maps.refreshMapMarkers();
@@ -494,9 +506,9 @@ class AdminDashboard {
         try {
             // Start multi-tracking
             await this.modules.tracking.startMultiTracking(selectedPickups);
-            
+
             const result = await this.modules.api.startMultiPickupNavigation(selectedPickups);
-            
+
             if (result.success) {
                 this.modules.utils.showToast('📡 Multi-pickup navigation & tracking started!', 'success');
                 this.modules.maps.refreshMapMarkers();
@@ -518,6 +530,18 @@ class AdminDashboard {
 
         const branch = this.modules.state.getNearestBranch(routeData.start?.lat, routeData.start?.lng);
         
+        // Sanitize user-provided data to prevent XSS
+        const sanitize = (str) => {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        };
+
+        const branchName = sanitize(branch?.name || 'WashBox Branch');
+        const distance = sanitize(routeData.distance || '0 km');
+        const duration = sanitize(routeData.duration || '0 min');
+        const estimatedArrival = sanitize(routeData.estimated_arrival || 'ETA calculating...');
+
         detailsPanel.innerHTML = `
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -529,26 +553,26 @@ class AdminDashboard {
                 <div class="card-body">
                     <div class="mb-3">
                         <h5 class="text-success">
-                            <i class="bi bi-signpost"></i> ${routeData.distance || '0 km'}
+                            <i class="bi bi-signpost"></i> ${distance}
                         </h5>
                         <p class="text-muted">
-                            <i class="bi bi-clock"></i> ${routeData.duration || '0 min'}
+                            <i class="bi bi-clock"></i> ${duration}
                         </p>
                     </div>
                     <hr>
                     <div class="mb-3">
                         <small class="text-muted">From (Branch):</small>
-                        <p class="mb-0"><b>${branch?.name || 'WashBox Branch'}</b></p>
+                        <p class="mb-0"><b>${branchName}</b></p>
                         <small class="text-muted">Negros Oriental</small>
                     </div>
                     <div class="mb-3">
                         <small class="text-muted">To (Pickup):</small>
                         <p class="mb-0"><b>Customer Location</b></p>
-                        <small class="text-muted">${routeData.estimated_arrival || 'ETA calculating...'}</small>
+                        <small class="text-muted">${estimatedArrival}</small>
                     </div>
                     <hr>
                     <div class="d-grid gap-2">
-                        <button class="btn btn-success" onclick="dashboard.startNavigation(${pickupId})">
+                        <button class="btn btn-success" onclick="dashboard.startNavigation(${parseInt(pickupId)})">
                             <i class="bi bi-play-circle me-2"></i> Start Navigation
                         </button>
                         <button class="btn btn-outline-primary" onclick="dashboard.printRoute()">
@@ -634,13 +658,174 @@ class AdminDashboard {
         console.log('Optimization metrics updated:', data);
     }
 
+    formatMoney(value = 0) {
+        return `₱${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+    }
+
+    async fetchDashboardStats(branchId = '', dateRange = 'last_30_days', force = true) {
+        const query = { date_range: dateRange };
+        if (branchId) {
+            query.branch_id = branchId;
+        }
+        if (force) {
+            query.force = 1;
+        }
+
+        return this.modules.api.get('/admin/dashboard/stats', query);
+    }
+
+    applyDashboardStats(stats) {
+        window.DASHBOARD_STATS = stats;
+        window.BRANCHES = stats.branches || window.BRANCHES || [];
+        window.REVENUE_DATA = {
+            labels: stats.revenueLabels || [],
+            values: stats.last7DaysRevenue || []
+        };
+        window.CUSTOMER_SOURCE_DATA = stats.customerRegistrationSource || {};
+        window.CUSTOMER_BRANCH_DATA = stats.customerBranchPipeline || [];
+        window.SERVICE_CHART_DATA = stats.serviceChartData || {};
+        window.DAILY_LAUNDRY_DATA = stats.dailyLaundryCount || {};
+        window.PAYMENT_METHODS_DATA = stats.paymentMethods || [];
+        window.TOP_SERVICES_DATA = stats.topServices || [];
+        window.YOY_REVENUE_DATA = stats.yoyRevenue || {};
+
+        if (this.modules.state) {
+            this.modules.state.initializeDashboardData(window.BRANCHES, stats);
+        }
+
+        if (window.dataStabilizer) {
+            window.dataStabilizer.cacheData('dashboard_stats', window.DASHBOARD_STATS);
+            window.dataStabilizer.cacheData('branches', window.BRANCHES);
+        }
+
+        this.updateDashboardMetrics(stats);
+        this.rebuildRecentActivitiesTimeline(stats.recentActivities || []);
+
+        if (this.modules.charts) {
+            this.modules.charts.destroy();
+            this.modules.charts.initializeCharts();
+        }
+
+        if (this.modules.analytics) {
+            this.refreshAnalyticsCharts(stats);
+        }
+
+        this.updateAlertsPanel(stats.notificationStats || {});
+    }
+
     updateDashboardMetrics(metrics) {
-        // Update dashboard metrics
-        console.log('Dashboard metrics updated:', metrics);
+        const kpiMap = {
+            todayLaundries: metrics.todayLaundries ?? 0,
+            todayRevenue: this.formatMoney(metrics.todayRevenue),
+            activeCustomers: metrics.activeCustomers ?? 0,
+            unclaimedLaundry: metrics.unclaimedLaundry ?? 0,
+        };
+
+        Object.entries(kpiMap).forEach(([key, value]) => {
+            document.querySelectorAll(`[data-kpi="${key}"]`).forEach((el) => {
+                el.textContent = value;
+            });
+        });
+
+        const textUpdates = [
+            { selector: '#todayRevenueMonthValue', value: this.formatMoney(metrics.thisMonthRevenue) },
+            { selector: '#newCustomersThisMonth', value: `+${metrics.newCustomersThisMonth ?? 0} this month` },
+            { selector: '#newCustomersToday', value: `+${metrics.newCustomersToday ?? 0} new today` },
+            { selector: '#appUserCount', value: `${metrics.customerRegistrationSource?.app ?? 0} app users` },
+            { selector: '#estimatedUnclaimedLossValue', value: `Est. Loss: ${this.formatMoney(metrics.estimatedUnclaimedLoss)}` },
+            { selector: '#netProfitValue', value: this.formatMoney((metrics.todayRevenue ?? 0) - (metrics.todayExpenses ?? 0)) },
+            { selector: '#todayExpensesValue', value: this.formatMoney(metrics.todayExpenses) },
+            { selector: '#inventoryCountValue', value: metrics.inventoryCount ?? 0 },
+            { selector: '#staffTotalValue', value: metrics.staffStats?.total ?? 0 },
+            { selector: '#staffActiveValue', value: metrics.staffStats?.active ?? 0 },
+        ];
+
+        textUpdates.forEach(({ selector, value }) => {
+            const el = document.querySelector(selector);
+            if (el) {
+                el.textContent = value;
+            }
+        });
+    }
+
+    rebuildRecentActivitiesTimeline(activities) {
+        const container = document.getElementById('recentActivitiesTimeline');
+        if (!container) return;
+
+        if (!Array.isArray(activities) || activities.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="bi bi-activity text-muted" style="font-size: 3rem;"></i>
+                    <h6 class="text-muted mt-2">No recent activities</h6>
+                </div>
+            `;
+            return;
+        }
+
+        // Sanitize user-provided data to prevent XSS
+        const sanitize = (str) => {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        };
+
+        container.innerHTML = activities.map(activity => {
+            const timestamp = activity.timestamp ? new Date(activity.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+            const title = sanitize(activity.title);
+            const description = sanitize(activity.description);
+            const sanitizedTimestamp = sanitize(timestamp);
+            
+            return `
+                <div class="timeline-item">
+                    <div class="timeline-marker bg-primary"></div>
+                    <div class="timeline-content">
+                        <h6 class="mb-1">${title}</h6>
+                        <p class="mb-1 text-muted small">${description}</p>
+                        <small class="text-muted">${sanitizedTimestamp}</small>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async refreshDashboard() {
+        const refreshBtn = document.getElementById('refresh-btn');
+        const originalHtml = refreshBtn ? refreshBtn.innerHTML : '';
+
+        if (refreshBtn) {
+            requestAnimationFrame(() => {
+                refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i><span>Refreshing...</span>';
+                refreshBtn.disabled = true;
+            });
+        }
+
+        const branchId = window.CURRENT_BRANCH_ID || '';
+        const dateRange = window.CURRENT_DATE_RANGE || 'last_30_days';
+
+        try {
+            const stats = await this.fetchDashboardStats(branchId, dateRange, true);
+            this.applyDashboardStats(stats);
+            if (this.modules.utils && typeof this.modules.utils.showToast === 'function') {
+                this.modules.utils.showToast('Dashboard refreshed successfully', 'success');
+            }
+        } catch (error) {
+            console.error('Dashboard refresh failed:', error);
+            if (this.modules.utils && typeof this.modules.utils.showToast === 'function') {
+                this.modules.utils.showToast('Dashboard refresh failed. Reloading page.', 'danger');
+            }
+            window.location.reload();
+        } finally {
+            if (refreshBtn) {
+                requestAnimationFrame(() => {
+                    refreshBtn.innerHTML = originalHtml;
+                    refreshBtn.disabled = false;
+                });
+            }
+        }
     }
 
     refreshAnalyticsCharts(data) {
-        // Refresh analytics charts
+        // Refresh analytics charts with new stats if supported
         console.log('Analytics charts refreshed:', data);
     }
 
@@ -675,7 +860,7 @@ class AdminDashboard {
             requestAnimationFrame(() => {
                 refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i><span>Refreshing...</span>';
                 refreshBtn.disabled = true;
-                
+
                 // Use a small delay to allow UI update to render
                 setTimeout(() => {
                     window.location.reload();
@@ -723,17 +908,17 @@ class AdminDashboard {
     animateRatingBars() {
         const bars = document.querySelectorAll('.trc-star-fill');
         if (bars.length === 0) return;
-        
+
         // Batch read operations first (no reflow)
         const widths = Array.from(bars).map(bar => bar.getAttribute('data-width') || '0');
-        
+
         // Then batch write operations (single reflow)
         requestAnimationFrame(() => {
             bars.forEach((bar, index) => {
                 bar.style.width = '0%';
                 bar.style.transition = 'none';
             });
-            
+
             requestAnimationFrame(() => {
                 bars.forEach((bar, index) => {
                     bar.style.transition = 'width 0.8s ease-out';
@@ -746,17 +931,17 @@ class AdminDashboard {
     animateServiceBars() {
         const bars = document.querySelectorAll('.service-bar-fill');
         if (bars.length === 0) return;
-        
+
         // Batch read operations first (no reflow)
         const widths = Array.from(bars).map(bar => bar.getAttribute('data-width') || '0');
-        
+
         // Then batch write operations (single reflow)
         requestAnimationFrame(() => {
             bars.forEach((bar, index) => {
                 bar.style.width = '0%';
                 bar.style.transition = 'none';
             });
-            
+
             requestAnimationFrame(() => {
                 bars.forEach((bar, index) => {
                     bar.style.transition = 'width 0.8s ease-out';
@@ -784,7 +969,7 @@ class AdminDashboard {
     handleTrackingStarted(data) {
         console.log('📡 Tracking started:', data);
         this.modules.utils.showToast(`📡 Tracking started for pickup ${data.pickupId}`, 'info');
-        
+
         // Update UI to show tracking status
         this.updateTrackingUI(data.pickupId, 'active');
     }
@@ -794,21 +979,21 @@ class AdminDashboard {
         if (this.modules.maps.logisticsMapInstance) {
             this.modules.maps.updateVehicleLocation(data.location);
         }
-        
+
         // Update tracking panel if visible
         this.updateTrackingPanel(data);
     }
 
     handleRouteOptimized(data) {
         console.log('🧠 Route optimized:', data);
-        
+
         if (data.savings && data.savings.percentage > 10) {
             this.modules.utils.showToast(
-                `🎆 Route optimized! Saved ${data.savings.percentage.toFixed(1)}% distance`, 
+                `🎆 Route optimized! Saved ${data.savings.percentage.toFixed(1)}% distance`,
                 'success'
             );
         }
-        
+
         // Update optimization metrics
         this.updateOptimizationMetrics(data);
     }
@@ -816,7 +1001,7 @@ class AdminDashboard {
     handleAnalyticsUpdate(data) {
         // Update dashboard metrics
         this.updateDashboardMetrics(data.metrics);
-        
+
         // Update charts if analytics tab is active
         if (document.getElementById('analytics-tab')?.classList.contains('active')) {
             this.refreshAnalyticsCharts(data);
@@ -828,12 +1013,12 @@ class AdminDashboard {
         data.alerts.forEach(alert => {
             if (alert.severity === 'critical') {
                 this.modules.utils.showToast(
-                    `⚠️ ${alert.message}`, 
+                    `⚠️ ${alert.message}`,
                     'danger'
                 );
             }
         });
-        
+
         // Update alerts panel
         this.updateAlertsPanel(data.alerts);
     }
@@ -895,6 +1080,12 @@ window.initializeDashboardData = (branches, stats) => {
     }
 };
 window.refreshDashboard = () => dashboard.refreshDashboard();
+window.onDashboardBranchChange = () => {
+    const form = document.getElementById('dashboardFiltersForm');
+    if (form) {
+        form.submit();
+    }
+};
 window.getRouteToPickup = (pickupId) => dashboard.getRouteToPickup(pickupId);
 window.startNavigation = (pickupId) => dashboard.startNavigation(pickupId);
 window.startNavigationForPickup = (pickupId) => dashboard.startNavigation(pickupId);
@@ -939,14 +1130,17 @@ window.removePickupFromMap = (pickupId) => {
 };
 
 window.autoRouteAllVisible = () => {
+    const branchId = document.getElementById('routeBranchFilter')?.value || null;
     const pickupData = window.PENDING_PICKUPS || [];
-    const visiblePickups = pickupData.filter(p => p.status === 'pending');
-    
+    const visiblePickups = pickupData.filter(p =>
+        p.status === 'pending' && (!branchId || String(p.branch_id) === String(branchId))
+    );
+
     if (visiblePickups.length === 0) {
         dashboard.modules.utils.showToast('No visible pickups to route', 'warning');
         return;
     }
-    
+
     if (visiblePickups.length === 1) {
         dashboard.getRouteToPickup(visiblePickups[0].id);
     } else {
@@ -957,6 +1151,15 @@ window.autoRouteAllVisible = () => {
         });
         taskScheduler.schedule(() => dashboard.getOptimizedMultiRoute(), 500);
     }
+};
+
+window.onRouteBranchChange = () => {
+    dashboard.modules.utils.showToast(
+        document.getElementById('routeBranchFilter').value
+            ? `Filtering pickups by branch`
+            : 'Showing all branches',
+        'info'
+    );
 };
 
 console.log('✅ Modular Admin Dashboard loaded successfully');

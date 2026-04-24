@@ -1,5 +1,4 @@
 import * as Location from 'expo-location';
-import { io } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, STORAGE_KEYS } from '../constants/config';
 
@@ -11,13 +10,31 @@ class LocationTrackingService {
     this.currentPickupId = null;
   }
 
+  getSocketFactory() {
+    try {
+      return require('socket.io-client').io;
+    } catch (error) {
+      console.warn('socket.io-client is not installed:', error.message);
+      return null;
+    }
+  }
+
+  getSocketUrl() {
+    return API_BASE_URL.replace(/\/api\/?$/, '');
+  }
+
   // Initialize socket connection
   async initializeSocket() {
     try {
+      const io = this.getSocketFactory();
+      if (!io) {
+        throw new Error('Real-time tracking is unavailable because socket.io-client is missing');
+      }
+
       const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
       if (!token) throw new Error('No auth token');
 
-      this.socket = io(`${API_BASE_URL}`, {
+      this.socket = io(this.getSocketUrl(), {
         auth: { token },
         transports: ['websocket']
       });

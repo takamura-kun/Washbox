@@ -181,6 +181,20 @@
                                 <small class="text-muted">Fixed price per individual piece (e.g. comforter, suit jacket)</small>
                             </div>
 
+                            {{-- Min Weight --}}
+                            <div class="col-md-6" id="editMinWeightField"
+                                style="{{ in_array(old('service_type', $service->service_type), ['special_item', 'addon']) || old('pricing_type', $service->pricing_type ?? 'per_load') === 'per_piece' ? 'display:none' : '' }}">
+                                <label class="form-label fw-semibold">Min Weight (kg)</label>
+                                <input type="number" name="min_weight" id="minWeightInput" step="0.1" min="0"
+                                    class="form-control @error('min_weight') is-invalid @enderror"
+                                    value="{{ old('min_weight', $service->min_weight) }}"
+                                    placeholder="e.g. 4">
+                                @error('min_weight')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <small class="text-muted">Minimum weight required per load</small>
+                            </div>
+
                             {{-- Max Weight --}}
                             <div class="col-md-6" id="editMaxWeightField"
                                 style="{{ in_array(old('service_type', $service->service_type), ['special_item', 'addon']) || old('pricing_type', $service->pricing_type ?? 'per_load') === 'per_piece' ? 'display:none' : '' }}">
@@ -192,7 +206,101 @@
                                 @error('max_weight')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                                <small class="text-muted">Leave blank for no weight limit</small>
+                                <small class="text-muted">Maximum weight allowed per load</small>
+                            </div>
+                        </div>
+
+                        {{-- Excess Weight Pricing --}}
+                        <div class="row g-3 mt-1" id="excessWeightPricingRow"
+                            style="{{ in_array(old('service_type', $service->service_type), ['special_item', 'addon']) || old('pricing_type', $service->pricing_type ?? 'per_load') === 'per_piece' ? 'display:none' : '' }}">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" name="allow_excess_weight" id="allowExcessWeight" value="1"
+                                        {{ old('allow_excess_weight', $service->allow_excess_weight) ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-semibold" for="allowExcessWeight">
+                                        Allow Excess Weight (charge per kg)
+                                    </label>
+                                </div>
+                                <small class="text-muted">If enabled, weight beyond max is charged per kg instead of requiring a new load.</small>
+                            </div>
+                            <div class="col-md-6" id="excessWeightChargeField"
+                                style="{{ old('allow_excess_weight', $service->allow_excess_weight) ? '' : 'display:none' }}">
+                                <label class="form-label fw-semibold">Excess Weight Charge (₱/kg)</label>
+                                <input type="number" name="excess_weight_charge_per_kg" step="0.01" min="0"
+                                    class="form-control @error('excess_weight_charge_per_kg') is-invalid @enderror"
+                                    value="{{ old('excess_weight_charge_per_kg', $service->excess_weight_charge_per_kg) }}"
+                                    placeholder="e.g. 70">
+                                @error('excess_weight_charge_per_kg')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <small class="text-muted">Fee per kg over the max weight limit</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Service Supplies --}}
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-box me-2" style="color: #3D3B6B;"></i>Service Supplies (Optional)
+                        </h6>
+                        <span class="badge bg-info" id="suppliesCount">{{ $service->supplies->count() }} items</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="alert alert-info border-0 mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <small>Add supplies that will be automatically consumed when this service is used. This helps track inventory usage per service.</small>
+                        </div>
+                        
+                        <div id="suppliesContainer" class="mb-3">
+                            @forelse($service->supplies as $supply)
+                                <div class="supply-item p-3 mb-2 border rounded d-flex justify-content-between align-items-center" data-supply-id="{{ $supply->id }}" data-quantity="{{ $supply->pivot->quantity_required }}" style="background: var(--card-bg);">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-box-seam text-primary"></i>
+                                            <div>
+                                                <strong>{{ $supply->name }}</strong>
+                                                @if($supply->brand)
+                                                    <span class="badge bg-secondary ms-2" style="font-size: 0.7rem;">{{ $supply->brand }}</span>
+                                                @endif
+                                                <small class="text-muted d-block">{{ $supply->pivot->quantity_required }} {{ $supply->unit_label ?? 'units' }} per service</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-supply-btn">
+                                        <i class="bi bi-trash"></i> Remove
+                                    </button>
+                                </div>
+                            @empty
+                                <div class="text-center py-4" id="emptySuppliesMessage">
+                                    <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                                    <p class="text-muted mb-0 mt-2">No supplies added yet</p>
+                                </div>
+                            @endforelse
+                        </div>
+
+                        <div class="card border-primary" style="border-style: dashed !important;">
+                            <div class="card-body p-3">
+                                <h6 class="mb-3 fw-semibold"><i class="bi bi-plus-circle me-2"></i>Add Supply</h6>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Supply Item</label>
+                                        <select id="supplySelect" class="form-select form-select-sm">
+                                            <option value="">-- Select a supply --</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-semibold">Quantity</label>
+                                        <input type="number" id="quantityInput" class="form-control form-control-sm" placeholder="Qty" min="0.01" step="0.01" value="1">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-semibold">&nbsp;</label>
+                                        <button type="button" class="btn btn-sm btn-primary w-100" id="addSupplyBtn">
+                                            <i class="bi bi-plus-lg"></i> Add
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -397,6 +505,7 @@
 @endpush
 
 @push('scripts')
+<script src="{{ asset('assets/js/service-supplies-edit.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // ── Element refs ──────────────────────────────────────────────────────────
@@ -407,6 +516,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const pricePerPieceContainer = document.getElementById('pricePerPieceContainer');
     const pricePerLoadInput      = document.getElementById('pricePerLoadInput');
     const pricePerPieceInput     = document.getElementById('pricePerPieceInput');
+    const minWeightField         = document.getElementById('editMinWeightField');
+    const minWeightInput         = document.getElementById('minWeightInput');
     const maxWeightField         = document.getElementById('editMaxWeightField');
     const maxWeightInput         = document.getElementById('maxWeightInput');
     const serviceTypeSelect      = document.getElementById('serviceTypeSelect');
@@ -433,6 +544,7 @@ document.addEventListener('DOMContentLoaded', function () {
             pricePerPieceContainer.style.display = '';
             pricePerLoadInput.removeAttribute('required');
             pricePerPieceInput.setAttribute('required', '');
+            minWeightField.style.display = 'none'; // weight irrelevant for per-piece
             maxWeightField.style.display = 'none'; // weight irrelevant for per-piece
             pricingTypeHelp.textContent  = 'Customer will be charged per individual piece';
         } else {
@@ -441,13 +553,15 @@ document.addEventListener('DOMContentLoaded', function () {
             pricePerLoadInput.setAttribute('required', '');
             pricePerPieceInput.removeAttribute('required');
 
-            // Restore max weight based on service type
+            // Restore min/max weight based on service type
             if (serviceTypeSelect.selectedIndex > 0) {
                 const selected = serviceTypeSelect.options[serviceTypeSelect.selectedIndex];
                 const defaults = JSON.parse(selected.dataset.defaults || '{}');
-                if (defaults.max_weight) {
+                if (defaults.max_weight || defaults.min_weight) {
+                    minWeightField.style.display = 'block';
                     maxWeightField.style.display = 'block';
                 } else {
+                    minWeightField.style.display = '';
                     maxWeightField.style.display = '';
                 }
             }
@@ -525,6 +639,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     maxWeightInput.value = '';
                     maxWeightField.style.display = defaults.pricing_type === 'per_piece' ? 'none' : 'block';
+                }
+
+                // Set min weight
+                if (defaults.min_weight) {
+                    minWeightInput.value = defaults.min_weight;
+                    minWeightField.style.display = 'block';
+                } else {
+                    minWeightInput.value = '';
+                    minWeightField.style.display = defaults.pricing_type === 'per_piece' ? 'none' : 'block';
                 }
 
                 // Set description if empty
@@ -609,6 +732,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // Trigger category filter on load
     if (categorySelect && categorySelect.value) {
         categorySelect.dispatchEvent(new Event('change'));
+    }
+
+    const allowExcessWeight = document.getElementById('allowExcessWeight');
+    const excessWeightChargeField = document.getElementById('excessWeightChargeField');
+    if (allowExcessWeight && excessWeightChargeField) {
+        allowExcessWeight.addEventListener('change', function() {
+            excessWeightChargeField.style.display = this.checked ? '' : 'none';
+        });
     }
 });
 </script>

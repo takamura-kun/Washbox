@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\LaundryController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\PickupController;
 use App\Http\Controllers\Api\ServiceController;
-use App\Http\Controllers\Api\AddOnController;
+
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\NotificationController;
@@ -19,14 +19,21 @@ use App\Http\Controllers\Api\LocationTrackingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\ServiceStatusController;
-use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
-use App\Http\Controllers\Staff\NotificationController as StaffNotificationController;
+use App\Http\Controllers\Api\InventoryController as ApiInventoryController;
+use App\Http\Controllers\Branch\NotificationController as StaffNotificationController;
+use App\Http\Controllers\Api\AdminNotificationController;
+use App\Http\Controllers\Api\VehicleController;
+use App\Http\Controllers\Api\TrafficController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 */
+
+// Admin Dashboard API Routes (no v1 prefix)
+Route::get('/api/vehicles/profiles', [VehicleController::class, 'profiles']);
+Route::get('/api/traffic/current', [TrafficController::class, 'current']);
 
 Route::prefix('v1')->group(function () {
 
@@ -48,6 +55,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/{branch}/operating-hours', [BranchController::class, 'operatingHours']);
     });
 
+    // Customer's Registered Branch (Requires Authentication) - Must be outside branches prefix to avoid route conflicts
+    Route::middleware('auth:sanctum')->get('/my-branch', [BranchController::class, 'getMyBranch']);
+
     // Services (Public)
     Route::get('/services', [ServiceController::class, 'index']);
 
@@ -57,9 +67,16 @@ Route::prefix('v1')->group(function () {
     Route::post('/check-delivery-fee', [ServiceStatusController::class, 'checkDeliveryFee']);
     Route::get('/service-areas/{branchId}', [ServiceStatusController::class, 'getServiceAreas']);
 
-    // Add-ons (Public)
-    Route::get('/addons', [AddOnController::class, 'index']);
-    Route::get('/addons/{id}', [AddOnController::class, 'show']);
+    // Inventory (Public)
+    Route::prefix('inventory')->group(function () {
+        Route::get('/', [ApiInventoryController::class, 'index']);
+        Route::get('/low-stock', [ApiInventoryController::class, 'lowStock']);
+        Route::get('/out-of-stock', [ApiInventoryController::class, 'outOfStock']);
+        Route::get('/stats', [ApiInventoryController::class, 'stats']);
+        Route::get('/branches/{branch}', [ApiInventoryController::class, 'byBranch']);
+        Route::get('/{item}', [ApiInventoryController::class, 'show']);
+        Route::post('/check-stock', [ApiInventoryController::class, 'checkStock']);
+    });
 
     // Promotions (Public)
     Route::prefix('promotions')->group(function () {
@@ -72,51 +89,6 @@ Route::prefix('v1')->group(function () {
 
     // Public Ratings/Feedbacks
     Route::get('/ratings/public', [CustomerRatingController::class, 'publicRatings']);
-
-    Route::get('/health', function () {
-        return response()->json([
-            'success' => true,
-            'message' => 'WashBox API is running',
-            'version' => '1.0.0',
-            'timestamp' => now()->toIso8601String(),
-            'mail_driver' => config('mail.default'),
-            'app_env' => app()->environment(),
-        ]);
-    });
-
-    // Test endpoint for mobile connectivity
-    Route::get('/test', function () {
-        return response()->json([
-            'success' => true,
-            'message' => 'API connection successful',
-            'server_time' => now()->format('Y-m-d H:i:s'),
-        ]);
-    });
-
-    // Debug endpoint for promotions
-    Route::get('/debug/promotions', function () {
-        $promotions = \App\Models\Promotion::where('is_active', true)
-            ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
-            ->get();
-            
-        return response()->json([
-            'success' => true,
-            'debug' => true,
-            'count' => $promotions->count(),
-            'current_time' => now()->toIso8601String(),
-            'promotions' => $promotions->map(function($p) {
-                return [
-                    'id' => $p->id,
-                    'name' => $p->name,
-                    'is_active' => $p->is_active,
-                    'start_date' => $p->start_date,
-                    'end_date' => $p->end_date,
-                    'type' => $p->type,
-                ];
-            })
-        ]);
-    });
 
     // ========================================
     // PROTECTED ROUTES (Require Authentication)
@@ -233,6 +205,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/realtime', [AnalyticsController::class, 'realtime']);
         });
 
+
+
         // ========================================
         // NOTIFICATIONS
         // ========================================
@@ -286,68 +260,4 @@ Route::middleware('auth:admin')->group(function () {
     Route::delete('/admin/notifications/clear-read', [AdminNotificationController::class, 'clearRead']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
-    // Tracking endpoints
-    Route::prefix('tracking')->group(function () {
-        Route::post('/start', function (\Illuminate\Http\Request $request) {
-            \Illuminate\Support\Facades\Log::info('Tracking started', $request->all());
-            return response()->json(['success' => true, 'message' => 'Tracking started']);
-        })->name('api.tracking.start');
 
-        Route::post('/start-multi', function (\Illuminate\Http\Request $request) {
-            \Illuminate\Support\Facades\Log::info('Multi-tracking started', $request->all());
-            return response()->json(['success' => true, 'message' => 'Multi-tracking started']);
-        })->name('api.tracking.start-multi');
-
-        Route::post('/stop', function (\Illuminate\Http\Request $request) {
-            \Illuminate\Support\Facades\Log::info('Tracking stopped', $request->all());
-            return response()->json(['success' => true, 'message' => 'Tracking stopped']);
-        })->name('api.tracking.stop');
-
-        Route::post('/update', function (\Illuminate\Http\Request $request) {
-            \Illuminate\Support\Facades\Log::info('Location update', $request->all());
-
-            if ($request->has('active_pickups') && $request->has('location')) {
-                foreach ($request->active_pickups as $pickupId) {
-                    event(new \App\Events\LocationUpdated($pickupId, $request->location));
-                }
-            }
-
-            return response()->json(['success' => true, 'message' => 'Location updated']);
-        })->name('api.tracking.update');
-    });
-
-    // Error reporting endpoint
-    Route::post('/errors', function (\Illuminate\Http\Request $request) {
-        \Illuminate\Support\Facades\Log::error('Frontend Error', $request->all());
-        return response()->json(['success' => true]);
-    })->name('api.errors');
-
-    // Performance monitoring endpoint
-    Route::post('/performance', function (\Illuminate\Http\Request $request) {
-        \Illuminate\Support\Facades\Log::info('Performance Metric', $request->all());
-        return response()->json(['success' => true]);
-    })->name('api.performance');
-});
-
-// Vehicle and Traffic endpoints (mock data for route optimizer)
-Route::prefix('vehicles')->group(function () {
-    Route::get('/profiles', function () {
-        return response()->json([
-            'success' => true,
-            'vehicles' => [
-                ['id' => 1, 'name' => 'Van 1', 'capacity' => 50, 'speed' => 40],
-                ['id' => 2, 'name' => 'Motorcycle 1', 'capacity' => 10, 'speed' => 60]
-            ]
-        ]);
-    });
-});
-
-Route::prefix('traffic')->group(function () {
-    Route::get('/current', function () {
-        return response()->json([
-            'success' => true,
-            'traffic' => ['level' => 'moderate', 'delay_factor' => 1.2]
-        ]);
-    });
-});

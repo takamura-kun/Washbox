@@ -48,75 +48,75 @@
     {{-- Stats Overview --}}
     <div class="row g-3 mb-4">
         <div class="col-md-2">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-3 text-center">
-                    <div class="bg-primary bg-opacity-10 p-2 rounded-3 d-inline-block mb-2">
-                        <i class="bi bi-box-seam fs-4 text-primary"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body p-3 text-center text-white">
+                    <div class="bg-white bg-opacity-25 p-2 rounded-3 d-inline-block mb-2">
+                        <i class="bi bi-box-seam fs-4 text-white"></i>
                     </div>
-                    <h4 class="fw-bold mb-0">{{ $stats['total'] }}</h4>
-                    <small class="text-muted">Total Laundries</small>
+                    <h4 class="fw-bold mb-0 text-white">{{ $stats['total'] }}</h4>
+                    <small class="text-white-50">Total Laundries</small>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-3 text-center">
-                    <div class="bg-warning bg-opacity-10 p-2 rounded-3 d-inline-block mb-2">
-                        <i class="bi bi-clock fs-4 text-warning"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="card-body p-3 text-center text-white">
+                    <div class="bg-white bg-opacity-25 p-2 rounded-3 d-inline-block mb-2">
+                        <i class="bi bi-clock fs-4 text-white"></i>
                     </div>
-                    <h4 class="fw-bold mb-0">{{ $stats['pending'] }}</h4>
-                    <small class="text-muted">Pending</small>
+                    <h4 class="fw-bold mb-0 text-white">{{ $stats['pending'] }}</h4>
+                    <small class="text-white-50">Pending</small>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-3 text-center">
-                    <div class="bg-info bg-opacity-10 p-2 rounded-3 d-inline-block mb-2">
-                        <i class="bi bi-arrow-repeat fs-4 text-info"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="card-body p-3 text-center text-white">
+                    <div class="bg-white bg-opacity-25 p-2 rounded-3 d-inline-block mb-2">
+                        <i class="bi bi-arrow-repeat fs-4 text-white"></i>
                     </div>
-                    <h4 class="fw-bold mb-0">{{ $stats['processing'] }}</h4>
-                    <small class="text-muted">Processing</small>
+                    <h4 class="fw-bold mb-0 text-white">{{ $stats['processing'] }}</h4>
+                    <small class="text-white-50">Processing</small>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-3 text-center">
-                    <div class="bg-success bg-opacity-10 p-2 rounded-3 d-inline-block mb-2">
-                        <i class="bi bi-check-circle fs-4 text-success"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <div class="card-body p-3 text-center text-white">
+                    <div class="bg-white bg-opacity-25 p-2 rounded-3 d-inline-block mb-2">
+                        <i class="bi bi-check-circle fs-4 text-white"></i>
                     </div>
-                    <h4 class="fw-bold mb-0">{{ $stats['ready'] }}</h4>
-                    <small class="text-muted">Ready</small>
+                    <h4 class="fw-bold mb-0 text-white">{{ $stats['ready'] }}</h4>
+                    <small class="text-white-50">Ready</small>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-3 text-center">
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                <div class="card-body p-3 text-center text-dark">
                     <div class="bg-dark bg-opacity-10 p-2 rounded-3 d-inline-block mb-2">
-                        <i class="bi bi-check-all fs-4"></i>
+                        <i class="bi bi-check-all fs-4 text-dark"></i>
                     </div>
-                    <h4 class="fw-bold mb-0">{{ $stats['completed'] }}</h4>
-                    <small class="text-muted">Completed</small>
+                    <h4 class="fw-bold mb-0 text-dark">{{ $stats['completed'] }}</h4>
+                    <small class="text-dark opacity-75">Completed</small>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-success border-4">
-                <div class="card-body p-3 text-center">
-                    <div class="bg-success bg-opacity-10 p-2 rounded-3 d-inline-block mb-2">
-                        <i class="bi bi-cash-stack fs-4 text-success"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="card-body p-3 text-center text-white">
+                    <div class="bg-white bg-opacity-25 p-2 rounded-3 d-inline-block mb-2">
+                        <i class="bi bi-cash-stack fs-4 text-white"></i>
                     </div>
-                    <h5 class="fw-bold mb-0 small">₱{{ number_format($stats['total_revenue'], 0) }}</h5>
-                    <small class="text-muted">Revenue</small>
+                    <h5 class="fw-bold mb-0 small text-white">₱{{ number_format($stats['total_revenue'], 0) }}</h5>
+                    <small class="text-white-50">Revenue</small>
                 </div>
             </div>
         </div>
     </div>
 
     {{-- Filters --}}
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: #2d3748;">
         <div class="card-body p-3">
             <form method="GET" class="row g-2 align-items-center">
                 <div class="col-md-2">
@@ -176,35 +176,35 @@
                 $color = $statusColors[$laundry->status] ?? 'secondary';
             @endphp
             <div class="col-md-6 col-lg-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
-                    <div class="card-body p-3">
+                <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift" style="background-color: #2d3748;">
+                    <div class="card-body p-3 text-white">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
-                                <a href="{{ route('admin.laundries.show', $laundry) }}" class="tracking-number fw-bold text-decoration-none">
+                                <a href="{{ route('admin.laundries.show', $laundry) }}" class="tracking-number fw-bold text-decoration-none text-white">
                                     {{ $laundry->tracking_number }}
                                 </a>
                                 @if($laundry->pickupRequest)
-                                    <br><small class="text-muted"><i class="bi bi-truck me-1"></i>Pickup #{{ $laundry->pickupRequest->id }}</small>
+                                    <br><small class="text-white-50"><i class="bi bi-truck me-1"></i>Pickup #{{ $laundry->pickupRequest->id }}</small>
                                 @endif
                             </div>
                             <span class="badge bg-{{ $color }}">{{ ucfirst($laundry->status) }}</span>
                         </div>
                         <div class="mb-3">
                             <div class="d-flex align-items-center mb-2">
-                                <i class="bi bi-person-circle me-2 text-muted"></i>
+                                <i class="bi bi-person-circle me-2 text-white-50"></i>
                                 <div>
-                                    <div class="fw-semibold">{{ $laundry->customer->name ?? 'N/A' }}</div>
-                                    <small class="text-muted">{{ $laundry->customer->phone ?? '' }}</small>
+                                    <div class="fw-semibold text-white">{{ $laundry->customer->name ?? 'N/A' }}</div>
+                                    <small class="text-white-50">{{ $laundry->customer->phone ?? '' }}</small>
                                 </div>
                             </div>
                             <div class="d-flex align-items-center mb-2">
-                                <i class="bi bi-shop me-2 text-muted"></i>
+                                <i class="bi bi-shop me-2 text-white-50"></i>
                                 <span class="badge bg-secondary">{{ $laundry->branch->name ?? 'N/A' }}</span>
                             </div>
                             <div class="d-flex align-items-center">
-                                <i class="bi bi-droplet me-2 text-muted"></i>
+                                <i class="bi bi-droplet me-2 text-white-50"></i>
                                 <div>
-                                    <span>{{ $laundry->service->name ?? 'N/A' }}</span>
+                                    <span class="text-white">{{ $laundry->service->name ?? 'N/A' }}</span>
                                     @if($laundry->addons_total > 0)
                                         <br><small class="text-success">+₱{{ number_format($laundry->addons_total, 2) }} add-ons</small>
                                     @endif
@@ -214,18 +214,18 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top" style="border-color: rgba(255,255,255,0.2) !important;">
                             <div>
                                 @if($laundry->weight > 0)
-                                    <small class="text-muted">{{ number_format($laundry->weight, 2) }} kg</small>
+                                    <small class="text-white-50">{{ number_format($laundry->weight, 2) }} kg</small>
                                 @endif
                                 @if($laundry->number_of_loads)
-                                    <small class="text-muted">{{ $laundry->number_of_loads }} {{ ($laundry->service?->pricing_type === 'per_piece') ? 'pc(s)' : 'load(s)' }}</small>
+                                    <small class="text-white-50">{{ $laundry->number_of_loads }} {{ ($laundry->service?->pricing_type === 'per_piece') ? 'pc(s)' : 'load(s)' }}</small>
                                 @endif
-                                <br><small class="text-muted">{{ $laundry->created_at->format('M d, Y h:i A') }}</small>
+                                <br><small class="text-white-50">{{ $laundry->created_at->format('M d, Y h:i A') }}</small>
                             </div>
                             <div class="text-end">
-                                <strong class="amount d-block">₱{{ number_format($laundry->total_amount, 2) }}</strong>
+                                <strong class="amount d-block text-white">₱{{ number_format($laundry->total_amount, 2) }}</strong>
                                 @if($laundry->discount_amount > 0)
                                     <small class="text-success">-₱{{ number_format($laundry->discount_amount, 2) }}</small>
                                 @endif
@@ -238,9 +238,9 @@
         </div>
         @endif
     @empty
-        <div class="card border-0 shadow-sm rounded-4">
+        <div class="card border-0 shadow-sm rounded-4" style="background-color: #2d3748;">
             <div class="card-body p-5">
-                <div class="empty-state">
+                <div class="empty-state text-white">
                     <i class="bi bi-inbox"></i>
                     <p>
                         @if(request()->anyFilled(['search','status','branch_id','service_id','date_from']))
@@ -259,10 +259,10 @@
     @endforelse
 
     @if($laundries->hasPages())
-    <div class="card border-0 shadow-sm rounded-4 mt-3">
+    <div class="card border-0 shadow-sm rounded-4 mt-3" style="background-color: #2d3748;">
         <div class="card-body p-3">
             <div class="d-flex justify-content-between align-items-center">
-                <small class="text-muted">
+                <small class="text-white-50">
                     Showing {{ $laundries->firstItem() }}–{{ $laundries->lastItem() }}
                     of {{ $laundries->total() }} laundries
                 </small>

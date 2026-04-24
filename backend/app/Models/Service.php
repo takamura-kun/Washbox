@@ -27,11 +27,14 @@ class Service extends Model
         'service_type',
         'min_weight',
         'max_weight',
+        'max_weight_per_load',
+        'excess_weight_charge_per_kg',
+        'allow_excess_weight',
         'turnaround_time',
         'icon_path',
         'image',
         'is_active',
-        'category', // Make sure category is in fillable
+        'category',
         'display_laundry',
     ];
 
@@ -67,6 +70,9 @@ class Service extends Model
         'price_per_load' => 'decimal:2',
         'min_weight' => 'decimal:2',
         'max_weight' => 'decimal:2',
+        'max_weight_per_load' => 'decimal:2',
+        'excess_weight_charge_per_kg' => 'decimal:2',
+        'allow_excess_weight' => 'boolean',
         'turnaround_time' => 'integer',
         'is_active' => 'boolean',
         'created_at' => 'datetime',
@@ -92,11 +98,39 @@ class Service extends Model
     }
 
     /**
+     * Get service items (inventory items used in this service).
+     */
+    public function serviceItems()
+    {
+        return $this->hasMany(ServiceItem::class);
+    }
+
+    /**
+     * Get inventory items through service items.
+     */
+    public function inventoryItems()
+    {
+        return $this->belongsToMany(InventoryItem::class, 'service_items')
+            ->withPivot('quantity')
+            ->withTimestamps();
+    }
+
+    /**
      * Get the service type relationship
      */
     public function serviceType()
     {
         return $this->belongsTo(ServiceType::class);
+    }
+
+    /**
+     * Get supplies for this service (many-to-many relationship).
+     */
+    public function supplies()
+    {
+        return $this->belongsToMany(InventoryItem::class, 'service_supplies', 'service_id', 'inventory_item_id')
+            ->withPivot('quantity_required')
+            ->withTimestamps();
     }
 
     /**

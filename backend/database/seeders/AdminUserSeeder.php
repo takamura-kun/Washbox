@@ -34,7 +34,7 @@ class AdminUserSeeder extends Seeder
             'name' => 'System Administrator',
             'email' => 'admin@washbox.com',
             'phone' => '09123456789',
-            'password' => Hash::make('Admin@123'),
+            'password' => 'Admin@123',            //find backend/database/migrations -type f | wc -l,
             'role' => 'admin',
             'branch_id' => null, // Admin has access to all branches
             'is_active' => true,

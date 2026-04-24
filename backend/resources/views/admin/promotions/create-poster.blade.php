@@ -22,7 +22,7 @@
 
         <div class="row g-4">
             {{-- Left Column - Form --}}
-            <div class="col-lg-7">
+            <div class="col-lg-7 col-md-12">
                 {{-- Basic Information --}}
                 <div class="card border-0 shadow-sm mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                     <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
@@ -32,28 +32,28 @@
                     </div>
                     <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-12 col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Promotion Name (Internal)</label>
                                 <input type="text" name="name" id="name" class="form-control"
                                     placeholder="e.g., Drop Off Promo - Sibulan" required>
                                 <small class="text-muted">Internal reference name</small>
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-12 col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Poster Title</label>
                                 <input type="text" name="poster_title" id="poster_title" class="form-control"
                                     placeholder="e.g., DROP OFF PROMO" required>
                                 <small class="text-muted">Main heading for the poster</small>
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-12 col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Price (₱)</label>
                                 <input type="number" name="display_price" id="display_price" class="form-control"
                                     placeholder="179" min="0" step="1" required>
                                 <small class="text-muted">Main price to display</small>
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-12 col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Price Unit</label>
                                 <input type="text" name="price_unit" id="price_unit" class="form-control"
                                     placeholder="e.g., PER 8KG LOAD" required>
@@ -124,25 +124,25 @@
                     </div>
                     <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-12 col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Start Date</label>
                                 <input type="date" name="start_date" id="start_date" class="form-control"
                                     value="{{ date('Y-m-d') }}" required>
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-12 col-md-6 mb-3">
                                 <label class="form-label fw-semibold">End Date</label>
                                 <input type="date" name="end_date" id="end_date" class="form-control" required>
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-12 col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Promo Code (Optional)</label>
                                 <input type="text" name="promo_code" class="form-control"
                                     placeholder="e.g., SUMMER2024">
                                 <small class="text-muted">Leave empty if not needed</small>
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-12 col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Target Branch</label>
                                 <select name="branch_id" id="branch_id" class="form-select">
                                     <option value="">All Branches</option>
@@ -174,7 +174,7 @@
                     <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Color Theme</label>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 flex-wrap">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="color_theme"
                                         id="theme_blue" value="blue" checked>
@@ -208,23 +208,49 @@
                     </div>
                 </div>
 
+                {{-- Inventory Items Section --}}
+                <div class="card border-0 shadow-sm mb-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                    <div class="card-header border-bottom py-3" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-primary) !important;">
+                            <i class="bi bi-box-seam"></i> Inventory Items (Auto-Deduct)
+                        </h6>
+                    </div>
+                    <div class="card-body p-4" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
+                        <p class="text-muted small mb-3">
+                            <i class="bi bi-info-circle"></i> Select inventory items that will be automatically deducted from stock when this promotion is used.
+                        </p>
+                        
+                        <div id="inventory-items-container">
+                            {{-- Initial empty state --}}
+                            <div class="text-center py-3 text-muted" id="no-items-message">
+                                <i class="bi bi-inbox fs-3"></i>
+                                <p class="mb-0 small">No items added yet. Click "Add Item" to include inventory items.</p>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-outline-success mt-2" id="add-inventory-item">
+                            <i class="bi bi-plus-circle"></i> Add Inventory Item
+                        </button>
+                    </div>
+                </div>
+
                 {{-- Action Buttons --}}
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary px-4" style="background: #3D3B6B; border: none;">
-                        <i class="bi bi-check-circle"></i> Create Promotion
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="submit" class="btn btn-primary flex-grow-1 flex-md-grow-0" style="background: #3D3B6B; border: none;">
+                        <i class="bi bi-check-circle"></i> <span class="d-none d-sm-inline">Create Promotion</span><span class="d-sm-none">Create</span>
                     </button>
-                    <button type="button" class="btn btn-success px-4" id="download-poster">
-                        <i class="bi bi-download"></i> Download Poster
+                    <button type="button" class="btn btn-success flex-grow-1 flex-md-grow-0" id="download-poster">
+                        <i class="bi bi-download"></i> <span class="d-none d-sm-inline">Download Poster</span><span class="d-sm-none">Download</span>
                     </button>
-                    <button type="button" class="btn btn-outline-secondary px-4" id="reset-form">
-                        <i class="bi bi-arrow-clockwise"></i> Reset
+                    <button type="button" class="btn btn-outline-secondary flex-grow-1 flex-md-grow-0" id="reset-form">
+                        <i class="bi bi-arrow-clockwise"></i> <span class="d-none d-sm-inline">Reset</span>
                     </button>
                 </div>
             </div>
 
             {{-- Right Column - Live Preview --}}
-            <div class="col-lg-5">
-                <div class="sticky-top" style="top: 20px;">
+            <div class="col-lg-5 col-md-12">
+                <div class="sticky-top d-none d-lg-block" style="top: 20px;">
                     <div class="card border-0 shadow-sm" style="background-color: var(--card-bg) !important;">
                         <div class="card-header py-3" style="background-color: #1F2937 !important; color: white !important;">
                             <h6 class="mb-0 fw-bold">
@@ -234,7 +260,7 @@
                         <div class="card-body p-0" style="background-color: var(--card-bg) !important;">
                             {{-- Poster Preview Canvas --}}
                             <div id="poster-preview" class="position-relative"
-                                style="width: 100%; aspect-ratio: 1/1; background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%); overflow: hidden;">
+                                style="width: 100%; aspect-ratio: 1/1; background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%); overflow: hidden; max-height: 500px;">
 
                                 {{-- Decorative Elements --}}
                                 <div class="position-absolute" style="top: 20px; left: 20px;">
@@ -248,7 +274,7 @@
                                 </div>
 
                                 {{-- Content Container --}}
-                                <div class="d-flex flex-column justify-content-center align-items-center h-100 p-4 text-center">
+                                <div class="d-flex flex-column justify-content-center align-items-center h-100 p-3 p-md-4 text-center">
                                     {{-- Logo/Brand --}}
                                     <div class="mb-3">
                                         <h4 class="text-white fw-bold mb-0" style="letter-spacing: 2px;">WASHBOX</h4>
@@ -285,7 +311,7 @@
                                     </div>
 
                                     {{-- Features --}}
-                                    <div id="preview-features" class="d-flex flex-wrap justify-content-center gap-2">
+                                    <div id="preview-features" class="d-flex flex-wrap justify-content-center gap-1 gap-md-2">
                                         <span class="badge bg-white text-primary" style="font-size: 0.7rem; padding: 6px 12px;">FREE Detergent</span>
                                         <span class="badge bg-white text-primary" style="font-size: 0.7rem; padding: 6px 12px;">FREE Fabcon</span>
                                         <span class="badge bg-white text-primary" style="font-size: 0.7rem; padding: 6px 12px;">FREE Fold</span>
@@ -316,6 +342,9 @@
 @push('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
+const inventoryItems = @json($inventoryItems);
+let itemCounter = 0;
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('promotionForm');
     const posterPreview = document.getElementById('poster-preview');
@@ -389,6 +418,56 @@ document.addEventListener('DOMContentLoaded', function() {
         newInput.querySelector('input').addEventListener('input', updatePreview);
     });
 
+    // Add inventory item
+    document.getElementById('add-inventory-item').addEventListener('click', function() {
+        const container = document.getElementById('inventory-items-container');
+        const noItemsMsg = document.getElementById('no-items-message');
+        
+        if (noItemsMsg) {
+            noItemsMsg.remove();
+        }
+
+        const itemRow = document.createElement('div');
+        itemRow.className = 'row g-2 mb-2 align-items-end inventory-item-row';
+        itemRow.innerHTML = `
+            <div class="col-md-7">
+                <label class="form-label small mb-1">Inventory Item</label>
+                <select name="inventory_items[${itemCounter}][inventory_item_id]" class="form-select form-select-sm" required>
+                    <option value="">Select item...</option>
+                    ${inventoryItems.map(item => `<option value="${item.id}">${item.name} (${item.brand || 'No Brand'})</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Quantity/Use</label>
+                <input type="number" name="inventory_items[${itemCounter}][quantity]" 
+                    class="form-control form-control-sm" placeholder="1.0" step="0.01" min="0.01" value="1" required>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-sm btn-outline-danger w-100 remove-inventory-item">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(itemRow);
+        itemCounter++;
+
+        // Add remove functionality
+        itemRow.querySelector('.remove-inventory-item').addEventListener('click', function() {
+            itemRow.remove();
+            
+            // Show no items message if all removed
+            if (container.querySelectorAll('.inventory-item-row').length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-3 text-muted" id="no-items-message">
+                        <i class="bi bi-inbox fs-3"></i>
+                        <p class="mb-0 small">No items added yet. Click "Add Item" to include inventory items.</p>
+                    </div>
+                `;
+            }
+        });
+    });
+
     // Download poster as image
     document.getElementById('download-poster').addEventListener('click', function() {
         html2canvas(posterPreview, {
@@ -408,6 +487,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('reset-form').addEventListener('click', function() {
         if (confirm('Are you sure you want to reset the form?')) {
             form.reset();
+            document.getElementById('inventory-items-container').innerHTML = `
+                <div class="text-center py-3 text-muted" id="no-items-message">
+                    <i class="bi bi-inbox fs-3"></i>
+                    <p class="mb-0 small">No items added yet. Click "Add Item" to include inventory items.</p>
+                </div>
+            `;
+            itemCounter = 0;
             updatePreview();
         }
     });
@@ -441,6 +527,52 @@ document.addEventListener('DOMContentLoaded', function() {
 
     .badge {
         font-weight: 600;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 991px) {
+        .sticky-top {
+            position: static;
+        }
+    }
+
+    @media (max-width: 576px) {
+        #poster-preview {
+            aspect-ratio: 1/1.2;
+        }
+
+        #poster-preview .d-flex.flex-column {
+            padding: 1rem !important;
+        }
+
+        #preview-price {
+            font-size: 2.5rem !important;
+        }
+
+        #preview-title {
+            font-size: 1rem !important;
+        }
+
+        #preview-price-unit {
+            font-size: 0.85rem !important;
+        }
+
+        #preview-features .badge {
+            font-size: 0.6rem !important;
+            padding: 4px 8px !important;
+        }
+
+        .container-fluid {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
     }
 </style>
 @endpush

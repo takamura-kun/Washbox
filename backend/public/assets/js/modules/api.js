@@ -119,13 +119,16 @@ class ApiClient {
     /**
      * Optimize multi-pickup route
      */
-    async optimizeRoute(pickupIds) {
+    async optimizeRoute(pickupIds, branchId = null) {
         try {
             showToast(`Optimizing route for ${pickupIds.length} stops...`, "info");
 
+            const body = { pickup_ids: pickupIds };
+            if (branchId) body.branch_id = branchId;
+
             const data = await this.request("/admin/logistics/optimize-route", {
                 method: "POST",
-                body: JSON.stringify({ pickup_ids: pickupIds })
+                body: JSON.stringify(body)
             });
 
             if (data.success) {

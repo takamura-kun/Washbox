@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -65,10 +65,12 @@ export default function PickupTrackingScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        setPickup(data.data);
+        // Handle nested response structure
+        const pickupData = data.data?.pickup || data.data;
+        setPickup(pickupData);
         
         // Get location data if staff is assigned
-        if (data.data.assigned_to) {
+        if (pickupData?.assigned_to) {
           fetchLocationData();
         }
       } else {
@@ -87,9 +89,12 @@ export default function PickupTrackingScreen() {
       const locationData = await LocationTrackingService.getPickupLocations(id);
       console.log('Location data received:', locationData);
       
-      if (locationData && locationData.staff_location) {
-        setStaffLocation(locationData.staff_location);
-        calculateDistance(locationData.staff_location);
+      // Handle both response formats
+      const data = locationData?.data || locationData;
+      
+      if (data && data.staff_location) {
+        setStaffLocation(data.staff_location);
+        calculateDistance(data.staff_location);
       } else {
         console.log('No staff location available yet');
       }
@@ -99,7 +104,10 @@ export default function PickupTrackingScreen() {
   };
 
   const calculateDistance = (staffLoc) => {
-    if (!staffLoc || !pickup?.latitude || !pickup?.longitude) return;
+    if (!staffLoc || !pickup?.latitude || !pickup?.longitude) {
+      console.log('Missing location data:', { staffLoc, pickupLat: pickup?.latitude, pickupLon: pickup?.longitude });
+      return;
+    }
 
     const R = 6371; // Earth's radius in km
     const dLat = (pickup.latitude - staffLoc.latitude) * Math.PI / 180;
@@ -117,7 +125,7 @@ export default function PickupTrackingScreen() {
     setEstimatedArrival(estimatedMinutes);
   };
 
-  const handleLocationUpdate = (locationData) => {
+  const handleLocationUpdate = useCallback((locationData) => {
     if (locationData.user_type === 'staff') {
       setStaffLocation({
         latitude: locationData.latitude,
@@ -129,12 +137,12 @@ export default function PickupTrackingScreen() {
         longitude: locationData.longitude,
       });
     }
-  };
+  }, [pickup]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchPickupDetails();
-  };
+  }, []);
 
   const getStatusColor = (status) => {
     switch (status) {

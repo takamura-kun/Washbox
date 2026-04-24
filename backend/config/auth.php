@@ -35,9 +35,16 @@ return [
             'provider' => 'admins',
         ],
 
+        'branch' => [
+            'driver' => 'session',
+            'provider' => 'branches',
+        ],
+
+        // Deprecated: Staff guard - kept for backward compatibility
+        // Use 'branch' guard instead
         'staff' => [
             'driver' => 'session',
-            'provider' => 'staff',
+            'provider' => 'branches',
         ],
     ],
 
@@ -60,12 +67,18 @@ return [
 
         'admins' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Admin::class,
+            'model' => App\Models\User::class,
         ],
 
+        'branches' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Branch::class,
+        ],
+
+        // Deprecated: Staff provider - kept for backward compatibility
         'staff' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Staff::class,
+            'model' => App\Models\Branch::class,
         ],
     ],
 
@@ -97,8 +110,16 @@ return [
             'throttle' => 60,
         ],
 
+        'branches' => [
+            'provider' => 'branches',
+            'table' => 'password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        // Deprecated: Staff password reset
         'staff' => [
-            'provider' => 'staff',
+            'provider' => 'branches',
             'table' => 'password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,

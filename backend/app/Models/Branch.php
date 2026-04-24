@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Carbon\Carbon;
 
-class Branch extends Model
+class Branch extends Authenticatable
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -17,23 +18,35 @@ class Branch extends Model
      */
     protected $fillable = [
         'name',
-        'code',              // Changed from branch_code for consistency
-        'branch_code',       // Keep for backward compatibility
-        'location',          // Keep for backward compatibility
-        'address',           // Detailed address
-        'city',              // NEW: City
-        'province',          // NEW: Province
+        'code',
+        'branch_code',
+        'location',
+        'address',
+        'city',
+        'province',
         'phone',
         'email',
         'manager_name',
-        'latitude',          // NEW: For map integration
-        'longitude',         // NEW: For map integration
-        'operating_hours',   // JSON field
+        'latitude',
+        'longitude',
+        'operating_hours',
         'photo_url',
-        'gcash_qr_image',    // NEW: GCash QR code image
-        'gcash_account_name', // NEW: GCash account name
-        'gcash_account_number', // NEW: GCash account number
+        'gcash_qr_image',
+        'gcash_account_name',
+        'gcash_account_number',
         'is_active',
+        'username',
+        'password',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
     ];
 
     /**
@@ -43,11 +56,12 @@ class Branch extends Model
      */
     protected $casts = [
         'is_active' => 'boolean',
-        'operating_hours' => 'array',      // ✅ Cast to array for JSON handling
-        'latitude' => 'decimal:8',         // ✅ For precise coordinates
-        'longitude' => 'decimal:8',        // ✅ For precise coordinates
+        'operating_hours' => 'array',
+        'latitude' => 'decimal:8',
+        'longitude' => 'decimal:8',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'last_login_at' => 'datetime',
     ];
 
     /**
@@ -62,6 +76,39 @@ class Branch extends Model
         'status_label',
         'status_color',
     ];
+
+    // ========================================================================
+    // AUTHENTICATION METHODS
+    // ========================================================================
+
+    /**
+     * Get the name of the unique identifier for the user.
+     *
+     * @return string
+     */
+    public function getAuthIdentifierName()
+    {
+        return 'id';
+    }
+
+    /**
+     * Get the password for the user.
+     *
+     * @return string
+     */
+    public function getAuthPassword()
+    {
+        return $this->password;
+    }
+
+    /**
+     * Update last login timestamp
+     */
+    public function updateLastLogin()
+    {
+        $this->last_login_at = now();
+        $this->save();
+    }
 
     // ========================================================================
     // RELATIONSHIPS
@@ -99,6 +146,24 @@ class Branch extends Model
         return $this->belongsToMany(Service::class, 'branch_services')
             ->withPivot('is_available')
             ->withTimestamps();
+    }
+
+    /**
+     * Get all inventory items for this branch.
+     */
+    public function inventoryItems()
+    {
+        return $this->belongsToMany(InventoryItem::class, 'branch_stocks', 'branch_id', 'inventory_item_id')
+            ->withPivot(['current_stock', 'cost_price', 'last_updated'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all branch stock rows for this branch.
+     */
+    public function branchStocks()
+    {
+        return $this->hasMany(BranchStock::class);
     }
 
     /**
@@ -353,7 +418,12 @@ class Branch extends Model
             }
         }
 
-        return 'Hours not available';
+        // Ensure we always return a string, never an array
+        if (is_array($hours)) {
+            return 'Hours not available';
+        }
+
+        return (string) $hours;
     }
 
     /**

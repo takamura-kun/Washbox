@@ -10,6 +10,89 @@ use Carbon\Carbon;
 class BranchController extends Controller
 {
     /**
+     * Get customer's registered branch
+     *
+     * GET /api/v1/branches/my-branch
+     */
+    public function getMyBranch(Request $request)
+    {
+        try {
+            $customer = $request->user();
+
+            if (!$customer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated',
+                ], 401);
+            }
+
+            // Check if customer has a registered branch
+            if (!$customer->branch_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You are not registered to any branch. Please contact us to complete your registration.',
+                    'data' => [
+                        'branch' => null,
+                    ]
+                ], 404);
+            }
+
+            // Get the customer's registered branch
+            $branch = Branch::where('id', $customer->branch_id)
+                ->where('is_active', true)
+                ->withCount(['ratings as ratings_count'])
+                ->withAvg('ratings as average_rating', 'rating')
+                ->first();
+
+            if (!$branch) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your registered branch is not available. Please contact us.',
+                    'data' => [
+                        'branch' => null,
+                    ]
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Your registered branch retrieved successfully',
+                'data' => [
+                    'branch' => [
+                        'id' => $branch->id,
+                        'name' => $branch->name,
+                        'code' => $branch->code,
+                        'city' => $branch->city,
+                        'province' => $branch->province,
+                        'address' => $branch->address,
+                        'phone' => $branch->phone,
+                        'email' => $branch->email,
+                        'latitude' => $branch->latitude,
+                        'longitude' => $branch->longitude,
+                        'operating_hours' => $branch->operating_hours,
+                        'is_open' => $branch->isOpen(),
+                        'today_hours' => $branch->getTodayHoursFormatted(),
+                        'is_active' => $branch->is_active,
+                        'average_rating' => $branch->average_rating ? round($branch->average_rating, 1) : null,
+                        'ratings_count' => $branch->ratings_count ?? 0,
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to get customer branch', [
+                'error' => $e->getMessage(),
+                'customer_id' => $request->user()->id ?? null,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve your branch',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get all active branches
      *
      * GET /api/v1/branches

@@ -295,7 +295,7 @@ export default function PickupsHistoryScreen() {
       </View>
       <Text style={styles.emptyTitle}>No Pickups Yet</Text>
       <Text style={styles.emptyText}>
-        Schedule your first pickup and we'll handle the rest
+        Schedule your first pickup and we&apos;ll handle the rest
       </Text>
       <TouchableOpacity
         style={styles.emptyButton}

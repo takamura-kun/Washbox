@@ -494,7 +494,7 @@ export default function RatingsScreen() {
           <Ionicons name="checkmark-circle-outline" size={64} color={COLORS.success} />
           <Text style={styles.emptyTitle}>All Caught Up!</Text>
           <Text style={styles.emptySubtitle}>
-            You've rated all your completed orders
+            You&apos;ve rated all your completed orders
           </Text>
         </View>
       );

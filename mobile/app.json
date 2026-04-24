@@ -15,7 +15,6 @@
     },
     "android": {
       "package": "com.washbox.app",
-      "usesCleartextTraffic": true,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -38,8 +37,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png",
-      "bundler": "metro"
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -64,7 +62,8 @@
             "./assets/sounds/order_update.mp3",
             "./assets/sounds/pickup_alert.mp3",
             "./assets/sounds/promo_chime.mp3"
-          ]
+          ],
+          "vapidPublicKey": "<your-vapid-public-key>"
         }
       ],
       [
@@ -83,8 +82,14 @@
     "extra": {
       "eas": {
         "projectId": "ddaa13d3-22aa-4439-aa7b-957196850a66"
+      },
+      "router": {
+        "origin": false
       }
     },
-    "owner": "nel_chan"
+    "owner": "nel_chan",
+    "notification": {
+      "vapidPublicKey": "<your-vapid-public-key>"
+    }
   }
 }

@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('page-title', 'Reports')
+@section('page-title', 'Customer Ratings Report')
 
 @section('content')
 <div class="container-fluid px-4 py-5">
@@ -22,125 +22,12 @@
         </div>
     </div>
 
-    {{-- Stats Cards --}}
-    <div class="row g-3 mb-5">
-        <div class="col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm rp-stat-card h-100" data-accent="primary">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div>
-                            <p class="rp-stat-label mb-1">TOTAL REVENUE</p>
-                            <h3 class="mb-0 fw-bold rp-stat-value">₱{{ number_format($stats['total_revenue'], 2) }}</h3>
-                        </div>
-                        <div class="rp-stat-icon rp-icon-primary">
-                            <i class="bi bi-currency-dollar"></i>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center text-success small">
-                        <i class="bi bi-arrow-up-right me-1"></i>
-                        <span>12% from last month</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm rp-stat-card h-100" data-accent="success">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div>
-                            <p class="rp-stat-label mb-1">TOTAL LAUNDRY</p>
-                            <h3 class="mb-0 fw-bold rp-stat-value">{{ number_format($stats['total_laundries']) }}</h3>
-                        </div>
-                        <div class="rp-stat-icon rp-icon-success">
-                            <i class="bi bi-basket"></i>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center text-success small">
-                        <i class="bi bi-arrow-up-right me-1"></i>
-                        <span>8% from last month</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm rp-stat-card h-100" data-accent="info">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div>
-                            <p class="rp-stat-label mb-1">TOTAL CUSTOMERS</p>
-                            <h3 class="mb-0 fw-bold rp-stat-value">{{ number_format($stats['total_customers']) }}</h3>
-                        </div>
-                        <div class="rp-stat-icon rp-icon-info">
-                            <i class="bi bi-people"></i>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center text-success small">
-                        <i class="bi bi-arrow-up-right me-1"></i>
-                        <span>5% from last month</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm rp-stat-card h-100" data-accent="warning">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div>
-                            <p class="rp-stat-label mb-1">ACTIVE BRANCHES</p>
-                            <h3 class="mb-0 fw-bold rp-stat-value">{{ number_format($stats['active_branches']) }}</h3>
-                        </div>
-                        <div class="rp-stat-icon rp-icon-warning">
-                            <i class="bi bi-shop"></i>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center text-muted small">
-                        <i class="bi bi-minus me-1"></i>
-                        <span>No change</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     {{-- Report Types Section --}}
     <div>
         <h5 class="mb-4 fw-bold rp-section-title">Available Reports</h5>
         <div class="row g-3">
 
-            {{-- Profitability Analysis Report --}}
-            <div class="col-md-6 col-lg-3">
-                <div class="card border-0 shadow-sm rp-report-card h-100">
-                    <div class="card-body p-4 d-flex flex-column">
-                        <div class="rp-report-icon rp-report-icon--success mb-4">
-                            <i class="bi bi-graph-up-arrow"></i>
-                        </div>
-                        <h6 class="mb-2 fw-bold rp-card-title">Profitability Analysis</h6>
-                        <p class="text-muted small mb-auto">Revenue, costs, profit margins, and financial performance analysis</p>
-                        <a href="{{ route('admin.reports.profitability') }}" class="btn btn-success btn-sm w-100 mt-3">
-                            View Report <i class="bi bi-arrow-right ms-2"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
 
-            {{-- Revenue Report --}}
-            <div class="col-md-6 col-lg-3">
-                <div class="card border-0 shadow-sm rp-report-card h-100">
-                    <div class="card-body p-4 d-flex flex-column">
-                        <div class="rp-report-icon rp-report-icon--primary mb-4">
-                            <i class="bi bi-graph-up"></i>
-                        </div>
-                        <h6 class="mb-2 fw-bold rp-card-title">Revenue Report</h6>
-                        <p class="text-muted small mb-auto">View revenue trends, daily earnings, and financial analytics</p>
-                        <a href="{{ route('admin.reports.revenue') }}" class="btn btn-primary btn-sm w-100 mt-3">
-                            View Report <i class="bi bi-arrow-right ms-2"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
 
             {{-- Branch Ratings Report --}}
             <div class="col-md-6 col-lg-3">
@@ -177,21 +64,6 @@
                 </div>
             </div>
 
-            {{-- Branches Report --}}
-            <div class="col-md-6 col-lg-3">
-                <div class="card border-0 shadow-sm rp-report-card h-100">
-                    <div class="card-body p-4 d-flex flex-column">
-                        <div class="rp-report-icon rp-report-icon--warning mb-4">
-                            <i class="bi bi-shop"></i>
-                        </div>
-                        <h6 class="mb-2 fw-bold rp-card-title">Branches Report</h6>
-                        <p class="text-muted small mb-auto">Branch performance comparison and operational analytics</p>
-                        <a href="{{ route('admin.reports.branches') }}" class="btn btn-warning btn-sm w-100 mt-3">
-                            View Report <i class="bi bi-arrow-right ms-2"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
 
         </div>
     </div>

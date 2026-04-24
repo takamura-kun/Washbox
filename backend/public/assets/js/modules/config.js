@@ -24,6 +24,7 @@ export const MAP_CONFIG = {
     TILE_URL: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     TILE_ATTRIBUTION: "© OpenStreetMap contributors",
     MAX_ZOOM: 19,
+    MIN_ZOOM: 2,
     PHILIPPINES_BOUNDS: {
         minLat: 4.5,
         maxLat: 21.5,

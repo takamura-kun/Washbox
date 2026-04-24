@@ -24,6 +24,7 @@ class PickupRequest extends Model
     
     protected $fillable = [
         'customer_id','customer_address_id','branch_id','pickup_address','delivery_address',
+        'manual_address','address_manually_edited',
         'latitude','longitude','delivery_latitude','delivery_longitude',
         'preferred_date','preferred_time','phone_number','notes','service_id',
         'assigned_to','status','accepted_at','en_route_at','picked_up_at',
@@ -45,6 +46,7 @@ class PickupRequest extends Model
         'status_history'=>'array','customer_rating'=>'integer',
         'staff_latitude'=>'decimal:8','staff_longitude'=>'decimal:8',
         'staff_location_updated_at'=>'datetime',
+        'address_manually_edited'=>'boolean',
     ];
     // RELATIONSHIPS
     public function customer()   { return $this->belongsTo(Customer::class); }

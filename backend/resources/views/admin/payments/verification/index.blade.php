@@ -74,8 +74,8 @@
     <div class="filter-card-modern">
         <form method="GET" class="row g-3">
             <div class="col-md-3">
-                <label class="filter-label">Status</label>
-                <select name="status" class="filter-select">
+                <label for="status-filter" class="filter-label">Status</label>
+                <select id="status-filter" name="status" class="filter-select">
                     <option value="">All Status</option>
                     <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
                     <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Approved</option>
@@ -83,8 +83,8 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="filter-label">Branch</label>
-                <select name="branch_id" class="filter-select">
+                <label for="branch-filter" class="filter-label">Branch</label>
+                <select id="branch-filter" name="branch_id" class="filter-select">
                     <option value="">All Branches</option>
                     @foreach(\App\Models\Branch::all() as $branch)
                         <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
@@ -110,7 +110,10 @@
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div class="flex-grow-1">
                                 @if($proof->status === 'pending')
-                                    <input type="checkbox" name="payment_proof_ids[]" value="{{ $proof->id }}" class="form-check-input proof-checkbox me-2" style="width: 18px; height: 18px; cursor: pointer;">
+                                    <label for="proof-{{ $proof->id }}" class="d-flex align-items-center">
+                                        <input type="checkbox" id="proof-{{ $proof->id }}" name="payment_proof_ids[]" value="{{ $proof->id }}" class="form-check-input proof-checkbox me-2" style="width: 18px; height: 18px; cursor: pointer;">
+                                        <span class="sr-only">Select payment proof {{ $proof->id }}</span>
+                                    </label>
                                 @endif
                                 <div class="payment-tracking">{{ $proof->laundry->tracking_number }}</div>
                                 <div class="payment-service">{{ $proof->laundry->service->name ?? 'N/A' }}</div>
@@ -221,18 +224,27 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Get elements with null checks
     const selectAll = document.getElementById('selectAll');
     const checkboxes = document.querySelectorAll('.proof-checkbox');
     const bulkApproveForm = document.getElementById('bulkApproveForm');
     const selectedCount = document.getElementById('selectedCount');
 
-    // Select all functionality
-    selectAll.addEventListener('change', function() {
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
+    // Only proceed if we have checkboxes
+    if (checkboxes.length === 0) {
+        console.log('No payment proof checkboxes found');
+        return;
+    }
+
+    // Select all functionality - only if selectAll element exists
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectedCount();
         });
-        updateSelectedCount();
-    });
+    }
 
     // Individual checkbox change
     checkboxes.forEach(checkbox => {
@@ -241,36 +253,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateSelectedCount() {
         const selected = document.querySelectorAll('.proof-checkbox:checked');
-        selectedCount.textContent = `${selected.length} payment(s) selected`;
+        
+        if (selectedCount) {
+            selectedCount.textContent = `${selected.length} payment(s) selected`;
+        }
 
-        // Update select all checkbox
-        selectAll.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
-        selectAll.checked = selected.length === checkboxes.length;
+        // Update select all checkbox if it exists
+        if (selectAll) {
+            selectAll.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
+            selectAll.checked = selected.length === checkboxes.length;
+        }
     }
 
-    // Bulk approve form submission
-    bulkApproveForm.addEventListener('submit', function(e) {
-        const selected = document.querySelectorAll('.proof-checkbox:checked');
+    // Bulk approve form submission - only if form exists
+    if (bulkApproveForm) {
+        bulkApproveForm.addEventListener('submit', function(e) {
+            const selected = document.querySelectorAll('.proof-checkbox:checked');
 
-        // Remove existing hidden inputs
-        bulkApproveForm.querySelectorAll('input[name="payment_proof_ids[]"]').forEach(input => {
-            input.remove();
+            // Remove existing hidden inputs
+            bulkApproveForm.querySelectorAll('input[name="payment_proof_ids[]"]').forEach(input => {
+                input.remove();
+            });
+
+            // Add selected IDs as hidden inputs
+            selected.forEach(checkbox => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'payment_proof_ids[]';
+                input.value = checkbox.value;
+                bulkApproveForm.appendChild(input);
+            });
+
+            if (selected.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one payment proof to approve.');
+            }
         });
-
-        // Add selected IDs as hidden inputs
-        selected.forEach(checkbox => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'payment_proof_ids[]';
-            input.value = checkbox.value;
-            bulkApproveForm.appendChild(input);
-        });
-
-        if (selected.length === 0) {
-            e.preventDefault();
-            alert('Please select at least one payment proof to approve.');
-        }
-    });
+    }
 });
 </script>
 @endpush

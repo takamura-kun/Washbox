@@ -5,7 +5,7 @@ namespace App\Observers;
 use App\Models\PickupRequest;
 use App\Models\Notification;
 use App\Models\AdminNotification;
-use App\Models\StaffNotification;
+use App\Models\BranchNotification;
 
 class PickupRequestObserver
 {
@@ -36,7 +36,26 @@ public function created(PickupRequest $pickupRequest): void
         'branch_id' => $pickupRequest->branch_id,
     ]);
 
-    // 🔔 NOTIFY STAFF IN BRANCH: New pickup request
+    // 🔔 NOTIFY BRANCH: New pickup request
+    if ($pickupRequest->branch_id) {
+        BranchNotification::create([
+            'branch_id' => $pickupRequest->branch_id,
+            'type' => 'pickup_request',
+            'title' => 'New Pickup Request',
+            'message' => "Customer {$pickupRequest->customer->name} requested pickup at {$pickupRequest->pickup_address}",
+            'icon' => 'truck',
+            'color' => 'info',
+            'link' => route('branch.pickups.show', $pickupRequest->id),
+            'data' => [
+                'pickup_request_id' => $pickupRequest->id,
+                'customer_name' => $pickupRequest->customer->name,
+                'pickup_address' => $pickupRequest->pickup_address,
+                'preferred_date' => $pickupRequest->preferred_date?->format('Y-m-d'),
+            ],
+        ]);
+    }
+
+    // 🔔 NOTIFY STAFF IN BRANCH: New pickup request (using UserNotification)
     if ($pickupRequest->branch_id) {
         $staffUsers = \App\Models\User::where('branch_id', $pickupRequest->branch_id)
             ->where('role', 'staff')
@@ -44,21 +63,20 @@ public function created(PickupRequest $pickupRequest): void
             ->get();
 
         foreach ($staffUsers as $staff) {
-            StaffNotification::create([
+            \App\Models\UserNotification::create([
                 'user_id' => $staff->id,
                 'type' => 'pickup_request',
                 'title' => 'New Pickup Request',
                 'message' => "Customer {$pickupRequest->customer->name} requested pickup at {$pickupRequest->pickup_address}",
                 'icon' => 'truck',
                 'color' => 'info',
-                'link' => route('staff.pickups.show', $pickupRequest->id),
+                'link' => route('branch.pickups.show', $pickupRequest->id),
                 'data' => [
                     'pickup_request_id' => $pickupRequest->id,
                     'customer_name' => $pickupRequest->customer->name,
                     'pickup_address' => $pickupRequest->pickup_address,
                     'preferred_date' => $pickupRequest->preferred_date?->format('Y-m-d'),
                 ],
-                'branch_id' => $pickupRequest->branch_id,
             ]);
         }
     }
@@ -87,6 +105,7 @@ public function created(PickupRequest $pickupRequest): void
 
         switch ($newStatus) {
             case 'accepted':
+                // Customer notification
                 Notification::create([
                     'customer_id' => $pickupRequest->customer_id,
                     'type' => 'pickup_accepted',
@@ -95,10 +114,25 @@ public function created(PickupRequest $pickupRequest): void
                     'pickup_request_id' => $pickupRequest->id,
                     'is_read' => false,
                 ]);
+
+                // Branch notification
+                if ($pickupRequest->branch_id) {
+                    BranchNotification::create([
+                        'branch_id' => $pickupRequest->branch_id,
+                        'type' => 'pickup_accepted',
+                        'title' => 'Pickup Accepted',
+                        'message' => "Pickup request from {$pickupRequest->customer->name} has been accepted",
+                        'icon' => 'check-circle',
+                        'color' => 'success',
+                        'link' => route('branch.pickups.show', $pickupRequest->id),
+                    ]);
+                }
                 break;
 
             case 'en_route':
                 $staffName = $pickupRequest->assignedStaff?->name ?? 'Our rider';
+                
+                // Customer notification
                 Notification::create([
                     'customer_id' => $pickupRequest->customer_id,
                     'type' => 'pickup_en_route',
@@ -107,9 +141,23 @@ public function created(PickupRequest $pickupRequest): void
                     'pickup_request_id' => $pickupRequest->id,
                     'is_read' => false,
                 ]);
+
+                // Branch notification
+                if ($pickupRequest->branch_id) {
+                    BranchNotification::create([
+                        'branch_id' => $pickupRequest->branch_id,
+                        'type' => 'pickup_en_route',
+                        'title' => 'Pickup En Route',
+                        'message' => "{$staffName} is on the way to pickup from {$pickupRequest->customer->name}",
+                        'icon' => 'truck',
+                        'color' => 'primary',
+                        'link' => route('branch.pickups.show', $pickupRequest->id),
+                    ]);
+                }
                 break;
 
             case 'picked_up':
+                // Customer notification
                 Notification::create([
                     'customer_id' => $pickupRequest->customer_id,
                     'type' => 'pickup_completed',
@@ -119,7 +167,7 @@ public function created(PickupRequest $pickupRequest): void
                     'is_read' => false,
                 ]);
 
-                // Notify admin
+                // Admin notification
                 AdminNotification::create([
                     'type' => 'pickup_completed',
                     'title' => 'Pickup Completed',
@@ -129,10 +177,25 @@ public function created(PickupRequest $pickupRequest): void
                     'link' => route('admin.pickups.show', $pickupRequest->id),
                     'branch_id' => $pickupRequest->branch_id,
                 ]);
+
+                // Branch notification
+                if ($pickupRequest->branch_id) {
+                    BranchNotification::create([
+                        'branch_id' => $pickupRequest->branch_id,
+                        'type' => 'pickup_completed',
+                        'title' => 'Pickup Completed',
+                        'message' => "Pickup from {$pickupRequest->customer->name} collected successfully",
+                        'icon' => 'check-circle',
+                        'color' => 'success',
+                        'link' => route('branch.pickups.show', $pickupRequest->id),
+                    ]);
+                }
                 break;
 
             case 'cancelled':
                 $reason = $pickupRequest->cancellation_reason ?? 'No reason provided';
+                
+                // Customer notification
                 Notification::create([
                     'customer_id' => $pickupRequest->customer_id,
                     'type' => 'pickup_cancelled',
@@ -142,6 +205,7 @@ public function created(PickupRequest $pickupRequest): void
                     'is_read' => false,
                 ]);
 
+                // Admin notification
                 AdminNotification::create([
                     'type' => 'pickup_cancelled',
                     'title' => 'Pickup Cancelled',
@@ -151,6 +215,19 @@ public function created(PickupRequest $pickupRequest): void
                     'link' => route('admin.pickups.show', $pickupRequest->id),
                     'branch_id' => $pickupRequest->branch_id,
                 ]);
+
+                // Branch notification
+                if ($pickupRequest->branch_id) {
+                    BranchNotification::create([
+                        'branch_id' => $pickupRequest->branch_id,
+                        'type' => 'pickup_cancelled',
+                        'title' => 'Pickup Cancelled',
+                        'message' => "Pickup from {$pickupRequest->customer->name} was cancelled - {$reason}",
+                        'icon' => 'x-circle',
+                        'color' => 'danger',
+                        'link' => route('branch.pickups.show', $pickupRequest->id),
+                    ]);
+                }
                 break;
         }
     }

@@ -246,6 +246,17 @@ class LayoutManager {
 
     applyTheme() {
         document.documentElement.setAttribute('data-theme', this.currentTheme);
+        document.body.setAttribute('data-theme', this.currentTheme);
+        
+        // Add/remove light-mode class for CSS targeting
+        if (this.currentTheme === 'light') {
+            document.body.classList.add('light-mode');
+            document.body.classList.remove('dark-mode');
+        } else {
+            document.body.classList.add('dark-mode');
+            document.body.classList.remove('light-mode');
+        }
+        
         localStorage.setItem(this.themeKey, this.currentTheme);
 
         const themeIcon = this.themeToggle?.querySelector('.bi-sun, .bi-moon');
@@ -342,7 +353,7 @@ class AdminDashboard extends LayoutManager {
             if (!response.ok) throw new Error('Failed to load notifications');
 
             const data = await response.json();
-            this.updateNotificationBadge(data.unread_count);
+            this.updateNotificationBadge(data.unread_count || 0);
             this.renderNotifications(data.notifications);
         } catch (error) {
             console.error('Notification error:', error);
@@ -542,6 +553,11 @@ class AdminDashboard extends LayoutManager {
     async fetchWithCSRF(url, options = {}) {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
+        // Validate URL to prevent SSRF attacks
+        if (!this.isValidUrl(url)) {
+            throw new Error('Invalid URL');
+        }
+
         return fetch(url, {
             ...options,
             headers: {
@@ -553,6 +569,21 @@ class AdminDashboard extends LayoutManager {
         });
     }
 
+    isValidUrl(url) {
+        // Only allow relative URLs or URLs from the same origin
+        if (url.startsWith('/')) {
+            return true; // Relative URL is safe
+        }
+        
+        try {
+            const urlObj = new URL(url, window.location.origin);
+            // Only allow same origin
+            return urlObj.origin === window.location.origin;
+        } catch {
+            return false;
+        }
+    }
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
@@ -560,12 +591,17 @@ class AdminDashboard extends LayoutManager {
     }
 
     showToast(message, type = 'info') {
+        // Sanitize inputs to prevent XSS
+        const allowedTypes = ['success', 'error', 'warning', 'info'];
+        const sanitizedType = allowedTypes.includes(type) ? type : 'info';
+        const sanitizedMessage = this.escapeHtml(message);
+        
         const toast = document.createElement('div');
-        toast.className = `custom-toast ${type}`;
+        toast.className = `custom-toast ${sanitizedType}`;
         toast.innerHTML = `
-            <i class="bi ${this.getToastIcon(type)}"></i>
+            <i class="bi ${this.getToastIcon(sanitizedType)}"></i>
             <div class="toast-content">
-                <div class="toast-message">${this.escapeHtml(message)}</div>
+                <div class="toast-message">${sanitizedMessage}</div>
             </div>
             <button class="btn btn-sm btn-link p-0 ms-auto" onclick="this.parentElement.remove()">
                 <i class="bi bi-x"></i>
@@ -706,7 +742,7 @@ class StaffNotificationSystem {
 
     async fetchUnreadCount() {
         try {
-            const response = await fetch('/staff/notifications/unread-count', {
+            const response = await fetch('/branch/notifications/unread-count', {
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
@@ -726,7 +762,7 @@ class StaffNotificationSystem {
         this.showLoading();
 
         try {
-            const response = await fetch('/staff/notifications/recent?limit=10', {
+            const response = await fetch('/branch/notifications/recent?limit=10', {
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
@@ -879,11 +915,33 @@ class StaffNotificationSystem {
     }
 
     async markAsRead(id) {
-        const item = document.querySelector(`.notification-item[data-id="${id}"]`);
+        // Validate ID to prevent injection
+        const sanitizedId = parseInt(id);
+        if (isNaN(sanitizedId) || sanitizedId <= 0) {
+            console.error('Invalid notification ID');
+            return;
+        }
+
+        const item = document.querySelector(`.notification-item[data-id="${sanitizedId}"]`);
         const link = item?.href;
 
+        // Validate link URL before redirecting
+        if (link && link !== '#' && link !== 'javascript:void(0)') {
+            try {
+                const linkUrl = new URL(link, window.location.origin);
+                // Only allow same-origin URLs
+                if (linkUrl.origin !== window.location.origin) {
+                    console.error('Invalid redirect URL');
+                    return;
+                }
+            } catch (e) {
+                console.error('Invalid URL format');
+                return;
+            }
+        }
+
         try {
-            const response = await fetch(`/staff/notifications/${id}/read`, {
+            const response = await fetch(`/branch/notifications/${sanitizedId}/read`, {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
@@ -915,7 +973,7 @@ class StaffNotificationSystem {
 
     async markAllAsRead() {
         try {
-            const response = await fetch('/staff/notifications/mark-all-read', {
+            const response = await fetch('/branch/notifications/mark-all-read', {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
@@ -1049,20 +1107,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             document.head.appendChild(style);
         },
-        () => {
-            // Load performance guard for monitoring
-            const script = document.createElement('script');
-            script.src = '/assets/js/utils/performanceGuard.js';
-            script.async = true;
-            document.head.appendChild(script);
-        },
-        () => {
-            // Load violation diagnostic tool
-            const diagnostic = document.createElement('script');
-            diagnostic.src = '/assets/js/utils/violationDiagnostic.js';
-            diagnostic.async = true;
-            document.head.appendChild(diagnostic);
-        },
+
         () => { console.log('✅ Layout hyper-init complete'); }
     ];
     

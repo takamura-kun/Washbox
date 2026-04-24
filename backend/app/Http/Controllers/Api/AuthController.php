@@ -22,7 +22,8 @@ class AuthController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:customers'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['required', 'string', 'max:20', 'unique:customers'],
-            'preferred_branch_id' => ['nullable', 'exists:branches,id'],
+            'branch_id' => ['nullable', 'exists:branches,id'], // Made optional for backward compatibility
+            'preferred_branch_id' => ['nullable', 'exists:branches,id'], // Keep for backward compatibility
             'address' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -34,13 +35,17 @@ class AuthController extends Controller
             ], 422);
         }
 
+        // Use branch_id if provided, otherwise use preferred_branch_id
+        $branchId = $request->branch_id ?? $request->preferred_branch_id;
+
         $customer = Customer::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password, // Model will auto-hash via Attribute
             'phone' => $request->phone,
             'address' => $request->address,
-            'preferred_branch_id' => $request->preferred_branch_id,
+            'branch_id' => $branchId,
+            'preferred_branch_id' => $branchId,
             'registration_type' => 'self_registered',
             'is_active' => true,
         ]);
@@ -57,6 +62,7 @@ class AuthController extends Controller
                     'email' => $customer->email,
                     'phone' => $customer->phone,
                     'address' => $customer->address,
+                    'branch_id' => $customer->branch_id,
                     'preferred_branch_id' => $customer->preferred_branch_id,
                 ],
                 'token' => $token,
@@ -136,6 +142,9 @@ class AuthController extends Controller
         $customer->tokens()->delete();
 
         $token = $customer->createToken('mobile-app')->plainTextToken;
+        
+        // Load branch relationship
+        $customer->load('preferredBranch');
 
         return response()->json([
             'success' => true,
@@ -147,8 +156,17 @@ class AuthController extends Controller
                     'email' => $customer->email,
                     'phone' => $customer->phone,
                     'address' => $customer->address,
+                    'branch_id' => $customer->branch_id,
                     'preferred_branch_id' => $customer->preferred_branch_id,
                     'two_factor_enabled' => $customer->two_factor_enabled,
+                    'branch' => $customer->preferredBranch ? [
+                        'id' => $customer->preferredBranch->id,
+                        'name' => $customer->preferredBranch->name,
+                        'code' => $customer->preferredBranch->code,
+                        'address' => $customer->preferredBranch->address,
+                        'city' => $customer->preferredBranch->city,
+                        'phone' => $customer->preferredBranch->phone,
+                    ] : null,
                 ],
                 'token' => $token,
             ]
@@ -188,6 +206,9 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         $customer = $request->user();
+        
+        // Load branch relationship
+        $customer->load('branch');
 
         return response()->json([
             'success' => true,
@@ -197,11 +218,19 @@ class AuthController extends Controller
                     'name' => $customer->name,
                     'email' => $customer->email,
                     'phone' => $customer->phone,
-                    'customer' => $customer,
                     'address' => $customer->address,
+                    'branch_id' => $customer->branch_id,
                     'preferred_branch_id' => $customer->preferred_branch_id,
                     'is_active' => $customer->is_active,
                     'created_at' => $customer->created_at->format('Y-m-d H:i:s'),
+                    'branch' => $customer->branch ? [
+                        'id' => $customer->branch->id,
+                        'name' => $customer->branch->name,
+                        'code' => $customer->branch->code,
+                        'address' => $customer->branch->address,
+                        'city' => $customer->branch->city,
+                        'phone' => $customer->branch->phone,
+                    ] : null,
                 ],
             ]
         ]);
@@ -220,6 +249,7 @@ class AuthController extends Controller
             'name' => ['sometimes', 'string', 'max:255'],
             'phone' => ['sometimes', 'string', 'max:20', 'unique:customers,phone,' . $customer->id],
             'address' => ['nullable', 'string', 'max:500'],
+            'branch_id' => ['nullable', 'exists:branches,id'],
             'preferred_branch_id' => ['nullable', 'exists:branches,id'],
         ]);
 
@@ -231,7 +261,14 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $customer->update($request->only(['name', 'phone', 'address', 'preferred_branch_id']));
+        $updateData = $request->only(['name', 'phone', 'address', 'branch_id', 'preferred_branch_id']);
+        
+        // If branch_id is updated, also update preferred_branch_id for consistency
+        if (isset($updateData['branch_id'])) {
+            $updateData['preferred_branch_id'] = $updateData['branch_id'];
+        }
+
+        $customer->update($updateData);
 
         return response()->json([
             'success' => true,
@@ -243,6 +280,7 @@ class AuthController extends Controller
                     'email' => $customer->email,
                     'phone' => $customer->phone,
                     'address' => $customer->address,
+                    'branch_id' => $customer->branch_id,
                     'preferred_branch_id' => $customer->preferred_branch_id,
                 ],
             ]
