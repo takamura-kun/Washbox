@@ -832,20 +832,7 @@
         </div>
     </div>
     <div class="satisfaction-body" id="serviceBody">
-        <div class="satisfaction-overall">
-            <div class="satisfaction-score">4.7</div>
-            <div class="satisfaction-stars">
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-half"></i>
-            </div>
-            <div class="satisfaction-label">Overall Rating</div>
-        </div>
-        
         @php
-            // Fetch real service ratings
             $serviceRatingsData = \App\Models\CustomerRating::whereNotNull('laundry_id')
                 ->with('laundry.service')
                 ->get()
@@ -862,11 +849,26 @@
                 ->sortByDesc('reviews')
                 ->take(10)
                 ->values();
-            
             $serviceSatisfaction = $serviceRatingsData->count() > 0 ? $serviceRatingsData->toArray() : [
                 ['name' => 'No ratings yet', 'rating' => 0, 'reviews' => 0],
             ];
+            $serviceOverallRating = $serviceRatingsData->count() > 0 ? round($serviceRatingsData->avg('rating'), 1) : 0;
         @endphp
+        <div class="satisfaction-overall">
+            <div class="satisfaction-score">{{ number_format($serviceOverallRating, 1) }}</div>
+            <div class="satisfaction-stars">
+                @for($i = 1; $i <= 5; $i++)
+                    @if($i <= floor($serviceOverallRating))
+                        <i class="bi bi-star-fill"></i>
+                    @elseif($i == ceil($serviceOverallRating) && $serviceOverallRating - floor($serviceOverallRating) >= 0.5)
+                        <i class="bi bi-star-half"></i>
+                    @else
+                        <i class="bi bi-star"></i>
+                    @endif
+                @endfor
+            </div>
+            <div class="satisfaction-label">Overall Rating</div>
+        </div>
         
         @foreach($serviceSatisfaction as $service)
         <div class="satisfaction-item">
@@ -907,20 +909,7 @@
         </div>
     </div>
     <div class="satisfaction-body" id="branchBody">
-        <div class="satisfaction-overall">
-            <div class="satisfaction-score">4.8</div>
-            <div class="satisfaction-stars">
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-            </div>
-            <div class="satisfaction-label">Overall Rating</div>
-        </div>
-        
         @php
-            // Fetch real branch ratings
             $branchRatingsData = \App\Models\CustomerRating::whereNotNull('branch_id')
                 ->with('branch')
                 ->get()
@@ -935,11 +924,26 @@
                 })
                 ->sortByDesc('reviews')
                 ->values();
-            
             $branchSatisfaction = $branchRatingsData->count() > 0 ? $branchRatingsData->toArray() : [
                 ['name' => 'No ratings yet', 'rating' => 0, 'reviews' => 0],
             ];
+            $branchOverallRating = $branchRatingsData->count() > 0 ? round($branchRatingsData->avg('rating'), 1) : 0;
         @endphp
+        <div class="satisfaction-overall">
+            <div class="satisfaction-score">{{ number_format($branchOverallRating, 1) }}</div>
+            <div class="satisfaction-stars">
+                @for($i = 1; $i <= 5; $i++)
+                    @if($i <= floor($branchOverallRating))
+                        <i class="bi bi-star-fill"></i>
+                    @elseif($i == ceil($branchOverallRating) && $branchOverallRating - floor($branchOverallRating) >= 0.5)
+                        <i class="bi bi-star-half"></i>
+                    @else
+                        <i class="bi bi-star"></i>
+                    @endif
+                @endfor
+            </div>
+            <div class="satisfaction-label">Overall Rating</div>
+        </div>
         
         @foreach($branchSatisfaction as $branch)
         <div class="satisfaction-item">
@@ -1719,11 +1723,31 @@
         #serviceSatisfactionWidget {
             bottom: 180px;
             right: 24px;
+            left: auto;
         }
 
         #branchSatisfactionWidget {
             bottom: 90px;
             right: 24px;
+            left: auto;
+        }
+
+        @media (max-width: 576px) {
+            .satisfaction-widget {
+                width: 180px;
+            }
+
+            #serviceSatisfactionWidget {
+                bottom: 160px;
+                right: 8px;
+                left: auto;
+            }
+
+            #branchSatisfactionWidget {
+                bottom: 75px;
+                right: 8px;
+                left: auto;
+            }
         }
 
         .satisfaction-widget.minimized {
@@ -1864,10 +1888,15 @@
 
         @media (max-width: 768px) {
             .satisfaction-widget {
-                width: 200px;
+                width: 180px;
             }
             #branchSatisfactionWidget {
-                left: 220px;
+                right: 8px;
+                left: auto;
+            }
+            #serviceSatisfactionWidget {
+                right: 8px;
+                left: auto;
             }
         }
     </style>

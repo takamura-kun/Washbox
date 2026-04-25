@@ -61,7 +61,7 @@ class AnalyticsController extends Controller
             $allDates->put($d->format('Y-m-d'), 0);
         }
 
-        // Revenue Trend — fill missing days with 0
+        // Revenue Trend — laundry + retail sales per day, fill missing days with 0
         $revenueTrendRaw = Laundry::where('branch_id', $branchId)
             ->whereBetween('created_at', [$rangeStart->startOfDay(), $endDate])
             ->selectRaw('DATE(created_at) as date, SUM(total_amount) as revenue')
@@ -69,7 +69,16 @@ class AnalyticsController extends Controller
             ->orderBy('date')
             ->pluck('revenue', 'date');
 
-        $revenueTrend = $allDates->merge($revenueTrendRaw);
+        $retailTrendRaw = RetailSale::where('branch_id', $branchId)
+            ->whereBetween('created_at', [$rangeStart->startOfDay(), $endDate])
+            ->selectRaw('DATE(created_at) as date, SUM(total_amount) as revenue')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->pluck('revenue', 'date');
+
+        $revenueTrend = $allDates->map(function ($_, $date) use ($revenueTrendRaw, $retailTrendRaw) {
+            return (float)($revenueTrendRaw[$date] ?? 0) + (float)($retailTrendRaw[$date] ?? 0);
+        });
 
         // Top Services — daily counts per service for line chart (last 7 days)
         $topServiceNames = Laundry::from('laundries')

@@ -913,9 +913,7 @@ textarea.form-control::placeholder { color: var(--input-placeholder); opacity: 0
 .sidebar-overlay {
     position: fixed; top: 0; left: 0;
     width: 100%; height: 100%;
-    background: rgba(10, 8, 40, 0.65);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    background: rgba(10, 8, 40, 0.55);
     z-index: 1049;
     opacity: 0; visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
@@ -956,7 +954,6 @@ textarea.form-control::placeholder { color: var(--input-placeholder); opacity: 0
     position: sticky;
     top: 0;
     z-index: 1040;
-    backdrop-filter: blur(10px);
     transition: all 0.3s ease;
 }
 
@@ -1318,12 +1315,13 @@ textarea.form-control::placeholder { color: var(--input-placeholder); opacity: 0
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
-        width: 280px;
-        z-index: 1050;
+        width: 240px;
+        z-index: 1055;
         transition: transform 0.3s var(--ease-out), box-shadow 0.3s ease;
     }
 
-    .sidebar.show-mobile { transform: translateX(0); box-shadow: 8px 0 48px rgba(10, 8, 40, 0.65); }
+    .sidebar.show-mobile,
+    .sidebar.show-mobile.hide-mobile { transform: translateX(0) !important; box-shadow: 8px 0 48px rgba(10, 8, 40, 0.65); }
     .main-content { margin-left: 0 !important; width: 100%; }
     .sidebar-toggle-btn { display: none !important; }
     .mobile-menu-btn { display: flex; }

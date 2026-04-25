@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { API_BASE_URL, STORAGE_KEYS, ENDPOINTS } from '../constants/config';
 import { LocationService } from '../services/locationService';
+import PSGCAddressSelector from '../components/common/PSGCAddressSelector';
 
 const COLORS = {
   background: '#0A0E27',
@@ -64,6 +65,7 @@ export default function SavedAddressesScreen() {
   const [formData, setFormData] = useState({
     label: 'Home',
     full_address: '',
+    house_number: '',
     street: '',
     barangay: '',
     city: '',
@@ -136,6 +138,7 @@ export default function SavedAddressesScreen() {
     setFormData({
       label: address.label,
       full_address: address.full_address,
+      house_number: address.house_number || '',
       street: address.street || '',
       barangay: address.barangay || '',
       city: address.city,
@@ -469,61 +472,18 @@ export default function SavedAddressesScreen() {
               ))}
             </View>
 
-            {/* Full Address */}
-            <Text style={styles.fieldLabel}>Full Address *</Text>
-            <TextInput
-              style={[styles.textInput, styles.textArea]}
-              value={formData.full_address}
-              onChangeText={(text) => setFormData({ ...formData, full_address: text })}
-              placeholder="Enter complete address"
-              placeholderTextColor={COLORS.textMuted}
-              multiline
-              numberOfLines={3}
+            {/* PSGC Address Selector */}
+            <PSGCAddressSelector
+              onChange={(addr) => setFormData(prev => ({
+                ...prev,
+                house_number: addr.house_number,
+                street: addr.street,
+                barangay: addr.barangay,
+                city: addr.city,
+                province: addr.province,
+                full_address: addr.full_address,
+              }))}
             />
-
-            {/* Street */}
-            <Text style={styles.fieldLabel}>Street</Text>
-            <TextInput
-              style={styles.textInput}
-              value={formData.street}
-              onChangeText={(text) => setFormData({ ...formData, street: text })}
-              placeholder="Street name/number"
-              placeholderTextColor={COLORS.textMuted}
-            />
-
-            {/* Barangay */}
-            <Text style={styles.fieldLabel}>Barangay</Text>
-            <TextInput
-              style={styles.textInput}
-              value={formData.barangay}
-              onChangeText={(text) => setFormData({ ...formData, barangay: text })}
-              placeholder="Barangay"
-              placeholderTextColor={COLORS.textMuted}
-            />
-
-            {/* City & Province Row */}
-            <View style={styles.rowFields}>
-              <View style={styles.halfField}>
-                <Text style={styles.fieldLabel}>City *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={formData.city}
-                  onChangeText={(text) => setFormData({ ...formData, city: text })}
-                  placeholder="City"
-                  placeholderTextColor={COLORS.textMuted}
-                />
-              </View>
-              <View style={styles.halfField}>
-                <Text style={styles.fieldLabel}>Province *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={formData.province}
-                  onChangeText={(text) => setFormData({ ...formData, province: text })}
-                  placeholder="Province"
-                  placeholderTextColor={COLORS.textMuted}
-                />
-              </View>
-            </View>
 
             {/* Geotag */}
             <Text style={styles.fieldLabel}>Geotag (Coordinates)</Text>

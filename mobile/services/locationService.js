@@ -697,6 +697,7 @@ export const LocationService = {
   _buildDisplayName(address, parsed, fallback) {
     const parts = [];
 
+    // Priority: user-typed house number > geocoded house number
     const houseNum = parsed?.houseNumber || address.house_number;
     if (houseNum) parts.push(houseNum);
 
@@ -717,6 +718,16 @@ export const LocationService = {
     }
 
     if (parts.length >= 2) return parts.join(', ');
+
+    // Fallback: if OSM returned nothing useful but user typed something, use parsed
+    if (parsed?.street) {
+      const fallbackParts = [];
+      if (parsed.houseNumber) fallbackParts.push(parsed.houseNumber);
+      fallbackParts.push(expandAbbreviations(parsed.street));
+      if (parsed.barangay) fallbackParts.push(parsed.barangay);
+      fallbackParts.push(parsed.city || 'Dumaguete City');
+      return fallbackParts.join(', ');
+    }
 
     return fallback || parts.join(', ') || 'Unknown location';
   },

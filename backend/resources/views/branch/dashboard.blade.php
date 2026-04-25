@@ -565,8 +565,32 @@
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
         z-index: 1040;
         overflow: hidden;
-        transition: transform 0.2s ease, opacity 0.2s ease;
+        transition: all 0.3s ease;
         user-select: none;
+    }
+
+    .feedback-widget.collapsed {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    .feedback-widget.collapsed .feedback-header {
+        padding: 0;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        justify-content: center;
+    }
+
+    .feedback-widget.collapsed .feedback-header h3 span,
+    .feedback-widget.collapsed .feedback-controls {
+        display: none;
+    }
+
+    .feedback-widget.collapsed .feedback-body {
+        display: none;
     }
 
     .feedback-widget.minimized {
@@ -735,6 +759,9 @@
     @media (max-width: 576px) {
         .kpi-grid { grid-template-columns: repeat(2, 1fr); }
         .actions-row { grid-template-columns: repeat(2, 1fr); }
+        .feedback-widget { width: 200px; }
+        #feedbackWidget { bottom: 80px; right: 8px; }
+        #branchRatingWidget { bottom: 170px; right: 8px; }
     }
 </style>
 
@@ -1429,12 +1456,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </div>{{-- /container-fluid --}}
 
-{{-- Customer Feedback Widget --}}
-<div class="feedback-widget" id="feedbackWidget">
+{{-- Customer Ratings Widget --}}
+<div class="feedback-widget collapsed" id="feedbackWidget">
     <div class="feedback-header" id="feedbackHeader">
         <h3>
             <i class="bi bi-star-fill"></i>
-            Customer Feedback
+            <span>Customer Ratings</span>
         </h3>
         <div class="feedback-controls">
             <button class="feedback-btn" id="minimizeBtn" title="Minimize">
@@ -1446,83 +1473,117 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
     <div class="feedback-body" id="feedbackBody">
+        @php
+            $branchId = auth()->guard('branch')->user()->id;
+            $allRatings = \App\Models\CustomerRating::where('branch_id', $branchId)->get();
+            $avgRating = $allRatings->count() > 0 ? round($allRatings->avg('rating'), 1) : 0;
+            $todayRatings = $allRatings->filter(fn($r) => $r->created_at->isToday())->count();
+            $positiveCount = $allRatings->filter(fn($r) => $r->rating >= 4)->count();
+            $positivePct = $allRatings->count() > 0 ? round(($positiveCount / $allRatings->count()) * 100) : 0;
+            $recentReviews = \App\Models\CustomerRating::where('branch_id', $branchId)
+                ->whereNotNull('comment')
+                ->with('customer:id,name')
+                ->orderByDesc('created_at')
+                ->limit(3)
+                ->get();
+        @endphp
         {{-- Summary Stats --}}
         <div class="feedback-summary">
             <div class="feedback-stat">
-                <div class="feedback-stat-value">4.8</div>
+                <div class="feedback-stat-value">{{ number_format($avgRating, 1) }}</div>
                 <div class="feedback-stat-label">Avg Rating</div>
             </div>
             <div class="feedback-stat">
-                <div class="feedback-stat-value">24</div>
+                <div class="feedback-stat-value">{{ $todayRatings }}</div>
                 <div class="feedback-stat-label">Today</div>
             </div>
             <div class="feedback-stat">
-                <div class="feedback-stat-value">98%</div>
+                <div class="feedback-stat-value">{{ $positivePct }}%</div>
                 <div class="feedback-stat-label">Positive</div>
             </div>
         </div>
 
-        {{-- Branch Satisfaction --}}
-        <div style="padding: 10px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%); border-radius: 6px; margin-bottom: 10px; border: 1px solid rgba(16, 185, 129, 0.2);">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                <span style="font-size: 11px; font-weight: 600; color: #059669;">
+        {{-- Branch Satisfaction Bar --}}
+        <div style="padding: 10px; background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,150,105,0.05) 100%); border-radius: 6px; margin-bottom: 10px; border: 1px solid rgba(16,185,129,0.2);">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                <span style="font-size:11px; font-weight:600; color:#059669;">
                     <i class="bi bi-building"></i> Branch Satisfaction
                 </span>
-                <span style="font-size: 14px; font-weight: 700; color: #10b981;">96%</span>
+                <span style="font-size:14px; font-weight:700; color:#10b981;">{{ $positivePct }}%</span>
             </div>
-            <div style="width: 100%; height: 6px; background: rgba(0, 0, 0, 0.1); border-radius: 3px; overflow: hidden;">
-                <div style="width: 96%; height: 100%; background: linear-gradient(90deg, #10b981 0%, #059669 100%); border-radius: 3px;"></div>
+            <div style="width:100%; height:6px; background:rgba(0,0,0,0.1); border-radius:3px; overflow:hidden;">
+                <div style="width:{{ $positivePct }}%; height:100%; background:linear-gradient(90deg,#10b981 0%,#059669 100%); border-radius:3px;"></div>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-top: 6px;">
-                <span style="font-size: 9px; opacity: 0.7;">This Month</span>
-                <span style="font-size: 9px; opacity: 0.7;">Target: 95%</span>
+            <div style="display:flex; justify-content:space-between; margin-top:6px;">
+                <span style="font-size:9px; opacity:0.7;">This Month</span>
+                <span style="font-size:9px; opacity:0.7;">Target: 95%</span>
             </div>
         </div>
 
-        {{-- Recent Feedback --}}
+        {{-- Recent Reviews --}}
+        @forelse($recentReviews as $review)
         <div class="feedback-item">
             <div class="feedback-customer">
-                <span>Maria Santos</span>
+                <span>{{ $review->customer->name ?? 'Anonymous' }}</span>
                 <div class="feedback-rating">
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star-fill star"></i>
+                    @for($i = 1; $i <= 5; $i++)
+                        <i class="bi bi-star{{ $i <= $review->rating ? '-fill' : '' }} star"></i>
+                    @endfor
                 </div>
             </div>
-            <div class="feedback-comment">Excellent service! My clothes were ready on time and smelled amazing.</div>
-            <div class="feedback-time">2 hours ago</div>
+            @if($review->comment)
+            <div class="feedback-comment">{{ Str::limit($review->comment, 80) }}</div>
+            @endif
+            <div class="feedback-time">{{ $review->created_at->diffForHumans() }}</div>
         </div>
+        @empty
+        <div style="text-align:center; padding:12px; font-size:11px; opacity:0.6;">No reviews yet</div>
+        @endforelse
+    </div>
+</div>
 
-        <div class="feedback-item">
-            <div class="feedback-customer">
-                <span>Juan Dela Cruz</span>
-                <div class="feedback-rating">
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star"></i>
-                </div>
-            </div>
-            <div class="feedback-comment">Good service, but pickup was a bit delayed.</div>
-            <div class="feedback-time">5 hours ago</div>
+{{-- Branch Ratings Widget --}}
+<div class="feedback-widget collapsed" id="branchRatingWidget" style="bottom: 185px; right: 24px;">
+    <div class="feedback-header" id="branchRatingHeader" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); cursor:move;">
+        <h3>
+            <i class="bi bi-building"></i>
+            <span>Branch Ratings</span>
+        </h3>
+        <div class="feedback-controls">
+            <button class="feedback-btn" id="branchRatingMinimizeBtn" title="Minimize">
+                <i class="bi bi-dash"></i>
+            </button>
+            <button class="feedback-btn" id="branchRatingCloseBtn" title="Close">
+                <i class="bi bi-x"></i>
+            </button>
         </div>
-
-        <div class="feedback-item">
-            <div class="feedback-customer">
-                <span>Ana Reyes</span>
-                <div class="feedback-rating">
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star-fill star"></i>
-                    <i class="bi bi-star-fill star"></i>
-                </div>
+    </div>
+    <div class="feedback-body" id="branchRatingBody">
+        @php
+            $branchOverall = isset($allRatings) && $allRatings->count() > 0 ? round($allRatings->avg('rating'), 1) : 0;
+            $branchName = auth()->guard('branch')->user()->name ?? 'This Branch';
+        @endphp
+        <div class="feedback-summary" style="justify-content:center; padding:12px 0; flex-direction:column; align-items:center; gap:4px;">
+            <div class="feedback-stat-value" style="font-size:2rem; color:#f59e0b;">{{ number_format($branchOverall, 1) }}</div>
+            <div style="color:#f59e0b; font-size:0.9rem;">
+                @for($i = 1; $i <= 5; $i++)
+                    @if($i <= floor($branchOverall))
+                        <i class="bi bi-star-fill"></i>
+                    @elseif($i == ceil($branchOverall) && $branchOverall - floor($branchOverall) >= 0.5)
+                        <i class="bi bi-star-half"></i>
+                    @else
+                        <i class="bi bi-star"></i>
+                    @endif
+                @endfor
             </div>
-            <div class="feedback-comment">Very professional staff and great quality!</div>
-            <div class="feedback-time">1 day ago</div>
+            <div class="feedback-stat-label">Overall Rating</div>
+        </div>
+        <div class="feedback-item" style="border-top:1px solid var(--border-color, rgba(0,0,0,0.08));">
+            <div class="feedback-customer">
+                <span style="font-weight:600;">{{ $branchName }}</span>
+                <span style="font-size:11px; color:#f59e0b; font-weight:700;">{{ number_format($branchOverall, 1) }}</span>
+            </div>
+            <div class="feedback-time">{{ isset($allRatings) ? $allRatings->count() : 0 }} total reviews</div>
         </div>
     </div>
 </div>

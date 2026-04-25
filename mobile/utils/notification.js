@@ -32,19 +32,22 @@ if (Platform.OS === 'web') {
   if (!isExpoGo) {
     try {
       Notifications = require('expo-notifications');
-      
-      Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: true,
-          shouldShowBanner: true,
-          shouldShowList: true,
-          shouldPlaySound: true,
-          shouldSetBadge: true,
-        }),
-      });
     } catch (e) {
       console.warn('[FCM] Failed to load expo-notifications:', e);
     }
+  }
+
+  // Must be called at module level, not inside async functions
+  if (Notifications && !isExpoGo) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
   } else {
     console.log('[FCM] Running in Expo Go - push notifications disabled');
   }

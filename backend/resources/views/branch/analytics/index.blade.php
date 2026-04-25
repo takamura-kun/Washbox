@@ -642,7 +642,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         data: @json($chartData['peak_hours']['data'] ?? []),
                         backgroundColor: '#8b5cf6',
                         borderRadius: 6,
-                        borderWidth: 0
+                        borderWidth: 0,
+                        maxBarThickness: 48
                     }]
                 },
                 options: {

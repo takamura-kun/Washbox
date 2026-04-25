@@ -1,6 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Component } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+class MapErrorBoundary extends Component {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F1332' }}>
+          <Ionicons name="map-outline" size={48} color="#94A3B8" />
+          <Text style={{ color: '#94A3B8', marginTop: 12, fontSize: 14, textAlign: 'center', paddingHorizontal: 32 }}>
+            Map failed to load.{`\n`}Please use "Use Current Location" instead.
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 import OSMMap from '../common/OSMMap';
 import { LocationService } from '../../services/locationService';
 import { RoutingService } from '../../services/routingService';
@@ -335,6 +354,7 @@ const PickupDeliveryMap = ({
 
   return (
     <View style={[styles.container, style]}>
+      <MapErrorBoundary>
       <OSMMap
         ref={mapRef}
         initialRegion={region}
@@ -348,6 +368,7 @@ const PickupDeliveryMap = ({
         scrollEnabled={interactive}
         style={styles.map}
       />
+      </MapErrorBoundary>
 
       {/* Center Pin with Edit Icon - Tap to input address */}
       {interactive && !tappedLocation && (
