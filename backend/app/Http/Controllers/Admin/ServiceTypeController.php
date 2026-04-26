@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\ServiceType;
+use App\Models\ActivityLog;
+use App\Models\DeletedRecord;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -117,6 +119,12 @@ class ServiceTypeController extends Controller
                 'message' => "Cannot delete service type because it's used by {$servicesCount} service(s).",
             ], 422);
         }
+
+        DeletedRecord::snapshot($serviceType, 'service_type');
+        ActivityLog::log('deleted', "Service type \"{$serviceType->name}\" deleted", 'service', null, [
+            'name'     => $serviceType->name,
+            'category' => $serviceType->category,
+        ]);
 
         $serviceType->delete();
 

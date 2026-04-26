@@ -35,12 +35,30 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState({});
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(true);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [attemptsLeft, setAttemptsLeft] = useState(null);
+  const lockoutTimer = useRef(null);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const logoScale = useRef(new Animated.Value(0.5)).current;
   const logoPulse = useRef(new Animated.Value(1)).current;
+
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    lockoutTimer.current = setInterval(() => {
+      setLockoutSeconds(prev => {
+        if (prev <= 1) {
+          clearInterval(lockoutTimer.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(lockoutTimer.current);
+  }, [lockoutSeconds]);
 
   useEffect(() => {
     // Check if terms were previously accepted
@@ -114,7 +132,7 @@ export default function LoginScreen() {
 
   // Handle login
   const handleLogin = async () => {
-    if (loading || !validate()) return;
+    if (loading || lockoutSeconds > 0 || !validate()) return;
     setLoading(true);
 
     try {
@@ -126,17 +144,28 @@ export default function LoginScreen() {
 
       const data = await response.json();
 
+      // Locked out
+      if (response.status === 429 && data.locked_out) {
+        setLockoutSeconds(data.retry_after);
+        setAttemptsLeft(0);
+        return;
+      }
+
       if (data.requires_2fa) {
         router.push({ pathname: '/(auth)/verify-2fa', params: { email: email.trim(), password } });
-        setLoading(false);
         return;
       }
 
       if (response.ok && data.success) {
+        setAttemptsLeft(null);
+        RateLimiter: null; // reset UI
         await login(data.data.token, data.data.customer);
         registerForPushNotifications(data.data.token).catch(() => {});
       } else {
-        Alert.alert('Login Failed', data.message || 'Invalid credentials. Please check your email and password.');
+        // Show attempts left warning
+        if (data.attempts_left !== undefined) {
+          setAttemptsLeft(data.attempts_left);
+        }
       }
     } catch (error) {
       Alert.alert('Connection Error', 'Unable to connect to server. Please check your internet connection and try again.');
@@ -315,21 +344,49 @@ export default function LoginScreen() {
                   )}
                 </View>
 
+                {/* Attempts warning */}
+                {attemptsLeft !== null && attemptsLeft > 0 && lockoutSeconds === 0 && (
+                  <View style={styles.warningBox}>
+                    <Ionicons name="warning" size={16} color="#F59E0B" />
+                    <Text style={styles.warningText}>
+                      {attemptsLeft === 1
+                        ? 'Last attempt before lockout!'
+                        : `${attemptsLeft} attempt(s) remaining before lockout.`}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Lockout countdown */}
+                {lockoutSeconds > 0 && (
+                  <View style={styles.lockoutBox}>
+                    <Ionicons name="lock-closed" size={16} color="#EF4444" />
+                    <Text style={styles.lockoutText}>
+                      Too many failed attempts. Try again in{' '}
+                      <Text style={styles.lockoutTimer}>{lockoutSeconds}s</Text>
+                    </Text>
+                  </View>
+                )}
+
                 {/* Login Button */}
                 <TouchableOpacity
-                  style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                  style={[styles.loginButton, (loading || lockoutSeconds > 0) && styles.loginButtonDisabled]}
                   onPress={handleLogin}
-                  disabled={loading}
+                  disabled={loading || lockoutSeconds > 0}
                   activeOpacity={0.9}
                 >
                   <LinearGradient
-                    colors={loading ? ['#64748B', '#475569'] : ['#0EA5E9', '#3B82F6']}
+                    colors={loading || lockoutSeconds > 0 ? ['#64748B', '#475569'] : ['#0EA5E9', '#3B82F6']}
                     style={styles.loginButtonGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                   >
                     {loading ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : lockoutSeconds > 0 ? (
+                      <>
+                        <Ionicons name="lock-closed" size={18} color="#FFFFFF" />
+                        <Text style={styles.loginButtonText}>Wait {lockoutSeconds}s</Text>
+                      </>
                     ) : (
                       <>
                         <Text style={styles.loginButtonText}>Sign In</Text>
@@ -509,6 +566,45 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 6,
     fontWeight: '500',
+  },
+
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  warningText: {
+    color: '#F59E0B',
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
+  lockoutBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  lockoutText: {
+    color: '#EF4444',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+  },
+  lockoutTimer: {
+    fontWeight: '800',
+    fontSize: 14,
   },
 
   // Login Button

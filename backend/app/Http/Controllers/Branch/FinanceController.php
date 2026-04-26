@@ -173,6 +173,62 @@ class FinanceController extends Controller
     }
 
     /**
+     * Transaction summary
+     */
+    public function transactionSummary(Request $request)
+    {
+        $branch = auth()->guard('branch')->user();
+        $branchId = $branch->id;
+        $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', now()->endOfMonth()->toDateString());
+
+        $laundries = Laundry::where('branch_id', $branchId)
+            ->whereIn('status', ['paid', 'completed'])
+            ->whereBetween('paid_at', [$startDate, $endDate]);
+
+        $retail = RetailSale::where('branch_id', $branchId)
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        $expenses = Expense::where('branch_id', $branchId)
+            ->whereBetween('expense_date', [$startDate, $endDate]);
+
+        $laundrySales = $laundries->sum('total_amount');
+        $retailSales = $retail->sum('total_amount');
+        $totalExpenses = $expenses->sum('amount');
+        $totalIncome = $laundrySales + $retailSales;
+
+        $summary = [
+            'laundry_sales'   => $laundrySales,
+            'laundry_count'   => $laundries->count(),
+            'retail_sales'    => $retailSales,
+            'retail_count'    => $retail->count(),
+            'total_income'    => $totalIncome,
+            'total_expenses'  => $totalExpenses,
+            'net'             => $totalIncome - $totalExpenses,
+        ];
+
+        $expensesByCategory = $expenses->select('expense_category_id', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+            ->with('category')
+            ->groupBy('expense_category_id')
+            ->get()
+            ->map(fn($e) => [
+                'category' => $e->category->name ?? 'Uncategorized',
+                'total'    => $e->total,
+                'count'    => $e->count,
+            ]);
+
+        $recentTransactions = $this->getRecentTransactions($branchId, 20);
+
+        return view('branch.finance.transaction-summary', compact(
+            'summary',
+            'expensesByCategory',
+            'recentTransactions',
+            'startDate',
+            'endDate'
+        ));
+    }
+
+    /**
      * Sales report
      */
     public function salesReport(Request $request)

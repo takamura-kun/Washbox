@@ -322,6 +322,11 @@
                                 <i class="bi bi-geo-alt me-2 text-muted mt-1"></i>
                                 <div class="flex-grow-1">
                                     <div class="pk-address">{{ Str::limit($pickup->pickup_address, 50) }}</div>
+                                    @if($pickup->promotion)
+                                        <span class="badge bg-primary mt-1" style="font-size:0.7rem;">
+                                            <i class="bi bi-tag-fill me-1"></i>₱{{ $pickup->promotion->display_price }} {{ $pickup->promotion->price_unit ?? 'per load' }}
+                                        </span>
+                                    @endif
                                     @if($pickup->latitude && $pickup->longitude)
                                         <a href="{{ $pickup->map_url }}" target="_blank" class="small text-decoration-none">
                                             <i class="bi bi-map me-1"></i>View Map

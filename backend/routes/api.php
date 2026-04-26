@@ -20,7 +20,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\ServiceStatusController;
 use App\Http\Controllers\Api\InventoryController as ApiInventoryController;
-use App\Http\Controllers\Branch\NotificationController as StaffNotificationController;
+use App\Http\Controllers\Branch\NotificationController as BranchNotificationController;
 use App\Http\Controllers\Api\AdminNotificationController;
 use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\TrafficController;
@@ -214,50 +214,35 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [NotificationController::class, 'index']);
             Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
             Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+            Route::delete('/clear-read', [NotificationController::class, 'clearRead']);
             Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
             Route::delete('/{id}', [NotificationController::class, 'destroy']);
-            Route::delete('/clear-read', [NotificationController::class, 'clearRead']);
         });
     });
 
     // ========================================
-    // STAFF ROUTES
+    // BRANCH ROUTES (web-based, handled via web.php with auth:branch)
     // ========================================
-
-    Route::middleware(['auth:sanctum'])->prefix('staff')->group(function () {
-        Route::prefix('pickups')->group(function () {
-            Route::put('/{id}/accept', [PickupController::class, 'accept']);
-            Route::put('/{id}/en-route', [PickupController::class, 'markEnRoute']);
-            Route::put('/{id}/picked-up', [PickupController::class, 'markPickedUp']);
-            Route::put('/{id}/link-order', [PickupController::class, 'linkLaundry']);
-            Route::post('/{id}/upload-proof', [PickupController::class, 'uploadProof'])->middleware('throttle:10,1'); // 10 uploads per minute
-        });
-        
-        // Staff Location Tracking
-        Route::prefix('location-tracking')->group(function () {
-            Route::post('/start', [LocationTrackingController::class, 'startTracking']);
-            Route::post('/update', [LocationTrackingController::class, 'updateLocation']);
-            Route::post('/stop', [LocationTrackingController::class, 'stopTracking']);
-        });
-    });
+    // Branch pickup and location tracking actions are handled through
+    // web routes in routes/web.php under the auth:branch middleware.
 });
 
-Route::middleware('auth:staff')->group(function () {
-    Route::get('/staff/notifications', [StaffNotificationController::class, 'index']);
-    Route::get('/staff/notifications/unread-count', [StaffNotificationController::class, 'unreadCount']);
-    Route::post('/staff/notifications/{id}/read', [StaffNotificationController::class, 'markAsRead']);
-    Route::post('/staff/notifications/read-all', [StaffNotificationController::class, 'markAllAsRead']);
-    Route::delete('/staff/notifications/{id}', [StaffNotificationController::class, 'delete']);
-    Route::delete('/staff/notifications/clear-read', [StaffNotificationController::class, 'clearRead']);
+Route::middleware('auth:branch')->group(function () {
+    Route::get('/branch/notifications', [BranchNotificationController::class, 'index']);
+    Route::get('/branch/notifications/unread-count', [BranchNotificationController::class, 'getUnreadCount']);
+    Route::post('/branch/notifications/mark-all-read', [BranchNotificationController::class, 'markAllAsRead']);
+    Route::delete('/branch/notifications/clear-read', [BranchNotificationController::class, 'deleteAllRead']);
+    Route::post('/branch/notifications/{id}/read', [BranchNotificationController::class, 'markAsRead']);
+    Route::delete('/branch/notifications/{id}', [BranchNotificationController::class, 'destroy']);
 });
 
 Route::middleware('auth:admin')->group(function () {
     Route::get('/admin/notifications', [AdminNotificationController::class, 'index']);
     Route::get('/admin/notifications/unread-count', [AdminNotificationController::class, 'unreadCount']);
-    Route::post('/admin/notifications/{id}/read', [AdminNotificationController::class, 'markAsRead']);
     Route::post('/admin/notifications/read-all', [AdminNotificationController::class, 'markAllAsRead']);
-    Route::delete('/admin/notifications/{id}', [AdminNotificationController::class, 'delete']);
     Route::delete('/admin/notifications/clear-read', [AdminNotificationController::class, 'clearRead']);
+    Route::post('/admin/notifications/{id}/read', [AdminNotificationController::class, 'markAsRead']);
+    Route::delete('/admin/notifications/{id}', [AdminNotificationController::class, 'delete']);
 });
 
 

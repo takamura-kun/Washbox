@@ -14,10 +14,12 @@ if (Platform.OS === 'web') {
     registerForPushNotifications: async () => null,
     clearFcmTokenOnLogout: async () => {},
     setupNotificationListeners: () => () => {},
+    handleInitialNotification: async () => {},
     default: {
       registerForPushNotifications: async () => null,
       clearFcmTokenOnLogout: async () => {},
       setupNotificationListeners: () => () => {},
+      handleInitialNotification: async () => {},
     }
   };
 } else {
@@ -281,6 +283,21 @@ if (Platform.OS === 'web') {
     }, 100);
   }
 
+  async function handleInitialNotification(router) {
+    if (!Notifications || isExpoGo) return;
+
+    try {
+      const response = await Notifications.getLastNotificationResponseAsync();
+      if (response) {
+        const data = response.notification.request.content.data;
+        console.log('[FCM] App cold-launched from notification:', data);
+        handleNotificationNavigation(router, data);
+      }
+    } catch (e) {
+      console.warn('[FCM] Could not get last notification response:', e);
+    }
+  }
+
   function setupNotificationListeners(router) {
     if (!Notifications || isExpoGo) {
       console.log('[FCM] Listeners not set up — running in Expo Go');
@@ -312,10 +329,12 @@ if (Platform.OS === 'web') {
     registerForPushNotifications,
     clearFcmTokenOnLogout,
     setupNotificationListeners,
+    handleInitialNotification,
     default: {
       registerForPushNotifications,
       clearFcmTokenOnLogout,
       setupNotificationListeners,
+      handleInitialNotification,
     }
   };
 }

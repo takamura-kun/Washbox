@@ -820,8 +820,8 @@
                                     </div>
                                     <p class="ss-card-sub">Applied to all branches on save. Individual branches can override.</p>
                                 </div>
-                                <button type="button" class="ss-btn ss-btn-ghost" onclick="applyHoursToBranches()">
-                                    <i class="bi bi-building"></i> Apply to All Branches
+                                <button type="button" class="ss-btn ss-btn-ghost" data-bs-toggle="modal" data-bs-target="#applyHoursModal">
+                                    <i class="bi bi-building"></i> Apply to Branches
                                 </button>
                             </div>
                             <div class="ss-card-body" style="padding:0;">
@@ -977,6 +977,18 @@
                                             <span class="ss-input-addon right">Day(s) ahead</span>
                                         </div>
                                         <p class="ss-form-hint">How far in advance a pickup can be scheduled.</p>
+                                    </div>
+                                </div>
+
+                                {{-- Daily Pickup Limit --}}
+                                <div class="row g-3 mt-1">
+                                    <div class="col-md-6">
+                                        <label class="ss-label">Max Pickup Requests Per Customer Per Day</label>
+                                        <div class="ss-input-group">
+                                            <input type="number" name="max_pickup_requests_per_day" class="ss-input" style="border-radius:var(--ss-radius-xs) 0 0 var(--ss-radius-xs);text-align:center;" value="{{ SystemSetting::get('max_pickup_requests_per_day', 3) }}" min="0">
+                                            <span class="ss-input-addon right">per day</span>
+                                        </div>
+                                        <p class="ss-form-hint">Maximum pickup requests a customer can submit in a single day. Set to 0 for unlimited.</p>
                                     </div>
                                 </div>
                             </div>
@@ -1313,14 +1325,100 @@ function generateBackup() {
 
 // ── Apply hours to branches ────────────────────────────────────
 function applyHoursToBranches() {
-    if (!confirm('This will update operating hours for ALL branches. Individual branch settings will be overwritten. Continue?')) return;
+    const selected = [...document.querySelectorAll('#applyHoursModal input[name="branch_ids[]"]:checked')].map(el => el.value);
+    const applyAll = document.getElementById('applyAllBranches').checked;
+
+    if (!applyAll && selected.length === 0) {
+        alert('Please select at least one branch or choose Apply to All.');
+        return;
+    }
+
+    const label = applyAll ? 'ALL branches' : selected.length + ' branch(es)';
+    if (!confirm('This will overwrite operating hours for ' + label + '. Continue?')) return;
+
+    const btn = document.getElementById('applyHoursBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Applying...';
+
     fetch('{{ route("admin.settings.apply-hours-to-branches") }}', {
         method: 'POST',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apply_all: applyAll, branch_ids: selected })
     })
     .then(r => r.json())
-    .then(data => alert(data.success ? data.message : 'Error: ' + data.message))
-    .catch(() => alert('Error applying hours to branches'));
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Apply';
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('applyHoursModal')).hide();
+            alert(data.message);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Apply';
+        alert('Error applying hours to branches');
+    });
 }
+
+// Toggle all checkboxes when Apply All is checked
+document.addEventListener('DOMContentLoaded', function () {
+    const applyAll = document.getElementById('applyAllBranches');
+    if (applyAll) {
+        applyAll.addEventListener('change', function () {
+            document.querySelectorAll('#branchCheckboxList input[type="checkbox"]').forEach(cb => {
+                cb.disabled = this.checked;
+                if (this.checked) cb.checked = false;
+            });
+        });
+    }
+});
 </script>
+
+{{-- Apply Hours to Branches Modal --}}
+<div class="modal fade" id="applyHoursModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-building me-2"></i>Apply Operating Hours</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Select which branches to apply the current operating hours to.</p>
+
+                {{-- Apply All toggle --}}
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="applyAllBranches" checked>
+                    <label class="form-check-label fw-semibold" for="applyAllBranches">Apply to All Branches</label>
+                </div>
+
+                <hr>
+
+                {{-- Branch checkboxes --}}
+                <div id="branchCheckboxList">
+                    @foreach(\App\Models\Branch::orderBy('name')->get() as $branch)
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="branch_ids[]" value="{{ $branch->id }}" id="branch_{{ $branch->id }}" disabled>
+                        <label class="form-check-label" for="branch_{{ $branch->id }}">
+                            {{ $branch->name }}
+                            @if(!$branch->is_active)
+                                <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">Inactive</span>
+                            @endif
+                        </label>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="applyHoursBtn" onclick="applyHoursToBranches()">
+                    <i class="bi bi-check-circle me-1"></i>Apply
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection

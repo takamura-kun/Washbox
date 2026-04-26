@@ -158,6 +158,8 @@ export default function HomeScreen() {
   // Animations
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(40));
+  const serviceScrollRef = useRef(null);
+  const serviceScrollIndex = useRef(0);
   const promoScrollRef = useRef(null);
 
   useEffect(() => {
@@ -173,6 +175,21 @@ export default function HomeScreen() {
       ]).start();
     }
   }, [loading]);
+
+  // Auto-slide for Our Services
+  const [serviceActiveIndex, setServiceActiveIndex] = useState(0);
+  const SERVICE_CARD_WIDTH = 260 + 12; // card width + gap
+
+  useEffect(() => {
+    if (services.length <= 1) return;
+    const interval = setInterval(() => {
+      const nextIndex = (serviceScrollIndex.current + 1) % services.length;
+      serviceScrollRef.current?.scrollTo({ x: nextIndex * SERVICE_CARD_WIDTH, animated: true });
+      serviceScrollIndex.current = nextIndex;
+      setServiceActiveIndex(nextIndex);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [services.length]);
 
   // ─── Data Fetching ───
 
@@ -524,9 +541,15 @@ export default function HomeScreen() {
               </View>
 
               <ScrollView
+                ref={serviceScrollRef}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.servicesScrollContent}
+                onMomentumScrollEnd={(e) => {
+                  const index = Math.round(e.nativeEvent.contentOffset.x / SERVICE_CARD_WIDTH);
+                  serviceScrollIndex.current = index;
+                  setServiceActiveIndex(index);
+                }}
               >
                 {services.map((service, index) => (
                   <TouchableOpacity
@@ -553,13 +576,11 @@ export default function HomeScreen() {
                     
                     <LinearGradient
                       colors={[
-                        service.image_url ? 'rgba(6,8,26,0.7)' : (
-                          index % 4 === 0 ? COLORS.primarySoft : 
-                          index % 4 === 1 ? COLORS.secondaryGlow : 
-                          index % 4 === 2 ? COLORS.successGlow : 
-                          COLORS.accentGlow
-                        ),
-                        service.image_url ? 'rgba(6,8,26,0.95)' : COLORS.surface
+                        index % 4 === 0 ? '#0EA5E920' :
+                        index % 4 === 1 ? '#8B5CF620' :
+                        index % 4 === 2 ? '#10B98120' :
+                        '#F59E0B20',
+                        COLORS.surface
                       ]}
                       style={styles.serviceOfferGradient}
                     >
@@ -603,7 +624,7 @@ export default function HomeScreen() {
                       <View style={styles.serviceOfferFooter}>
                         {service.price_per_kilo && (
                           <View style={styles.serviceOfferPriceTag}>
-                            <Ionicons name="pricetag" size={14} color={COLORS.primary} />
+                            <Ionicons name="pricetag" size={12} color={COLORS.primary} />
                             <Text style={styles.serviceOfferPrice}>
                               ₱{parseFloat(service.price_per_kilo).toFixed(2)}/kg
                             </Text>
@@ -611,17 +632,9 @@ export default function HomeScreen() {
                         )}
                         {service.price_per_load && (
                           <View style={styles.serviceOfferPriceTag}>
-                            <Ionicons name="pricetag" size={14} color={COLORS.primary} />
+                            <Ionicons name="pricetag" size={12} color={COLORS.primary} />
                             <Text style={styles.serviceOfferPrice}>
                               ₱{parseFloat(service.price_per_load).toFixed(2)}/load
-                            </Text>
-                          </View>
-                        )}
-                        {service.turnaround_time && (
-                          <View style={styles.serviceOfferTimeTag}>
-                            <Ionicons name="time-outline" size={12} color={COLORS.textMuted} />
-                            <Text style={styles.serviceOfferTime}>
-                              {service.turnaround_time}
                             </Text>
                           </View>
                         )}
@@ -630,6 +643,21 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
+
+              {/* Dot indicators */}
+              {services.length > 1 && (
+                <View style={styles.serviceDots}>
+                  {services.map((_, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.serviceDot,
+                        i === serviceActiveIndex && styles.serviceDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
           )}
 
@@ -690,7 +718,7 @@ export default function HomeScreen() {
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionTitleRow}>
                   <View style={[styles.sectionDot, { backgroundColor: COLORS.pink }]} />
-                  <Text style={styles.sectionTitle}>Special Offers</Text>
+                  <Text style={styles.sectionTitle}>Promo Packages</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.seeAllButton}
@@ -1209,16 +1237,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   serviceOfferCard: {
-    width: 280,
+    width: 260,
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: COLORS.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    elevation: 5,
     position: 'relative',
   },
   serviceOfferBgImage: {
@@ -1236,27 +1265,28 @@ const styles = StyleSheet.create({
   },
   serviceOfferGradient: {
     padding: 20,
-    minHeight: 180,
+    minHeight: 200,
+    backgroundColor: 'transparent',
   },
   serviceOfferIconContainer: {
-    width: 64,
-    height: 64,
+    width: 60,
+    height: 60,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   serviceOfferName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   serviceOfferDesc: {
     fontSize: 13,
     color: COLORS.textSecondary,
     lineHeight: 18,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   serviceOfferFooter: {
     flexDirection: 'row',
@@ -1293,6 +1323,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.textMuted,
+  },
+  serviceDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+  },
+  serviceDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.borderMuted,
+  },
+  serviceDotActive: {
+    width: 18,
+    backgroundColor: COLORS.primary,
   },
 
   serviceCard: {

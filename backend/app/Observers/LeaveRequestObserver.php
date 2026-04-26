@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\LeaveRequest;
 use App\Models\AdminNotification;
 use App\Models\BranchNotification;
+use App\Models\ActivityLog;
 
 class LeaveRequestObserver
 {
@@ -14,6 +15,12 @@ class LeaveRequestObserver
     public function created(LeaveRequest $leave): void
     {
         $leave->loadMissing('user', 'user.branch');
+
+        ActivityLog::log('created', "{$leave->user->name} requested {$leave->leave_type} leave", 'attendance', $leave, [
+            'leave_type' => $leave->leave_type,
+            'from'       => $leave->leave_date_from->format('Y-m-d'),
+            'to'         => $leave->leave_date_to->format('Y-m-d'),
+        ], $leave->user->branch_id);
 
         // 🔔 NOTIFY ADMIN: New leave request
         AdminNotification::create([
@@ -55,6 +62,11 @@ class LeaveRequestObserver
         // Check if status changed
         if ($leave->isDirty('status')) {
             $leave->loadMissing('user', 'user.branch');
+
+            ActivityLog::log('status_changed', "Leave request for {$leave->user->name} was {$leave->status}", 'attendance', $leave, [
+                'from'   => $leave->getOriginal('status'),
+                'to'     => $leave->status,
+            ], $leave->user->branch_id);
 
             $status = $leave->status;
             $color = $status === 'approved' ? 'success' : ($status === 'rejected' ? 'danger' : 'warning');

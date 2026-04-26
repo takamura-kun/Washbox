@@ -12,6 +12,9 @@ import {
   Platform,
   Animated,
   Image,
+  Clipboard,
+  Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,6 +50,9 @@ export default function PromotionsScreen() {
   const [promotions, setPromotions] = useState([]);
   const [filter, setFilter] = useState('all'); // all, active, featured
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [selectedPromo, setSelectedPromo] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   useEffect(() => {
     fetchPromotions();
@@ -102,6 +108,49 @@ export default function PromotionsScreen() {
 
   const filteredPromotions = getFilteredPromotions();
 
+  const openDetails = async (promo) => {
+    setSelectedPromo(promo);
+    setShowDetails(true);
+    setDetailsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/v1/promotions/${promo.id}`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) setSelectedPromo(data.data.promotion);
+      }
+    } catch (e) {
+      console.error('Error fetching promo details:', e);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const handleUsePromo = (promo) => {
+    if (promo.promo_code) {
+      Clipboard.setString(promo.promo_code);
+      Alert.alert(
+        '✅ Code Copied!',
+        `Promo code "${promo.promo_code}" copied to clipboard.\n\nUse it when scheduling your pickup.`,
+        [
+          { text: 'Schedule Pickup', onPress: () => router.push('/(tabs)/pickup') },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+    } else {
+      // No code needed — auto-applied promotion
+      Alert.alert(
+        '🎉 Offer Applied!',
+        `"${promo.name}" will be automatically applied to your next order.`,
+        [
+          { text: 'Schedule Pickup', onPress: () => router.push('/(tabs)/pickup') },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -130,7 +179,7 @@ export default function PromotionsScreen() {
           </TouchableOpacity>
           
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>Special Offers</Text>
+            <Text style={styles.headerTitle}>Promo Packages</Text>
             <Text style={styles.headerSubtitle}>
               {filteredPromotions.length} {filteredPromotions.length === 1 ? 'offer' : 'offers'} available
             </Text>
@@ -208,10 +257,7 @@ export default function PromotionsScreen() {
                     key={promo.id}
                     style={styles.promoCard}
                     activeOpacity={0.9}
-                    onPress={() => {
-                      // Navigate to promotion details if needed
-                      // router.push(`/promotions/${promo.id}`);
-                    }}
+                    onPress={() => openDetails(promo)}
                   >
                     {hasBackgroundImage ? (
                       <View style={styles.promoImageContainer}>
@@ -294,10 +340,24 @@ export default function PromotionsScreen() {
                               )}
                             </View>
 
-                            {/* Arrow */}
-                            <View style={styles.promoArrow}>
-                              <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.8)" />
-                            </View>
+                            {/* Use Button */}
+                            <TouchableOpacity
+                              style={styles.useButton}
+                              onPress={() => handleUsePromo(promo)}
+                              activeOpacity={0.85}
+                            >
+                              {promo.promo_code ? (
+                                <>
+                                  <Ionicons name="copy-outline" size={16} color="#FFF" />
+                                  <Text style={styles.useButtonText}>Copy Code: {promo.promo_code}</Text>
+                                </>
+                              ) : (
+                                <>
+                                  <Ionicons name="checkmark-circle" size={16} color="#FFF" />
+                                  <Text style={styles.useButtonText}>Use This Offer</Text>
+                                </>
+                              )}
+                            </TouchableOpacity>
                           </View>
                         </LinearGradient>
                       </View>
@@ -375,10 +435,24 @@ export default function PromotionsScreen() {
                           )}
                         </View>
 
-                        {/* Arrow */}
-                        <View style={styles.promoArrow}>
-                          <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.8)" />
-                        </View>
+                        {/* Use Button */}
+                        <TouchableOpacity
+                          style={styles.useButton}
+                          onPress={() => handleUsePromo(promo)}
+                          activeOpacity={0.85}
+                        >
+                          {promo.promo_code ? (
+                            <>
+                              <Ionicons name="copy-outline" size={16} color="#FFF" />
+                              <Text style={styles.useButtonText}>Copy Code: {promo.promo_code}</Text>
+                            </>
+                          ) : (
+                            <>
+                              <Ionicons name="checkmark-circle" size={16} color="#FFF" />
+                              <Text style={styles.useButtonText}>Use This Offer</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
                       </LinearGradient>
                     )}
                   </TouchableOpacity>
@@ -417,6 +491,194 @@ export default function PromotionsScreen() {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+
+      {/* ─── Promo Details Modal ─── */}
+      <Modal
+        visible={showDetails}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowDetails(false)}
+      >
+        <View style={styles.detailsContainer}>
+          {/* Header */}
+          <View style={styles.detailsHeader}>
+            <TouchableOpacity
+              style={styles.detailsCloseBtn}
+              onPress={() => setShowDetails(false)}
+            >
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+            </TouchableOpacity>
+            <Text style={styles.detailsHeaderTitle}>Promo Details</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {detailsLoading ? (
+            <View style={styles.detailsLoading}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={{ color: COLORS.textSecondary, marginTop: 12 }}>Loading details...</Text>
+            </View>
+          ) : selectedPromo ? (
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              {/* Banner with price overlay centered */}
+              {selectedPromo.banner_image ? (
+                <View style={styles.detailsBannerWrap}>
+                  <Image
+                    source={{ uri: selectedPromo.banner_image }}
+                    style={styles.detailsBanner}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.detailsBannerOverlay}>
+                    <Text style={styles.detailsOverlayOnly}>ONLY</Text>
+                    <View style={styles.detailsOverlayPriceRow}>
+                      <Text style={styles.detailsOverlayCurrency}>₱</Text>
+                      <Text style={styles.detailsOverlayPrice}>{selectedPromo.display_price}</Text>
+                    </View>
+                    <Text style={styles.detailsOverlayUnit}>
+                      {selectedPromo.price_unit || 'per load'}
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <LinearGradient
+                  colors={COLORS.gradientPrimary}
+                  style={styles.detailsBannerGradient}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.detailsOverlayOnly}>ONLY</Text>
+                  <View style={styles.detailsOverlayPriceRow}>
+                    <Text style={styles.detailsOverlayCurrency}>₱</Text>
+                    <Text style={styles.detailsOverlayPrice}>{selectedPromo.display_price}</Text>
+                  </View>
+                  <Text style={styles.detailsOverlayUnit}>
+                    {selectedPromo.price_unit || 'per load'}
+                  </Text>
+                </LinearGradient>
+              )}
+
+              <View style={styles.detailsBody}>
+                {/* Badges */}
+                <View style={styles.promoBadges}>
+                  {selectedPromo.is_featured && (
+                    <View style={styles.featuredBadge}>
+                      <Ionicons name="star" size={10} color={COLORS.warning} />
+                      <Text style={styles.featuredBadgeText}>FEATURED</Text>
+                    </View>
+                  )}
+                  {selectedPromo.is_active && (
+                    <View style={styles.activeBadge}>
+                      <View style={styles.activeDot} />
+                      <Text style={styles.activeBadgeText}>ACTIVE</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Title & Price */}
+                <Text style={styles.detailsTitle}>
+                  {selectedPromo.poster_title || selectedPromo.name}
+                </Text>
+
+                {/* original_price shown below if exists */}
+                {selectedPromo.original_price && (
+                  <Text style={[styles.detailsOriginalPrice, { textAlign: 'center', marginBottom: 16 }]}>
+                    Regular price: ₱{selectedPromo.original_price}
+                  </Text>
+                )}
+
+                {/* Description */}
+                {selectedPromo.description && (
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsSectionTitle}>About this Package</Text>
+                    <Text style={styles.detailsDescription}>{selectedPromo.description}</Text>
+                  </View>
+                )}
+
+                {/* What's Included */}
+                {selectedPromo.poster_features?.length > 0 && (
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsSectionTitle}>What's Included</Text>
+                    <View style={styles.detailsItemsList}>
+                      {selectedPromo.poster_features.map((item, i) => (
+                        <View key={i} style={styles.detailsItem}>
+                          <View style={styles.detailsFreeBadge}>
+                            <Text style={styles.detailsFreeBadgeText}>FREE</Text>
+                          </View>
+                          <Text style={styles.detailsItemText}>{item}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Notes */}
+                {selectedPromo.poster_notes && (
+                  <View style={styles.detailsNotesCard}>
+                    <Ionicons name="information-circle" size={18} color={COLORS.warning} />
+                    <Text style={styles.detailsNotesText}>{selectedPromo.poster_notes}</Text>
+                  </View>
+                )}
+
+                {/* Validity */}
+                {(selectedPromo.start_date || selectedPromo.end_date) && (
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsSectionTitle}>Validity</Text>
+                    <View style={styles.detailsValidityRow}>
+                      <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
+                      <Text style={styles.detailsValidityText}>
+                        {selectedPromo.start_date} → {selectedPromo.end_date}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Branch */}
+                {selectedPromo.branch && (
+                  <View style={styles.detailsBranchRow}>
+                    <Ionicons name="business-outline" size={16} color={COLORS.textMuted} />
+                    <Text style={styles.detailsBranchText}>{selectedPromo.branch.name}</Text>
+                  </View>
+                )}
+
+                {/* Use Button */}
+                <TouchableOpacity
+                  style={styles.detailsUseBtn}
+                  onPress={async () => {
+                    setShowDetails(false);
+                    // Store promo in AsyncStorage since tab screens don't receive router params
+                    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+                    await AsyncStorage.setItem('@washbox:pending_promo', JSON.stringify({
+                      promoId: selectedPromo.id,
+                      promoName: selectedPromo.poster_title || selectedPromo.name,
+                      promoPrice: selectedPromo.display_price,
+                      promoPriceUnit: selectedPromo.price_unit || 'per load',
+                      promoCode: selectedPromo.promo_code || '',
+                      promoBanner: selectedPromo.banner_image || '',
+                    }));
+                    router.push('/(tabs)/pickup');
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={COLORS.gradientPrimary}
+                    style={styles.detailsUseBtnGradient}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  >
+                    <Ionicons
+                      name={selectedPromo.promo_code ? 'copy-outline' : 'checkmark-circle'}
+                      size={20}
+                      color="#FFF"
+                    />
+                    <Text style={styles.detailsUseBtnText}>
+                      {selectedPromo.promo_code
+                        ? `Copy Code: ${selectedPromo.promo_code}`
+                        : 'Use This Package'}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -531,12 +793,12 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   promoGradient: {
-    padding: 20,
-    minHeight: 200,
+    padding: 24,
+    minHeight: 320,
   },
   promoImageContainer: {
     position: 'relative',
-    minHeight: 200,
+    minHeight: 320,
   },
   promoBackgroundImage: {
     position: 'absolute',
@@ -605,37 +867,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   promoTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800',
     color: COLORS.textPrimary,
-    marginBottom: 8,
-    lineHeight: 30,
+    marginBottom: 10,
+    lineHeight: 32,
   },
   promoSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 16,
-    lineHeight: 20,
+    marginBottom: 18,
+    lineHeight: 22,
   },
   promoPriceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   promoPrice: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '800',
     color: COLORS.textPrimary,
   },
   promoOriginalPrice: {
-    fontSize: 18,
+    fontSize: 20,
     color: 'rgba(255, 255, 255, 0.6)',
     textDecorationLine: 'line-through',
   },
   promoFeatures: {
-    gap: 8,
-    marginBottom: 12,
+    gap: 10,
+    marginBottom: 14,
   },
   featureRow: {
     flexDirection: 'row',
@@ -645,7 +907,7 @@ const styles = StyleSheet.create({
   featureText: {
     flex: 1,
     color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
   },
   validityContainer: {
@@ -662,6 +924,26 @@ const styles = StyleSheet.create({
   promoArrow: {
     alignSelf: 'flex-end',
     marginTop: 12,
+  },
+  useButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginTop: 18,
+    alignSelf: 'flex-end',
+  },
+  useButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFF',
+    letterSpacing: 0.3,
   },
 
   // Empty State
@@ -705,5 +987,209 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: '700',
+  },
+
+  // Details Modal
+  detailsContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 56 : 44,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  detailsCloseBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: COLORS.cardDark,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  detailsHeaderTitle: {
+    fontSize: 17, fontWeight: '700', color: COLORS.textPrimary,
+  },
+  detailsLoading: {
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+  },
+  detailsBanner: {
+    width: '100%', height: 260,
+  },
+  detailsBannerWrap: {
+    position: 'relative',
+    width: '100%',
+    height: 260,
+  },
+  detailsBannerOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailsBannerGradient: {
+    height: 260,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailsOverlayOnly: {
+    fontSize: 13, fontWeight: '900',
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 4,
+    marginBottom: 2,
+  },
+  detailsOverlayPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  detailsOverlayCurrency: {
+    fontSize: 28, fontWeight: '900',
+    color: '#FFF', marginTop: 10,
+  },
+  detailsOverlayPrice: {
+    fontSize: 88, fontWeight: '900',
+    color: '#FFF', lineHeight: 96,
+  },
+  detailsOverlayUnit: {
+    fontSize: 16, fontWeight: '700',
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 4, letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  detailsBody: {
+    padding: 24,
+  },
+  detailsTitle: {
+    fontSize: 26, fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginBottom: 12, lineHeight: 32,
+  },
+  detailsPriceRow: {
+    flexDirection: 'row', alignItems: 'baseline',
+    gap: 10, marginBottom: 20,
+  },
+  detailsPrice: {
+    fontSize: 36, fontWeight: '800', color: COLORS.primary,
+  },
+  detailsOriginalPrice: {
+    fontSize: 18, color: COLORS.textMuted,
+    textDecorationLine: 'line-through',
+  },
+  detailsPriceUnit: {
+    fontSize: 14, color: COLORS.textSecondary, fontWeight: '500',
+  },
+  detailsSection: {
+    marginBottom: 24,
+  },
+  detailsSectionTitle: {
+    fontSize: 13, fontWeight: '800',
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  detailsDescription: {
+    fontSize: 15, color: COLORS.textSecondary,
+    lineHeight: 24,
+  },
+  detailsItemsList: {
+    gap: 10,
+  },
+  detailsItem: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.cardDark,
+    borderRadius: 12, padding: 14, gap: 12,
+  },
+  detailsItemDot: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: COLORS.primary,
+  },
+  detailsItemText: {
+    fontSize: 15, fontWeight: '600', color: COLORS.textPrimary,
+  },
+  detailsNotesCard: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    gap: 10, backgroundColor: COLORS.warning + '15',
+    borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: COLORS.warning + '30',
+    marginBottom: 24,
+  },
+  detailsNotesText: {
+    flex: 1, fontSize: 13,
+    color: COLORS.textSecondary, lineHeight: 20,
+  },
+  detailsValidityRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  detailsValidityText: {
+    fontSize: 14, color: COLORS.textSecondary, fontWeight: '500',
+  },
+  detailsBranchRow: {
+    flexDirection: 'row', alignItems: 'center',
+    gap: 8, marginBottom: 24,
+  },
+  detailsBigPrice: {
+    alignItems: 'center',
+    backgroundColor: COLORS.cardDark,
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+  },
+  detailsBigPriceLabel: {
+    fontSize: 12, fontWeight: '800',
+    color: COLORS.textMuted,
+    letterSpacing: 2,
+    marginBottom: 4,
+  },
+  detailsBigPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  detailsBigPriceCurrency: {
+    fontSize: 28, fontWeight: '800',
+    color: COLORS.primary, marginTop: 8,
+  },
+  detailsBigPriceValue: {
+    fontSize: 72, fontWeight: '900',
+    color: COLORS.primary, lineHeight: 80,
+  },
+  detailsBigPriceUnit: {
+    fontSize: 16, fontWeight: '700',
+    color: COLORS.textSecondary, marginTop: 4,
+  },
+  detailsOriginalPrice: {
+    fontSize: 13, color: COLORS.textMuted,
+    textDecorationLine: 'line-through', marginTop: 6,
+  },
+  detailsFreeBadge: {
+    backgroundColor: COLORS.success + '20',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: COLORS.success + '40',
+  },
+  detailsFreeBadgeText: {
+    fontSize: 10, fontWeight: '800',
+    color: COLORS.success, letterSpacing: 0.5,
+  },
+  detailsBranchText: {
+    fontSize: 13, color: COLORS.textMuted,
+  },
+  detailsUseBtn: {
+    borderRadius: 16, overflow: 'hidden', marginTop: 8,
+  },
+  detailsUseBtnGradient: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 10,
+    paddingVertical: 16,
+  },
+  detailsUseBtnText: {
+    fontSize: 16, fontWeight: '700', color: '#FFF',
   },
 });

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use App\Models\ActivityLog;
 
 class LoginController extends Controller
 {
@@ -80,6 +81,8 @@ class LoginController extends Controller
             // Clear rate limiter on successful login
             RateLimiter::clear($key);
 
+            ActivityLog::log('login', 'Admin ' . Auth::user()->name . ' logged in', 'auth', Auth::user());
+
             // ===================================================
             // SUCCESS! Redirect to Admin Dashboard
             // ===================================================
@@ -103,6 +106,11 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
 {
+    $user = Auth::guard('web')->user();
+    if ($user) {
+        ActivityLog::log('logout', 'Admin ' . $user->name . ' logged out', 'auth', $user);
+    }
+
     // Ensure we use the 'web' guard which supports the logout() method
     Auth::guard('web')->logout();
 

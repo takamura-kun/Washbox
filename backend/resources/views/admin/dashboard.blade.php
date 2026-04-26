@@ -1177,7 +1177,7 @@
 
 {{-- Revenue Breakdown Modal --}}
 <div class="modal fade" id="revenueBreakdownModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
@@ -1198,34 +1198,63 @@
                         ->whereDate('created_at', today())->sum('total_amount');
                     $totalRevModal  = $laundryRevenue + $retailRevenue;
 
-                    // Get individual laundry orders with add-ons
                     $revenueByService = \App\Models\Laundry::when($branchId, fn($q) => $q->where('branch_id', $branchId))
                         ->whereBetween('paid_at', [today(), today()->endOfDay()])
                         ->whereIn('status', ['paid', 'completed'])
-                        ->with(['service:id,name', 'customer:id,name', 'inventoryItems'])
+                        ->with([
+                            'service:id,name',
+                            'service.supplies.category',
+                            'promotion:id,name',
+                            'promotion.promotionItems.inventoryItem.category',
+                            'customer:id,name',
+                            'inventoryItems:id,name,category_id',
+                            'inventoryItems.category:id,name',
+                        ])
                         ->orderByDesc('paid_at')
                         ->get()
                         ->map(function($laundry) use ($totalRevModal) {
-                            $detergent = 0; $fabcon = 0; $bleach = 0; $plastics = 0;
-                            foreach ($laundry->inventoryItems as $item) {
-                                $itemName = strtolower($item->name);
-                                $qty = $item->pivot->quantity ?? 0;
-                                if (str_contains($itemName, 'detergent') || str_contains($itemName, 'powder')) $detergent += $qty;
-                                elseif (str_contains($itemName, 'fabcon') || str_contains($itemName, 'fabric') || str_contains($itemName, 'conditioner')) $fabcon += $qty;
-                                elseif (str_contains($itemName, 'bleach')) $bleach += $qty;
-                                elseif (str_contains($itemName, 'plastic') || str_contains($itemName, 'bag')) $plastics += $qty;
+                            $loads = max(1, $laundry->number_of_loads ?? 1);
+
+                            $addonItems = [];
+                            foreach ($laundry->inventoryItems as $i) {
+                                $addonItems[] = ['name' => $i->name, 'category' => $i->category->name ?? '', 'qty' => (float) $i->pivot->quantity];
                             }
+                            $addonsCount = array_sum(array_map(fn($i) => (int) round($i['qty']), $addonItems));
+
+                            $allItems = $addonItems;
+                            foreach (($laundry->service?->supplies ?? collect()) as $supply) {
+                                $qty = (float) $supply->pivot->quantity_required * $loads;
+                                $found = false;
+                                foreach ($allItems as &$row) {
+                                    if ($row['name'] === $supply->name) { $row['qty'] += $qty; $found = true; break; }
+                                } unset($row);
+                                if (!$found) $allItems[] = ['name' => $supply->name, 'category' => $supply->category->name ?? '', 'qty' => $qty];
+                            }
+                            foreach (($laundry->promotion?->promotionItems ?? collect()) as $promoItem) {
+                                if (!$promoItem->is_active || !$promoItem->inventoryItem) continue;
+                                $qty  = (float) $promoItem->quantity_per_use * $loads;
+                                $name = $promoItem->inventoryItem->name;
+                                $cat  = $promoItem->inventoryItem->category->name ?? '';
+                                $found = false;
+                                foreach ($allItems as &$row) {
+                                    if ($row['name'] === $name) { $row['qty'] += $qty; $found = true; break; }
+                                } unset($row);
+                                if (!$found) $allItems[] = ['name' => $name, 'category' => $cat, 'qty' => $qty];
+                            }
+
                             return [
-                                'id' => $laundry->id,
+                                'id'            => $laundry->id,
                                 'customer_name' => $laundry->customer->name ?? 'N/A',
-                                'service_name' => $laundry->service->name ?? 'Unknown',
-                                'loads' => $laundry->number_of_loads ?? 0,
-                                'detergent' => $detergent,
-                                'fabcon' => $fabcon,
-                                'bleach' => $bleach,
-                                'plastics' => $plastics,
-                                'revenue' => $laundry->total_amount,
-                                'percentage' => $totalRevModal > 0 ? round(($laundry->total_amount / $totalRevModal) * 100, 1) : 0
+                                'service_name'  => $laundry->service->name ?? $laundry->promotion->name ?? 'N/A',
+                                'is_promo'      => !$laundry->service && $laundry->promotion,
+                                'loads'         => $laundry->number_of_loads ?? 0,
+                                'addons'        => $addonsCount,
+                                'detergent'     => array_sum(array_column(array_filter($allItems, fn($i) => $i['category'] === 'DETERGENT'), 'qty')),
+                                'fabcon'        => array_sum(array_column(array_filter($allItems, fn($i) => $i['category'] === 'FABRIC CONDTIONER'), 'qty')),
+                                'bleach'        => array_sum(array_column(array_filter($allItems, fn($i) => $i['category'] === 'BLEACH'), 'qty')),
+                                'plastics'      => array_sum(array_column(array_filter($allItems, fn($i) => $i['category'] === 'PACKAGING PLASTICS'), 'qty')),
+                                'revenue'       => $laundry->total_amount,
+                                'percentage'    => $totalRevModal > 0 ? round(($laundry->total_amount / $totalRevModal) * 100, 1) : 0,
                             ];
                         });
                 @endphp
@@ -1240,7 +1269,7 @@
                     <div class="col-md-4">
                         <div class="p-3 rounded border">
                             <div class="text-muted small text-uppercase mb-1">Laundry services</div>
-                            <div class="fs-5 fw-bold text-primary">₱{{ number_format($laundryRevenue, 2) }}</div>
+                            <div class="fs-5 fw-bold text-primary">&#8369;{{ number_format($laundryRevenue, 2) }}</div>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -1262,9 +1291,10 @@
                                 <th>#</th>
                                 <th>Customer</th>
                                 <th>Service</th>
+                                <th class="text-center">Add-ons</th>
                                 <th class="text-center">Loads/Pieces</th>
                                 <th class="text-center">Detergent</th>
-                                <th class="text-center">Fabcon</th>
+                                <th class="text-center">Fab Con</th>
                                 <th class="text-center">Bleach</th>
                                 <th class="text-center">Plastics</th>
                                 <th class="text-end">Revenue</th>
@@ -1277,14 +1307,15 @@
                             <td><span class="badge bg-primary">#{{ $svc['id'] }}</span></td>
                             <td>{{ $svc['customer_name'] }}</td>
                             <td>
-                                <i class="bi bi-droplet-fill text-primary me-1" style="font-size:0.7rem;"></i>
                                 {{ $svc['service_name'] }}
+                                @if($svc['is_promo'])<span class="badge ms-1" style="background:rgba(139,92,246,0.15);color:#7c3aed;font-size:0.65rem;">Promo</span>@endif
                             </td>
+                            <td class="text-center">{{ $svc['addons'] ?: '—' }}</td>
                             <td class="text-center">{{ $svc['loads'] }}</td>
-                            <td class="text-center">{{ $svc['detergent'] > 0 ? $svc['detergent'] : '—' }}</td>
-                            <td class="text-center">{{ $svc['fabcon'] > 0 ? $svc['fabcon'] : '—' }}</td>
-                            <td class="text-center">{{ $svc['bleach'] > 0 ? $svc['bleach'] : '—' }}</td>
-                            <td class="text-center">{{ $svc['plastics'] > 0 ? $svc['plastics'] : '—' }}</td>
+                            <td class="text-center">{{ $svc['detergent'] > 0 ? (int)round($svc['detergent']) : '—' }}</td>
+                            <td class="text-center">{{ $svc['fabcon'] > 0 ? (int)round($svc['fabcon']) : '—' }}</td>
+                            <td class="text-center">{{ $svc['bleach'] > 0 ? (int)round($svc['bleach']) : '—' }}</td>
+                            <td class="text-center">{{ $svc['plastics'] > 0 ? (int)round($svc['plastics']) : '—' }}</td>
                             <td class="text-end fw-bold text-success">₱{{ number_format($svc['revenue'], 2) }}</td>
                             <td class="text-end text-muted">{{ $svc['percentage'] }}%</td>
                         </tr>
@@ -1292,7 +1323,7 @@
                         </tbody>
                         <tfoot>
                             <tr class="table-active fw-bold">
-                                <td colspan="8" class="text-end">Total Laundry Revenue:</td>
+                                <td colspan="9" class="text-end">Total Laundry Revenue:</td>
                                 <td class="text-end text-success">₱{{ number_format($laundryRevenue, 2) }}</td>
                                 <td class="text-end text-muted">{{ $totalRevModal > 0 ? round(($laundryRevenue / $totalRevModal) * 100, 1) : 0 }}%</td>
                             </tr>

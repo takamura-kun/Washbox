@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\laundry;
 use App\Models\User;
+use App\Models\DeletedRecord;
+use App\Models\ActivityLog;
 use App\Services\GeocodingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -310,6 +312,11 @@ class BranchController extends Controller
         }
 
         $branch->delete();
+
+        DeletedRecord::snapshot($branch, 'branch');
+        ActivityLog::log('deleted', "Branch \"{$branch->name}\" deleted", 'branch', null, [
+            'name' => $branch->name,
+        ]);
 
         $this->clearDashboardCache();
 

@@ -5,6 +5,8 @@ namespace App\Observers;
 use App\Models\Laundry;
 use App\Models\AdminNotification;
 use App\Models\BranchNotification;
+use App\Models\ActivityLog;
+use App\Models\DeletedRecord;
 use App\Services\FinancialTransactionService;
 
 class LaundryObserver
@@ -61,6 +63,12 @@ class LaundryObserver
             ]);
         }
 
+        ActivityLog::log('created', "Laundry #{$laundry->tracking_number} created for {$laundry->customer->name}", 'laundry', $laundry, [
+            'tracking_number' => $laundry->tracking_number,
+            'total_amount'    => $laundry->total_amount,
+            'customer'        => $laundry->customer->name,
+        ], $laundry->branch_id);
+
         // If laundry is created with paid_at already set (rare case)
         if ($laundry->paid_at !== null) {
             $this->financialService->recordLaundrySale($laundry);
@@ -80,6 +88,14 @@ class LaundryObserver
         // Load relationships
         $laundry->loadMissing('customer', 'branch', 'service');
 
+        // Log status changes
+        if ($laundry->isDirty('status')) {
+            ActivityLog::log('status_changed', "Laundry #{$laundry->tracking_number} status changed from {$laundry->getOriginal('status')} to {$laundry->status}", 'laundry', $laundry, [
+                'from'   => $laundry->getOriginal('status'),
+                'to'     => $laundry->status,
+            ], $laundry->branch_id);
+        }
+
         // Check if paid_at was just set (laundry was just paid)
         if ($laundry->isDirty('paid_at') && $laundry->paid_at !== null) {
             // Check if financial transaction already exists
@@ -87,6 +103,10 @@ class LaundryObserver
                 ->where('reference_id', $laundry->id)
                 ->where('category', 'laundry_sale')
                 ->exists();
+
+            ActivityLog::log('paid', "Laundry #{$laundry->tracking_number} payment received ₱" . number_format($laundry->total_amount, 2), 'laundry', $laundry, [
+                    'amount' => $laundry->total_amount,
+                ], $laundry->branch_id);
 
             if (!$existingTransaction) {
                 // Record laundry sale transaction
@@ -233,5 +253,15 @@ class LaundryObserver
                 }
             }
         }
+    }
+
+    public function deleting(Laundry $laundry): void
+    {
+        $laundry->loadMissing('customer');
+        DeletedRecord::snapshot($laundry, 'laundry');
+        ActivityLog::log('deleted', "Laundry #{$laundry->tracking_number} deleted", 'laundry', null, [
+            'tracking_number' => $laundry->tracking_number,
+            'amount'          => $laundry->total_amount,
+        ], $laundry->branch_id);
     }
 }

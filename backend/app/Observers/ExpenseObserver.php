@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Expense;
 use App\Models\AdminNotification;
 use App\Models\BranchNotification;
+use App\Models\ActivityLog;
 
 class ExpenseObserver
 {
@@ -14,6 +15,12 @@ class ExpenseObserver
     public function created(Expense $expense): void
     {
         $expense->loadMissing('category', 'branch', 'creator');
+
+        ActivityLog::log('created', "Expense recorded: {$expense->category->name} ₱" . number_format($expense->amount, 2), 'finance', $expense, [
+            'category' => $expense->category->name,
+            'amount'   => $expense->amount,
+            'title'    => $expense->title,
+        ], $expense->branch_id);
 
         // 🔔 NOTIFY ADMIN: New expense recorded
         AdminNotification::create([

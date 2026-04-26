@@ -188,6 +188,22 @@ public function store(Request $request)
         // Check if customer proof photo is required
         $requireProof = (bool) \App\Models\SystemSetting::get('require_customer_proof_photo', true);
 
+        // Check daily pickup request limit
+        $maxPerDay = (int) \App\Models\SystemSetting::get('max_pickup_requests_per_day', 3);
+        if ($maxPerDay > 0) {
+            $todayCount = \App\Models\PickupRequest::where('customer_id', $customer->id)
+                ->whereDate('created_at', today())
+                ->whereNotIn('status', ['cancelled'])
+                ->count();
+
+            if ($todayCount >= $maxPerDay) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "You have reached the maximum of {$maxPerDay} pickup request(s) allowed per day. Please try again tomorrow.",
+                ], 429);
+            }
+        }
+
         $validated = $request->validate([
             'branch_id' => 'nullable|exists:branches,id', // Accept but ignore - will use customer's registered branch
             'pickup_address' => 'required|string|max:500',
@@ -200,6 +216,8 @@ public function store(Request $request)
             'notes' => 'nullable|string|max:500',
             'service_id' => 'nullable|exists:services,id',
             'service_type' => 'nullable|in:pickup_only,delivery_only,both',
+            'promotion_id' => 'nullable|exists:promotions,id',
+            'promo_code' => 'nullable|string|max:50',
             'phone_number' => 'required|string|max:20',
             'customer_proof_photo' => $requireProof ? 'required|image|mimes:jpeg,png,jpg|max:5120' : 'nullable|image|mimes:jpeg,png,jpg|max:5120',
         ]);
@@ -262,6 +280,8 @@ public function store(Request $request)
             'notes' => $validated['notes'] ?? null,
             'phone_number' => $validated['phone_number'],
             'service_id' => $validated['service_id'] ?? null,
+            'promotion_id' => $validated['promotion_id'] ?? null,
+            'promo_code' => $validated['promo_code'] ?? null,
             'service_type' => $serviceType,
             'pickup_fee' => $fees['pickup_fee'],
             'delivery_fee' => $fees['delivery_fee'],

@@ -331,6 +331,20 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Get branch staff list as JSON for the attendance modal
+     */
+    public function staffList()
+    {
+        $branchId = $this->getBranchId();
+        $staff = User::where('role', 'staff')
+            ->where('is_active', true)
+            ->where('branch_id', $branchId)
+            ->get(['id', 'name']);
+
+        return response()->json($staff);
+    }
+
+    /**
      * Mark staff as absent
      */
     public function markAbsent(Request $request)

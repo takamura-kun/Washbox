@@ -125,6 +125,7 @@ class LaundryCreateManager {
         this.extraWeightWarning = document.getElementById('extraWeightWarning');
         this.addonsSection = document.getElementById('addonsSection');
         this.promotionSection = document.getElementById('promotionSection');
+        this.promotionNameDisplay = document.getElementById('promotionNameDisplay');
         this.extraLoadsSection = document.getElementById('extraLoadsSection');
 
         // Display elements
@@ -661,7 +662,7 @@ initAddonQuantityControls() {
             }
             const weightHelp = document.getElementById('weightHelp');
             if (weightHelp) weightHelp.textContent = 'Record actual weight for reference';
-            if (!selected.value && this.serviceDescription) {
+            if (!selected?.value && this.serviceDescription) {
                 this.serviceDescription.textContent = 'Per-load promotion selected - No service needed';
             }
             return;
@@ -1133,6 +1134,49 @@ initAddonQuantityControls() {
             this.totalDisplay.textContent = '₱' + grandTotal.toFixed(2);
         }
 
+        // Update grand total breakdown
+        const gtService = document.getElementById('gtServiceDisplay');
+        const gtAddons = document.getElementById('gtAddonsDisplay');
+        const gtAddonsRow = document.getElementById('gtAddonsRow');
+        const gtPickup = document.getElementById('gtPickupDisplay');
+        const gtDelivery = document.getElementById('gtDeliveryDisplay');
+        if (gtService) gtService.textContent = '₱' + displaySubtotal.toFixed(2);
+        if (gtPickup) gtPickup.textContent = '₱' + pickupFee.toFixed(2);
+        if (gtDelivery) gtDelivery.textContent = '₱' + deliveryFee.toFixed(2);
+        if (gtAddons && gtAddonsRow) {
+            if (addonsTotal > 0) {
+                gtAddons.textContent = '₱' + addonsTotal.toFixed(2);
+                gtAddonsRow.style.display = 'flex';
+            } else {
+                gtAddonsRow.style.display = 'none';
+            }
+        }
+
+        // Update sidebar summary
+        const sumService = document.getElementById('summaryServiceDisplay');
+        const sumFees = document.getElementById('summaryFeesDisplay');
+        const sumTotal = document.getElementById('summaryTotalDisplay');
+        const sumAddons = document.getElementById('summaryAddonsDisplay');
+        const sumAddonsRow = document.getElementById('summaryAddonsRow');
+        if (sumService) sumService.textContent = '₱' + displaySubtotal.toFixed(2);
+        if (sumFees) sumFees.textContent = '₱' + totalFees.toFixed(2);
+        if (sumTotal) sumTotal.textContent = '₱' + grandTotal.toFixed(2);
+        if (sumAddons && sumAddonsRow) {
+            if (addonsTotal > 0) {
+                sumAddons.textContent = '₱' + addonsTotal.toFixed(2);
+                sumAddonsRow.style.removeProperty('display');
+            } else {
+                sumAddonsRow.style.setProperty('display', 'none', 'important');
+            }
+        }
+
+        // Update weight display
+        const weightDisplay = document.getElementById('weightDisplay');
+        const weightInput = document.getElementById('weightInput') || document.querySelector('[name="weight"]');
+        if (weightDisplay && weightInput && weightInput.value) {
+            weightDisplay.textContent = weightInput.value + ' kg';
+        }
+
         this.updateWeightSummary();
     }
 
@@ -1212,6 +1256,10 @@ initAddonQuantityControls() {
             }
             if (this.promotionDiscountDisplay) {
                 this.promotionDiscountDisplay.textContent = displayText;
+            }
+            if (this.promotionNameDisplay) {
+                const promoName = promotionSelected.text.split(' - ')[0];
+                this.promotionNameDisplay.textContent = promoName + ':';
             }
 
         } else {

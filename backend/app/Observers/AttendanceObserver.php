@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Attendance;
 use App\Models\AdminNotification;
 use App\Models\BranchNotification;
+use App\Models\ActivityLog;
 
 class AttendanceObserver
 {
@@ -14,6 +15,11 @@ class AttendanceObserver
     public function created(Attendance $attendance): void
     {
         $attendance->loadMissing('user', 'user.branch');
+
+        ActivityLog::log('created', "{$attendance->user->name} timed in — status: {$attendance->status}", 'attendance', $attendance, [
+            'status'  => $attendance->status,
+            'time_in' => $attendance->time_in?->format('H:i:s'),
+        ], $attendance->user->branch_id);
 
         // Only notify for late arrivals or absences
         if ($attendance->status === 'late') {

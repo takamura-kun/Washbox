@@ -59,7 +59,7 @@ class LaundryController extends Controller
     {
         $pickup = null;
         if ($request->has('pickup_id')) {
-            $pickup = PickupRequest::with(['customer', 'branch'])->find($request->pickup_id);
+            $pickup = PickupRequest::with(['customer', 'branch', 'promotion'])->find($request->pickup_id);
         }
 
         $promotions = Promotion::active()

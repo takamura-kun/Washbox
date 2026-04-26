@@ -105,6 +105,7 @@ class SettingsController extends Controller
             'max_service_radius_km'    => 'pickup',
             'pickup_advance_days_min'  => 'pickup',
             'pickup_advance_days_max'  => 'pickup',
+            'max_pickup_requests_per_day' => 'pickup',
             'tracking_prefix'          => 'receipt',
             'business_email'           => 'receipt',
             'receipt_header'           => 'receipt',
@@ -381,35 +382,35 @@ class SettingsController extends Controller
     /**
      * Apply global operating hours to all branches
      */
-    public function applyHoursToBranches()
+    public function applyHoursToBranches(Request $request)
     {
         try {
             $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
             $operatingHours = [];
 
-            // Build operating hours array from system settings
             foreach ($days as $day) {
                 $isOpen = SystemSetting::get("hours_{$day}_open", true);
-                
-                if ($isOpen) {
-                    $operatingHours[$day] = [
-                        'open' => SystemSetting::get("hours_{$day}_start", '07:00'),
-                        'close' => SystemSetting::get("hours_{$day}_end", '20:00'),
-                        'status' => 'open'
-                    ];
-                } else {
-                    $operatingHours[$day] = 'closed';
-                }
+                $operatingHours[$day] = $isOpen
+                    ? ['open' => SystemSetting::get("hours_{$day}_start", '07:00'), 'close' => SystemSetting::get("hours_{$day}_end", '20:00'), 'status' => 'open']
+                    : 'closed';
             }
 
-            // Update all branches with the new operating hours
-            $updatedCount = \App\Models\Branch::query()->update([
-                'operating_hours' => $operatingHours
-            ]);
+            $applyAll  = $request->boolean('apply_all', true);
+            $branchIds = $request->input('branch_ids', []);
+
+            $query = \App\Models\Branch::query();
+
+            if (!$applyAll && !empty($branchIds)) {
+                $query->whereIn('id', $branchIds);
+            }
+
+            $updatedCount = $query->update(['operating_hours' => $operatingHours]);
+
+            $label = (!$applyAll && !empty($branchIds)) ? $updatedCount . ' selected branch(es)' : $updatedCount . ' branch(es)';
 
             return response()->json([
                 'success' => true,
-                'message' => "Operating hours applied to {$updatedCount} branch(es) successfully."
+                'message' => "Operating hours applied to {$label} successfully."
             ]);
 
         } catch (\Exception $e) {

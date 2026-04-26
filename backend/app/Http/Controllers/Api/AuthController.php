@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Services\TwoFactorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
@@ -78,27 +79,60 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-            'two_factor_code' => ['nullable', 'string', 'size:6'],
+            'email'            => ['required', 'email'],
+            'password'         => ['required'],
+            'two_factor_code'  => ['nullable', 'string', 'size:6'],
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
+        }
+
+        // ── Rate limiting ────────────────────────────────────────────────────
+        $key      = 'login:' . strtolower($request->email) . '|' . $request->ip();
+        $attempts = RateLimiter::attempts($key);
+
+        // Determine lockout duration based on attempt count
+        // 3+ attempts  → 20 seconds
+        // 4+ attempts  → 60 seconds
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            $seconds  = RateLimiter::availableIn($key);
+            $attempts = RateLimiter::attempts($key);
+            $message  = $attempts >= 4
+                ? "Too many failed attempts. Please wait {$seconds} second(s) before trying again."
+                : "Too many failed attempts. Please wait {$seconds} second(s) before trying again.";
+
+            return response()->json([
+                'success'          => false,
+                'message'          => $message,
+                'locked_out'       => true,
+                'retry_after'      => $seconds,
+            ], 429);
         }
 
         $customer = Customer::where('email', $request->email)->first();
 
         if (!$customer || !Hash::check($request->password, $customer->password)) {
+            // Hit the rate limiter — decay depends on how many attempts so far
+            $currentAttempts = RateLimiter::attempts($key) + 1;
+            $decay = $currentAttempts >= 4 ? 60 : 20;
+            RateLimiter::hit($key, $decay);
+
+            $remaining = 3 - RateLimiter::attempts($key);
+
             return response()->json([
-                'success' => false,
-                'message' => 'Invalid credentials',
+                'success'           => false,
+                'message'           => 'Invalid credentials',
+                'attempts_left'     => max(0, $remaining),
             ], 401);
         }
+
+        // Credentials valid — clear rate limiter
+        RateLimiter::clear($key);
 
         if (!$customer->is_active) {
             return response()->json([

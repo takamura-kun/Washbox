@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\InventoryPurchase;
 use App\Models\AdminNotification;
 use App\Models\BranchNotification;
+use App\Models\ActivityLog;
 
 class InventoryPurchaseObserver
 {
@@ -12,6 +13,12 @@ class InventoryPurchaseObserver
     {
         $purchase->loadMissing('supplier', 'branch');
         $supplierName = $purchase->supplier?->name ?? 'Unknown Supplier';
+
+        ActivityLog::log('created', "Inventory purchase {$purchase->purchase_order_number} from {$supplierName} ₱" . number_format($purchase->total_cost, 2), 'inventory', $purchase, [
+            'po_number'     => $purchase->purchase_order_number,
+            'supplier'      => $supplierName,
+            'total_cost'    => $purchase->total_cost,
+        ], $purchase->branch_id);
 
         // 🔔 NOTIFY ADMIN: New inventory purchase
         AdminNotification::create([
@@ -55,6 +62,11 @@ class InventoryPurchaseObserver
         if ($purchase->isDirty('status') && $purchase->status === 'received') {
             $purchase->loadMissing('supplier', 'branch');
             $supplierName = $purchase->supplier?->name ?? 'Unknown Supplier';
+
+            ActivityLog::log('received', "Inventory purchase {$purchase->purchase_order_number} received", 'inventory', $purchase, [
+                'po_number' => $purchase->purchase_order_number,
+                'supplier'  => $supplierName,
+            ], $purchase->branch_id);
 
             // 🔔 NOTIFY ADMIN: Inventory received
             AdminNotification::create([

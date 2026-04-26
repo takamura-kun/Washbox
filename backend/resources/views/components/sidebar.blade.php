@@ -227,6 +227,8 @@
             <x-admin.nav-item route="admin.branches.index" icon="bi-shop" label="Branches" />
             <x-admin.nav-item route="admin.service-types.index" icon="bi-grid-3x3-gap" label="Service Types" />
             <x-admin.nav-item route="admin.services.index" icon="bi-droplet" label="Services" />
+            <x-admin.nav-item route="admin.activity-logs.index" icon="bi-journal-text" label="Activity Logs" />
+            <x-admin.nav-item route="admin.deleted-records.index" icon="bi-trash" label="Deleted Records" />
         @endif
 
         <li><hr class="border-white opacity-10 mx-3"></li>

@@ -229,6 +229,22 @@
                             @if($pickup->service)
                                 <p><strong>Service Requested:</strong> {{ $pickup->service->name }}</p>
                             @endif
+                            @if($pickup->promotion)
+                                <div class="alert alert-info py-2 px-3 mt-2 mb-0" style="border-radius:8px;">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-tag-fill text-primary"></i>
+                                        <div>
+                                            <strong>Promo Package:</strong> {{ $pickup->promotion->name }}
+                                            @if($pickup->promotion->display_price)
+                                                <span class="badge bg-primary ms-1">₱{{ $pickup->promotion->display_price }} {{ $pickup->promotion->price_unit ?? 'per load' }}</span>
+                                            @endif
+                                            @if($pickup->promo_code)
+                                                <span class="badge bg-secondary ms-1">Code: {{ $pickup->promo_code }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                             @if($pickup->estimated_weight)
                                 <p><strong>Estimated Weight:</strong> {{ $pickup->estimated_weight }} kg</p>
                             @endif
@@ -442,32 +458,7 @@
                 </div>
             @endif
 
-            {{-- Real-time Location Tracking (staff) --}}
-            @if($pickup->status == 'en_route')
-                <div class="card mb-4" id="realtimeLocationCard">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Real-time Location Tracking</h5>
-                    </div>
-                    <div class="card-body">
-                        <p id="locationStatus" class="mb-2">
-                            @if($pickup->staff_latitude && $pickup->staff_longitude)
-                                Last location update: {{ $pickup->location_updated_at ? \Carbon\Carbon::parse($pickup->location_updated_at)->diffForHumans() : 'N/A' }}
-                            @else
-                                Tracking is inactive. Click "Start Tracking" to share your location with the system.
-                            @endif
-                        </p>
-
-                        <div class="d-grid gap-2 mb-3">
-                            <button id="startTrackingBtn" class="btn btn-success">Start Tracking</button>
-                            <button id="stopTrackingBtn" class="btn btn-outline-danger" style="display:none;">Stop Tracking</button>
-                        </div>
-
-                        <div id="map" style="height: 300px;"></div>
-
-                        <p class="mt-3"><small class="text-muted" id="lastUpdatedText"></small></p>
-                    </div>
-                </div>
-            @endif
+            {{-- Real-time Location Tracking removed - using main map above --}}
         </div>
 
         {{-- Actions Sidebar --}}

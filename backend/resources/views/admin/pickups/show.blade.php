@@ -515,6 +515,23 @@
                                     <div class="pk-field-value">{{ $pickup->service->name }}</div>
                                 </div>
                             @endif
+                            @if($pickup->promotion)
+                                <div class="pk-field">
+                                    <span class="pk-field-label">Promo Package</span>
+                                    <div class="pk-field-value">
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <i class="bi bi-tag-fill text-primary"></i>
+                                            <strong>{{ $pickup->promotion->name }}</strong>
+                                            @if($pickup->promotion->display_price)
+                                                <span class="badge bg-primary">₱{{ $pickup->promotion->display_price }} {{ $pickup->promotion->price_unit ?? 'per load' }}</span>
+                                            @endif
+                                            @if($pickup->promo_code)
+                                                <span class="badge bg-secondary">Code: {{ $pickup->promo_code }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                             @if($pickup->estimated_weight)
                                 <div class="pk-field">
                                     <span class="pk-field-label">Estimated Weight</span>

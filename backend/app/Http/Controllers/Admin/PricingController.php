@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Pricing;
 use App\Models\Service;
 use App\Models\Branch;
+use App\Models\DeletedRecord;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 
 class PricingController extends Controller
@@ -167,6 +169,11 @@ class PricingController extends Controller
      */
     public function destroy(Pricing $pricing)
     {
+        DeletedRecord::snapshot($pricing, 'finance');
+        ActivityLog::log('deleted', "Pricing rule deleted", 'finance', null, [
+            'id' => $pricing->id,
+        ]);
+
         $pricing->delete();
 
         return redirect()->route('admin.pricing.index')

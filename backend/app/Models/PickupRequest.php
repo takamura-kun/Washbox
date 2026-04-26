@@ -27,6 +27,7 @@ class PickupRequest extends Model
         'manual_address','address_manually_edited',
         'latitude','longitude','delivery_latitude','delivery_longitude',
         'preferred_date','preferred_time','phone_number','notes','service_id',
+        'promotion_id','promo_code',
         'assigned_to','status','accepted_at','en_route_at','picked_up_at',
         'cancelled_at','cancellation_reason','cancelled_by',
         'laundries_id','pickup_fee','delivery_fee','service_type',
@@ -52,6 +53,7 @@ class PickupRequest extends Model
     public function customer()   { return $this->belongsTo(Customer::class); }
     public function branch()     { return $this->belongsTo(Branch::class); }
     public function service()    { return $this->belongsTo(Service::class); }
+    public function promotion()  { return $this->belongsTo(\App\Models\Promotion::class); }
     public function assignedStaff()    { return $this->belongsTo(User::class, 'assigned_to'); }
     public function cancelledByUser()  { return $this->belongsTo(User::class, 'cancelled_by'); }
     public function customerAddress()  { return $this->belongsTo(CustomerAddress::class); }

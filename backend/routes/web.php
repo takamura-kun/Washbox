@@ -385,6 +385,15 @@ Route::get('service-types/by-category/{category}', [ServiceTypeController::class
         });
     });
 
+    // Activity Logs
+    Route::get('/activity-logs', [App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('activity-logs.index');
+
+    // Deleted Records
+    Route::prefix('deleted-records')->name('deleted-records.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\DeletedRecordController::class, 'index'])->name('index');
+        Route::get('/{deletedRecord}', [App\Http\Controllers\Admin\DeletedRecordController::class, 'show'])->name('show');
+    });
+
     // ========================================================================
     // RETAIL SALES MANAGEMENT
     // ========================================================================
@@ -601,6 +610,7 @@ Route::middleware(['auth:branch', 'branch'])->prefix('branch')->name('branch.')-
         Route::post('/mark-absent', [App\Http\Controllers\Branch\AttendanceController::class, 'markAbsent'])->name('mark-absent');
         Route::post('/submit-leave', [App\Http\Controllers\Branch\AttendanceController::class, 'submitLeave'])->name('submit-leave');
         Route::get('/leave-requests', [App\Http\Controllers\Branch\AttendanceController::class, 'leaveRequests'])->name('leave-requests');
+        Route::get('/staff-list', [App\Http\Controllers\Branch\AttendanceController::class, 'staffList'])->name('staff-list');
     });
 
     // ========================================================================
@@ -639,6 +649,7 @@ Route::middleware(['auth:branch', 'branch'])->prefix('branch')->name('branch.')-
         Route::get('/daily-cash-report', [App\Http\Controllers\Branch\FinanceController::class, 'dailyCashReport'])->name('daily-cash-report');
         Route::get('/weekly-summary', [App\Http\Controllers\Branch\FinanceController::class, 'weeklySummary'])->name('weekly-summary');
         Route::get('/sales-report', [App\Http\Controllers\Branch\FinanceController::class, 'salesReport'])->name('sales-report');
+        Route::get('/transaction-summary', [App\Http\Controllers\Branch\FinanceController::class, 'transactionSummary'])->name('transaction-summary');
     });
 
     // ========================================================================

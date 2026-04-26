@@ -285,18 +285,22 @@ class MapManager {
     }
 
     /**
-     * Create pickup popup content
+     * Create pickup popup content with accurate reverse geocoded address
      */
     createPickupPopup(pickup) {
         const isSelected = appState.selectedPickups.has(parseInt(pickup.id));
         const selectBtnClass = isSelected ? "btn-purple" : "btn-outline-purple";
         const selectBtnIcon = isSelected ? "bi-check-square-fill" : "bi-check-square";
         const selectBtnText = isSelected ? "Selected" : "Select for Multi-Route";
+        const lat = parseFloat(pickup.latitude);
+        const lng = parseFloat(pickup.longitude);
+        const popupId = `popup-addr-admin-${pickup.id}`;
+        const storedAddress = pickup.pickup_address || 'No address';
 
-        return `
+        const html = `
             <div style="min-width:250px" class="pickup-${pickup.id}">
                 <h6><b>${pickup.customer?.name || "Customer"}</b></h6>
-                <p class="mb-1 small">${pickup.pickup_address || "No address"}</p>
+                <p class="mb-1 small" id="${popupId}">${storedAddress}</p>
                 <span class="badge bg-${getStatusColor(pickup.status)}">${pickup.status}</span>
                 <hr class="my-2">
                 <div class="d-grid gap-1">
@@ -315,6 +319,46 @@ class MapManager {
                 </div>
             </div>
         `;
+
+        // After popup renders, update with accurate reverse geocoded address
+        if (lat && lng) {
+            setTimeout(() => {
+                this._reverseGeocode(lat, lng).then(accurate => {
+                    if (!accurate) return;
+                    const el = document.getElementById(popupId);
+                    if (el) el.textContent = accurate;
+                });
+            }, 300);
+        }
+
+        return html;
+    }
+
+    /**
+     * Reverse geocode coordinates to accurate address using Nominatim
+     */
+    async _reverseGeocode(lat, lng) {
+        if (!this._geocodeCache) this._geocodeCache = {};
+        const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+        if (this._geocodeCache[key]) return this._geocodeCache[key];
+        try {
+            const r = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16&addressdetails=1`,
+                { headers: { 'User-Agent': 'WashBox Laundry Management System' } }
+            );
+            const d = await r.json();
+            const a = d.address || {};
+            const parts = [];
+            if (a.house_number) parts.push(a.house_number);
+            if (a.road)         parts.push(a.road);
+            if (a.suburb || a.village) parts.push(a.suburb || a.village);
+            if (a.city || a.town || a.municipality) parts.push(a.city || a.town || a.municipality);
+            const result = parts.length >= 2 ? parts.join(', ') : (d.display_name || null);
+            if (result) this._geocodeCache[key] = result;
+            return result;
+        } catch (e) {
+            return null;
+        }
     }
 
     /**

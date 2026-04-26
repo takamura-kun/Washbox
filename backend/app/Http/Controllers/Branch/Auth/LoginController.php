@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use App\Models\ActivityLog;
 
 class LoginController extends Controller
 {
@@ -43,6 +44,8 @@ class LoginController extends Controller
             $branch = Auth::guard('branch')->user();
             $branch->updateLastLogin();
 
+            ActivityLog::log('login', "Branch {$branch->name} logged in", 'auth', $branch, [], $branch->id);
+
             return redirect()->intended(route('branch.dashboard'))
                 ->with('success', "Welcome back, {$branch->name}!");
         }
@@ -57,6 +60,11 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
+        $branch = Auth::guard('branch')->user();
+        if ($branch) {
+            ActivityLog::log('logout', "Branch {$branch->name} logged out", 'auth', $branch, [], $branch->id);
+        }
+
         Auth::guard('branch')->logout();
 
         $request->session()->invalidate();

@@ -8,9 +8,9 @@
 @endpush
 
 @section('content')
-<div class="container-fluid px-4 py-4">
+<div class="container-fluid px-3 py-2">
     {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 page-header">
+    <div class="d-flex justify-content-between align-items-center mb-2 page-header">
         <div>
             <h2 class="fw-bold">
                 @if(isset($pickup))
@@ -119,22 +119,22 @@
         </div>
     @endif
 
-    <form action="{{ route('branch.laundries.store') }}" method="POST" id="laundryForm">
+    <form action="{{ route('branch.laundries.store') }}" method="POST" id="laundryForm" class="laundry-create-form">
         @csrf
 
         @if(isset($pickup))
             <input type="hidden" name="pickup_request_id" value="{{ $pickup->id }}">
         @endif
 
-        <div class="row g-4">
+        <div class="row g-2">
             {{-- Left Column --}}
             <div class="col-lg-8">
                 {{-- Customer Information Card --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-2">
-                    <div class="card-header">
+                <div class="card border-0 shadow-sm rounded-3 mb-2">
+                    <div class="card-header py-2 px-3">
                         <h6 class="mb-0"><i class="bi bi-person me-2"></i>Customer Information</h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-3">
                         @if(isset($pickup))
                             <input type="hidden" name="customer_id" value="{{ $pickup->customer_id }}">
                             <div class="alert alert-light border">
@@ -145,7 +145,7 @@
                                 </div>
                             </div>
                         @else
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <label class="form-label fw-semibold">Select Customer <span class="text-danger">*</span></label>
                                 <select name="customer_id" class="form-select @error('customer_id') is-invalid @enderror" required id="customerSelect">
                                     <option value="">Choose customer...</option>
@@ -165,49 +165,18 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="accordion mt-3" id="newCustomerAccordion">
-                                <div class="accordion-item border-0">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#newCustomerForm">
-                                            <i class="bi bi-plus-circle me-2 text-primary"></i><strong>Add New Customer</strong>
-                                        </button>
-                                    </h2>
-                                    <div id="newCustomerForm" class="accordion-collapse collapse" data-bs-parent="#newCustomerAccordion">
-                                        <div class="accordion-body">
-                                            <div class="row g-3">
-                                                <div class="col-md-6">
-                                                    <label class="form-label small" for="newCustomerName">Full Name *</label>
-                                                    <input type="text" id="newCustomerName" class="form-control form-control-sm" placeholder="Enter name">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label small" for="newCustomerPhone">Phone Number</label>
-                                                    <input type="text" id="newCustomerPhone" class="form-control form-control-sm" placeholder="0912-345-6789">
-                                                </div>
-                                                <div class="col-12">
-                                                    <label class="form-label small" for="newCustomerAddress">Address</label>
-                                                    <textarea id="newCustomerAddress" class="form-control form-control-sm" rows="2" placeholder="Enter address"></textarea>
-                                                </div>
-                                                <div class="col-12">
-                                                    <button type="button" class="btn btn-sm btn-primary" onclick="window.laundryManager.addNewCustomer()">
-                                                        <i class="bi bi-plus me-1"></i>Add Customer
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                         
                         @endif
                     </div>
                 </div>
 
                 {{-- Service Details Card --}}
-                <div class="card border-0 shadow-sm rounded-4 mb-2">
-                    <div class="card-header">
+                <div class="card border-0 shadow-sm rounded-3 mb-2">
+                    <div class="card-header py-2 px-3">
                         <h6 class="mb-0"><i class="bi bi-droplet me-2"></i>Service Details</h6>
                     </div>
-                    <div class="card-body">
-                        <div class="row g-3">
+                    <div class="card-body p-3">
+                        <div class="row g-2">
                             {{-- Branch (Staff branch is auto-assigned) --}}
                             @if(!isset($pickup))
                                 <input type="hidden" name="branch_id" value="{{ auth()->user()->branch_id }}">
@@ -362,24 +331,34 @@
                             {{-- Promotion --}}
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold" for="promotionSelect">Apply Promotion (Optional)</label>
+                                @if(isset($pickup) && $pickup->promotion)
+                                    <div class="alert alert-info py-2 px-3 mb-2" style="border-radius:8px;font-size:0.85rem;">
+                                        <i class="bi bi-tag-fill me-1"></i>
+                                        <strong>Promo from pickup:</strong> {{ $pickup->promotion->name }}
+                                        @if($pickup->promotion->display_price)
+                                            &mdash; <span class="badge bg-primary">&#8369;{{ $pickup->promotion->display_price }} {{ $pickup->promotion->price_unit ?? 'per load' }}</span>
+                                        @endif
+                                    </div>
+                                @endif
                                 <select name="promotion_id" class="form-select" id="promotionSelect">
                                     <option value="">Select promotion...</option>
                                     @foreach($promotions as $promotion)
                                         @php
                                             $promoText = $promotion->name;
                                             if ($promotion->application_type === 'per_load_override') {
-                                                $promoText .= ' - ₱' . number_format($promotion->display_price, 2) . '/load';
+                                                $promoText .= ' - &#8369;' . number_format($promotion->display_price, 2) . '/load';
                                             } elseif ($promotion->discount_type === 'percentage') {
                                                 $promoText .= ' - ' . $promotion->discount_value . '% OFF';
                                             } elseif ($promotion->discount_type === 'fixed') {
-                                                $promoText .= ' - ₱' . number_format($promotion->discount_value, 2) . ' OFF';
+                                                $promoText .= ' - &#8369;' . number_format($promotion->discount_value, 2) . ' OFF';
                                             }
                                         @endphp
                                         <option value="{{ $promotion->id }}"
                                             data-application-type="{{ $promotion->application_type }}"
                                             data-display-price="{{ $promotion->display_price }}"
                                             data-discount-type="{{ $promotion->discount_type }}"
-                                            data-discount-value="{{ $promotion->discount_value }}">
+                                            data-discount-value="{{ $promotion->discount_value }}"
+                                            {{ (isset($pickup) && $pickup->promotion_id == $promotion->id) || old('promotion_id') == $promotion->id ? 'selected' : '' }}>
                                             {{ $promoText }}
                                         </option>
                                     @endforeach
@@ -393,7 +372,7 @@
                                 <p class="text-muted small mb-2">Select additional items (detergent, fabric conditioner, bleach, etc.)</p>
                                 <div class="row g-2" id="addonsContainer">
                                     @foreach($addons as $addon)
-                                        <div class="col-md-6 col-lg-4">
+                                        <div class="col-6 col-md-4 col-lg-3 d-flex">
                                             <div class="addon-item" data-addon-id="{{ $addon->id }}">
                                                 <div class="addon-header">
                                                     <span class="addon-name">{{ $addon->name }}</span>
@@ -448,7 +427,7 @@
 
             {{-- Right Column - Pickup & Delivery Fees, Additional Notes, Actions --}}
             <div class="col-lg-4">
-                <div class="row g-3">
+                <div class="row g-2">
                     <div class="col-12">
                         <div class="card border-0 shadow-sm rounded-4 h-100 @if(isset($pickup)) border-warning border-2 @endif">
                             <div class="card-header @if(isset($pickup)) bg-warning bg-opacity-10 @endif">
@@ -462,7 +441,7 @@
                                     @endif
                                 </h6>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body p-3">
                                 @if(isset($pickup))
                                     <div class="btn-group-sm d-flex flex-wrap gap-2 mb-3">
                                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.laundryManager.setFees(50, 0)"><i class="bi bi-arrow-down-circle"></i> ₱50</button>
@@ -515,159 +494,63 @@
 
                     <div class="col-12">
                         <div class="card border-0 shadow-sm rounded-4 h-100">
-                            <div class="card-header">
+                            <div class="card-header py-2 px-3">
                                 <h6 class="mb-0"><i class="bi bi-chat-left-text me-2"></i>Additional Notes</h6>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body p-3">
                                 <label class="form-label fw-semibold" for="notesInput">Notes</label>
                                 <textarea name="notes" id="notesInput" class="form-control form-control-sm @error('notes') is-invalid @enderror"
-                                    rows="4" placeholder="Special instructions, stain notes, etc...">{{ $pickup->notes ?? old('notes') }}</textarea>
+                                    rows="2" placeholder="Special instructions, stain notes, etc...">{{ $pickup->notes ?? old('notes') }}</textarea>
                                 @error('notes')<div class="invalid-feedback">{{ $message }}</div>@enderror
+
+                                {{-- Laundry Summary --}}
+                                <div class="mt-3 p-2 rounded-3 border" style="background:rgba(61,59,107,0.05);">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="text-muted fw-semibold">Service / Promo</small>
+                                        <small id="summaryServiceDisplay">&#8369;0.00</small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1" id="summaryAddonsRow" style="display:none!important;">
+                                        <small class="text-muted fw-semibold">Add-ons</small>
+                                        <small id="summaryAddonsDisplay">&#8369;0.00</small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="text-muted fw-semibold">Pickup + Delivery</small>
+                                        <small id="summaryFeesDisplay">&#8369;0.00</small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center border-top pt-1 mt-1">
+                                        <span class="fw-bold small">Grand Total</span>
+                                        <strong style="color:#3D3B6B;" id="summaryTotalDisplay">&#8369;0.00</strong>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="col-12">
-                        <div class="accordion accordion-flush" id="quickTipsAccordion">
-                            <div class="accordion-item quick-tips-accordion">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#quickTipsContent">
-                                        <i class="bi bi-lightbulb text-warning me-2"></i>
-                                        <span class="fw-semibold">Quick Tips</span>
-                                    </button>
-                                </h2>
-                                <div id="quickTipsContent" class="accordion-collapse collapse" data-bs-parent="#quickTipsAccordion">
-                                    <div class="accordion-body quick-tips-content">
-                                        <ul class="quick-tips-list mb-0">
-                                            <li>Per-load services: Price is fixed per load (e.g., ₱200/8kg)</li>
-                                            <li>Extra weight beyond max limit requires extra load(s)</li>
-                                            <li>Add-ons like detergent, fabcon are additional charges</li>
-                                            <li>Special items (comforters) are priced per piece</li>
-                                            <li>Per-kg services: Price varies with weight</li>
-                                            <li>Self-service: Customer operates machines</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
+                        {{-- hidden elements needed by JS but not shown --}}
+                        <div style="display:none;">
+                            <span id="serviceChargesTitle"></span>
+                            <span id="servicePriceDisplay"></span>
+                            <span id="weightDisplay"></span>
+                            <span id="quantityDisplay"></span>
+                            <span id="serviceSubtotalDisplay"></span>
+                            <div id="serviceBreakdown"><div id="serviceBaseInfo"></div><div id="loadsBreakdown"><div id="loadsBreakdownList"></div></div></div>
+                            <span id="pickupFeeDisplay"></span>
+                            <span id="deliveryFeeDisplay"></span>
+                            <span id="totalFeesDisplay"></span>
+                            <div id="extraLoadsSection"><span id="extraLoadsCount"></span><span id="extraLoadsCharge"></span></div>
+                            <div id="excessWeightSection"><span id="excessWeightKg"></span><span id="excessWeightFeeDisplay"></span></div>
+                            <div id="addonsSection"><div id="addonsList"></div><span id="addonsTotalDisplay"></span></div>
+                            <div id="promotionSection"><span id="promotionNameDisplay"></span><span id="promotionDiscountDisplay"></span></div>
+                            <span id="gtServiceDisplay"></span>
+                            <div id="gtAddonsRow"><span id="gtAddonsDisplay"></span></div>
+                            <span id="gtPickupDisplay"></span>
+                            <span id="gtDeliveryDisplay"></span>
+                            <span id="summaryStatusBadge"></span>
                         </div>
                     </div>
-            </div>
-
-        </div>
-
-        {{-- Below Form - Laundry Summary & Quick Tips (Full Width) --}}
-        <div class="row g-4 mt-2">
-            <div class="col-lg-8">
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-header">
-                        <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>Laundry Summary</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            {{-- Service Charges Section --}}
-                            <div class="col-md-6">
-                                <h6 class="text-muted mb-2 small" id="serviceChargesTitle">Service Charges</h6>
-                                <div id="serviceBreakdown">
-                                    <div id="serviceBaseInfo">
-                                        <div class="d-flex justify-content-between mb-1">
-                                            <span class="text-muted small">Base Service:</span>
-                                            <strong class="small" id="servicePriceDisplay">₱0.00</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between mb-1">
-                                            <span class="text-muted small">Quantity:</span>
-                                            <strong class="small" id="quantityDisplay">0</strong>
-                                        </div>
-                                    </div>
-                                    <div id="loadsBreakdown" style="display: none;">
-                                        <div class="mb-1 small" id="loadsBreakdownList"></div>
-                                    </div>
-                                    <div class="d-flex justify-content-between pt-1 border-top">
-                                        <strong class="text-muted small">Subtotal:</strong>
-                                        <strong class="small" id="serviceSubtotalDisplay">₱0.00</strong>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Pickup & Delivery Fees --}}
-                            <div class="col-md-6">
-                                <h6 class="text-muted mb-2 small border-top pt-2">Pickup & Delivery</h6>
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span class="text-muted small"><i class="bi bi-arrow-down-circle text-primary"></i> Pickup:</span>
-                                    <strong class="small" id="pickupFeeDisplay">₱0.00</strong>
-                                </div>
-                                <div class="d-flex justify-content-between small">
-                                    <span class="text-muted small"><i class="bi bi-arrow-up-circle text-success"></i> Delivery:</span>
-                                    <strong class="small" id="deliveryFeeDisplay">₱0.00</strong>
-                                </div>
-                                <div class="d-flex justify-content-between pt-1 border-top mt-1">
-                                    <strong class="small">Total Fees:</strong>
-                                    <strong class="text-success small" id="totalFeesDisplay">₱0.00</strong>
-                                </div>
-                            </div>
-
-                            {{-- Extra Loads & Add-ons Section (swapped with Pickup) --}}
-                            <div class="col-md-6">
-                                <div id="extraLoadsSection" class="mb-2" style="display: none;">
-                                    <h6 class="text-muted mb-1 small">Extra Loads</h6>
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <span class="text-muted small">Extra load(s):</span>
-                                        <span class="text-muted small" id="extraLoadsCount">0</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between small">
-                                        <span class="text-muted small">Extra charge:</span>
-                                        <span class="text-danger small" id="extraLoadsCharge">₱0.00</span>
-                                    </div>
-                                </div>
-
-                                <div id="excessWeightSection" class="mb-2" style="display: none;">
-                                    <h6 class="text-muted mb-1 small">Excess Weight Fee</h6>
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <span class="text-muted small">Excess weight:</span>
-                                        <span class="text-muted small" id="excessWeightKg">0 kg</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between small">
-                                        <span class="text-muted small">Fee:</span>
-                                        <span class="text-danger small" id="excessWeightFeeDisplay">₱0.00</span>
-                                    </div>
-                                </div>
-
-                                <div id="addonsSection" style="display:none;">
-                                    <h6 class="text-muted mb-1 small">Add-ons</h6>
-                                    <div id="addonsList" class="addons-summary small"></div>
-                                    <div class="d-flex justify-content-between pt-1 border-top">
-                                        <strong class="small">Add-ons Total:</strong>
-                                        <strong class="text-success small" id="addonsTotalDisplay">₱0.00</strong>
-                                    </div>
-                                </div>
-
-                                <div id="promotionSection" style="display:none;">
-                                    <h6 class="text-muted mb-1 small mt-2">Promotion</h6>
-                                    <div class="d-flex justify-content-between">
-                                        <span class="text-muted small">Discount Applied:</span>
-                                        <span class="text-success small" id="promotionDiscountDisplay">₱0.00</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Grand Total --}}
-                            <div class="col-md-6">
-                                <div class="p-2" style="background: rgba(61, 59, 107, 0.08); border-radius: 0.5rem;">
-                                    <div class="d-flex justify-content-between">
-                                        <span class="fw-bold small">Grand Total:</span>
-                                        <strong class="fw-bold" style="color: #3D3B6B; font-size: 1.1rem;" id="totalDisplay">₱0.00</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100">
-                    <div class="card-header">
-                        <h6 class="mb-0"><i class="bi bi-gear me-2"></i>Actions</h6>
-                    </div>
+    
+        
                     <div class="card-body d-flex flex-column gap-2">
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="bi bi-check-circle me-2"></i>Create Laundry

@@ -102,6 +102,9 @@
         <a href="{{ route('branch.finance.sales-report') }}" class="btn btn-outline-secondary">
             <i class="bi bi-file-earmark-text me-1"></i>Sales Report
         </a>
+        <a href="{{ route('branch.finance.transaction-summary') }}" class="btn btn-outline-dark">
+            <i class="bi bi-list-columns me-1"></i>Transaction Summary
+        </a>
     </div>
 
     {{-- Summary Cards --}}

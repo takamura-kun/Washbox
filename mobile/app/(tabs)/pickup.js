@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -28,6 +28,7 @@ import PickupDeliveryMap from '../../components/pickup-delivery/PickupDelivery';
 import LocationSearch from '../../components/pickup-delivery/LocationSearch';
 import { LocationService } from '../../services/locationService';
 import { useLocationStore } from '../../store/locationStore';
+import PSGCAddressSelector from '../../components/common/PSGCAddressSelector';
 
 const { width, height } = Dimensions.get('window');
 
@@ -431,6 +432,31 @@ export default function PickupRequestScreen() {
   const selectedServicePrice = params.servicePrice;
   const selectedServicePriceType = params.servicePriceType;
 
+  const [promoId, setPromoId] = useState('');
+  const [promoName, setPromoName] = useState('');
+  const [promoPrice, setPromoPrice] = useState('');
+  const [promoPriceUnit, setPromoPriceUnit] = useState('');
+  const [promoCode, setPromoCode] = useState('');
+  const [promoBanner, setPromoBanner] = useState('');
+
+  // Load pending promo from AsyncStorage when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      AsyncStorage.getItem('@washbox:pending_promo').then(data => {
+        if (data) {
+          const promo = JSON.parse(data);
+          setPromoId(promo.promoId || '');
+          setPromoName(promo.promoName || '');
+          setPromoPrice(promo.promoPrice || '');
+          setPromoPriceUnit(promo.promoPriceUnit || '');
+          setPromoCode(promo.promoCode || '');
+          setPromoBanner(promo.promoBanner || '');
+          AsyncStorage.removeItem('@washbox:pending_promo');
+        }
+      });
+    }, [])
+  );
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -466,6 +492,7 @@ export default function PickupRequestScreen() {
   // Saved Addresses Integration
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showPSGCModal, setShowPSGCModal] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [success, setSuccess] = useState(null);
 
@@ -730,43 +757,54 @@ export default function PickupRequestScreen() {
   const handleUseCurrentLocation = async () => {
     try {
       setIsLoadingLocation(true);
-      const location = await LocationService.getCurrentLocation();
-      const address = await LocationService.getAddressFromCoordinate(location);
-      
-      // Create geotag data for current location
-      const geotagData = {
-        ...location,
-        timestamp: new Date().toISOString(),
-        accuracy: 'gps', // GPS-based location
-        address,
-      };
-      
-      console.log('Current location geotagged:', geotagData);
-      
-      setPickupAddress(address);
-      setPickupCoordinates(location);
-      setSelectedAddressId(null); // Clear saved address selection
-      setShowMapModal(false);
-      
-      // Check delivery fee
-      if (customerBranch) {
-        await checkDeliveryFee(address, customerBranch.id);
+
+      // Request permission explicitly
+      const perms = await LocationService.requestPermissions();
+
+      if (perms.foreground !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Location permission is needed. Please enable it in Settings → Apps → WashBox → Permissions → Location.',
+          [
+            { text: 'Open Settings', onPress: () => LocationService.openLocationSettings() },
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+        return;
       }
-      
-      // Show success feedback with geotag info
-      Alert.alert(
-        '✓ Location Set',
-        `Your current location has been set as the pickup address.\n\nCoordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
-        [{ text: 'OK' }]
-      );
+
+      const location = await LocationService.getCurrentLocation();
+
+      if (location.isFallback || location.source === 'default') {
+        Alert.alert(
+          'Location Unavailable',
+          'Could not detect your exact location. Make sure GPS is turned on and try again, or select your address manually.',
+          [
+            { text: 'Try Again', onPress: handleUseCurrentLocation },
+            { text: 'Select Manually', onPress: () => { setShowAddressModal(false); setShowPSGCModal(true); } },
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+        return;
+      }
+
+      setPickupCoordinates(location);
+      setSelectedAddressId(null);
+      setShowAddressModal(false);
+      setShowMapModal(false);
+
+      const address = await LocationService.getAddressFromCoordinate(location);
+      setPickupAddress(address);
+      setShowPSGCModal(true);
+
     } catch (error) {
       console.error('Error getting current location:', error);
       Alert.alert(
         'Location Error',
-        'Unable to get your current location. Please check if location services are enabled and try again, or select a location manually.',
+        'Unable to get your location. Make sure GPS is enabled on your phone.',
         [
           { text: 'Try Again', onPress: handleUseCurrentLocation },
-          { text: 'Choose Manually', onPress: () => setShowMapModal(true) },
+          { text: 'Select Manually', onPress: () => { setShowAddressModal(false); setShowPSGCModal(true); } },
           { text: 'Cancel', style: 'cancel' },
         ]
       );
@@ -966,6 +1004,14 @@ export default function PickupRequestScreen() {
         formData.append('service_id', selectedServiceId);
       }
 
+      // Add promo if available
+      if (promoId && String(promoId).trim() !== '') {
+        formData.append('promotion_id', String(promoId));
+        if (promoCode && String(promoCode).trim() !== '') {
+          formData.append('promo_code', String(promoCode));
+        }
+      }
+
       if (proofPhoto) {
         const filename = proofPhoto.uri.split('/').pop();
         const match = /\.([\w]+)$/.exec(filename);
@@ -1133,6 +1179,50 @@ export default function PickupRequestScreen() {
           We&apos;ll pick up and deliver back to your address - free of charge
         </Text>
       </View>
+
+      {/* Promo Package Banner */}
+      {!!promoId && (
+        <View style={styles.promoBannerWrap}>
+          <LinearGradient
+            colors={['#0EA5E9', '#3B82F6']}
+            style={styles.promoBannerGradient}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          >
+            {!!promoBanner && (
+              <Image
+                source={{ uri: decodeURIComponent(promoBanner) }}
+                style={StyleSheet.absoluteFillObject}
+                resizeMode="cover"
+              />
+            )}
+            {!!promoBanner && (
+              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+            )}
+            <View style={styles.promoBannerContent}>
+              <View style={styles.promoBannerLeft}>
+                <Text style={styles.promoBannerLabel}>🎉 PROMO APPLIED</Text>
+                <Text style={styles.promoBannerName} numberOfLines={1}>{promoName}</Text>
+                <Text style={styles.promoBannerPrice}>
+                  ₱{promoPrice} <Text style={styles.promoBannerUnit}>{promoPriceUnit}</Text>
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setPromoId('');
+                  setPromoName('');
+                  setPromoPrice('');
+                  setPromoPriceUnit('');
+                  setPromoCode('');
+                  setPromoBanner('');
+                }}
+                style={styles.promoBannerRemove}
+              >
+                <Ionicons name="close-circle" size={22} color="rgba(255,255,255,0.9)" />
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </View>
+      )}
 
       {/* Selected Service Banner */}
       {selectedServiceName && (
@@ -1511,7 +1601,7 @@ export default function PickupRequestScreen() {
             />
             <View style={styles.tapHint}>
               <Ionicons name="hand-left-outline" size={14} color={COLORS.primary} />
-              <Text style={styles.tapHintText}>Drag the map to position the pin, then tap "Pin This Location"</Text>
+              <Text style={styles.tapHintText}>Pin your location on the map, then fill in address details below</Text>
             </View>
           </View>
 
@@ -1521,22 +1611,52 @@ export default function PickupRequestScreen() {
               deliveryLocation={null}
               onLocationSelect={(marker) => {
                 if (marker.coordinate) {
-                  handleLocationSelect({ coordinate: marker.coordinate, name: marker.title });
+                  setPickupCoordinates(marker.coordinate);
                 }
               }}
               style={styles.map}
             />
           )}
 
+          {/* PSGC Address form shown after pinning */}
+          {pickupCoordinates && (
+            <ScrollView
+              style={{ maxHeight: 320, backgroundColor: COLORS.background }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={{ padding: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Ionicons name="checkmark-circle" size={16} color={COLORS.pickup} />
+                  <Text style={{ color: COLORS.pickup, fontWeight: '700', fontSize: 13 }}>
+                    Location pinned! Now confirm your address:
+                  </Text>
+                </View>
+                <PSGCAddressSelector
+                  onChange={(addr) => {
+                    if (addr.full_address) {
+                      setPickupAddress(addr.full_address);
+                    }
+                  }}
+                />
+              </View>
+            </ScrollView>
+          )}
+
           <View style={styles.modalFooter}>
             <TouchableOpacity
               style={styles.confirmBtn}
               onPress={() => {
-                if (pickupCoordinates) {
-                  setShowMapModal(false);
-                } else {
-                  Alert.alert('No Location', 'Tap the map or search to select a location');
+                if (!pickupCoordinates) {
+                  Alert.alert('No Pin', 'Please tap on the map to pin your location first');
+                  return;
                 }
+                if (!pickupAddress) {
+                  Alert.alert('No Address', 'Please select your city and barangay after pinning');
+                  return;
+                }
+                setShowMapModal(false);
+                if (customerBranch) checkDeliveryFee(pickupAddress, customerBranch.id);
               }}
               activeOpacity={0.85}
             >
@@ -1652,6 +1772,24 @@ export default function PickupRequestScreen() {
 
               <TouchableOpacity
                 style={styles.manualOption}
+                onPress={() => {
+                  setShowAddressModal(false);
+                  setShowPSGCModal(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.manualIcon, { backgroundColor: COLORS.success + '20' }]}>
+                  <Ionicons name="list" size={20} color={COLORS.success} />
+                </View>
+                <View style={styles.manualInfo}>
+                  <Text style={styles.manualTitle}>Select by City & Barangay</Text>
+                  <Text style={styles.manualSubtitle}>Choose from Philippine address list</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.manualOption}
                 onPress={handleManualAddressEntry}
                 activeOpacity={0.7}
               >
@@ -1660,7 +1798,7 @@ export default function PickupRequestScreen() {
                 </View>
                 <View style={styles.manualInfo}>
                   <Text style={styles.manualTitle}>Choose on Map</Text>
-                  <Text style={styles.manualSubtitle}>Select location manually</Text>
+                  <Text style={styles.manualSubtitle}>Pin your location on the map</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
               </TouchableOpacity>
@@ -1692,7 +1830,65 @@ export default function PickupRequestScreen() {
         </View>
       </Modal>
 
-      {/* Date Picker */}
+      {/* ─── PSGC Address Modal ─── */}
+      <Modal
+        visible={showPSGCModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowPSGCModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowPSGCModal(false)} style={styles.modalCloseBtn}>
+              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+            </TouchableOpacity>
+            <View style={styles.modalTitleWrap}>
+              <View style={[styles.modalTitleDot, { backgroundColor: COLORS.success }]} />
+              <Text style={styles.modalTitle}>Select Address</Text>
+            </View>
+            <View style={{ width: 38 }} />
+          </View>
+
+          <ScrollView
+            style={{ flex: 1, padding: 20 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <PSGCAddressSelector
+              onChange={(addr) => {
+                if (addr.full_address) {
+                  setPickupAddress(addr.full_address);
+                  setSelectedAddressId(null);
+                  if (customerBranch) checkDeliveryFee(addr.full_address, customerBranch.id);
+                }
+              }}
+            />
+
+            <TouchableOpacity
+              style={[styles.confirmBtn, { marginTop: 24, marginBottom: 40 }]}
+              onPress={() => {
+                if (pickupAddress) {
+                  setShowPSGCModal(false);
+                } else {
+                  Alert.alert('Incomplete', 'Please select at least a city and barangay');
+                }
+              }}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={COLORS.gradientPickup}
+                style={styles.confirmGradient}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              >
+                <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+                <Text style={styles.confirmText}>Use This Address</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* ─── Date Picker ─── */}
       {showDatePicker && (
         <DateTimePicker
           value={pickupDate}
@@ -2283,6 +2479,64 @@ const styles = StyleSheet.create({
   },
   photoRemoveBtn: {
     backgroundColor: COLORS.danger + 'CC',
+  },
+
+  // Promo Banner
+  promoBannerWrap: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  promoBannerImageWrap: {
+    height: 110,
+    position: 'relative',
+  },
+  promoBannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  promoBannerOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  promoBannerGradient: {
+    padding: 16,
+    minHeight: 90,
+    justifyContent: 'center',
+  },
+  promoBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  promoBannerLeft: { flex: 1 },
+  promoBannerLabel: {
+    fontSize: 10, fontWeight: '800',
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1.5, marginBottom: 2,
+  },
+  promoBannerName: {
+    fontSize: 15, fontWeight: '700',
+    color: '#FFF', marginBottom: 2,
+  },
+  promoBannerPrice: {
+    fontSize: 20, fontWeight: '900', color: '#FFF',
+  },
+  promoBannerUnit: {
+    fontSize: 12, fontWeight: '500',
+    color: 'rgba(255,255,255,0.8)',
+  },
+  promoBannerRemove: {
+    padding: 4,
   },
 
   // Selected Service Banner

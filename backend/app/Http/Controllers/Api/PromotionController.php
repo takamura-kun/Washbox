@@ -124,10 +124,14 @@ class PromotionController extends Controller
                     'poster_title' => $promotion->poster_title,
                     'poster_subtitle' => $promotion->poster_subtitle,
                     'display_price' => $promotion->display_price,
+                    'original_price' => $promotion->original_price,
                     'price_unit' => $promotion->price_unit,
                     'poster_features' => $promotion->poster_features,
                     'poster_notes' => $promotion->poster_notes,
                     'promo_code' => $promotion->promo_code,
+                    'discount_type' => $promotion->discount_type,
+                    'discount_value' => $promotion->discount_value,
+                    'application_type' => $promotion->application_type,
                     'color_theme' => $promotion->color_theme,
                     'banner_image' => $promotion->banner_image
                         ? asset('storage/' . $promotion->banner_image)
@@ -136,6 +140,7 @@ class PromotionController extends Controller
                         ? asset('storage/' . $promotion->banner_image)
                         : null,
                     'is_active' => $promotion->is_active,
+                    'is_featured' => $promotion->is_featured,
                     'start_date' => $promotion->start_date->format('Y-m-d'),
                     'end_date' => $promotion->end_date->format('Y-m-d'),
                     'branch' => $promotion->branch ? [

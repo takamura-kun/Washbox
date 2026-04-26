@@ -129,22 +129,28 @@
                                 </td>
                                 <td>{{ Str::limit($log->description, 60) }}</td>
                                 <td>
-                                    @if($log->transaction)
-                                        <a href="{{ route('admin.finance.ledger.show', $log->transaction) }}" class="text-primary">
-                                            {{ $log->transaction->transaction_number }}
+                                    @if($log->auditable && method_exists($log->auditable, 'getTable') && $log->auditable->getTable() === 'financial_transactions')
+                                        <a href="{{ route('admin.finance.ledger.show', $log->auditable) }}" class="text-primary">
+                                            {{ $log->auditable->transaction_number }}
                                         </a>
                                     @else
-                                        <span class="text-muted">N/A</span>
+                                        <span class="text-muted">{{ class_basename($log->auditable_type) ?? 'N/A' }}</span>
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    @if($log->amount_before || $log->amount_after)
+                                    @php
+                                        $amountBefore = data_get($log->old_values, 'amount');
+                                        $amountAfter  = data_get($log->new_values, 'amount');
+                                    @endphp
+                                    @if($amountBefore || $amountAfter)
                                         <div>
-                                            @if($log->amount_before)
-                                                <small class="text-muted">₱{{ number_format($log->amount_before, 2) }}</small>
+                                            @if($amountBefore)
+                                                <small class="text-muted">₱{{ number_format($amountBefore, 2) }}</small>
                                                 <i class="bi bi-arrow-right mx-1"></i>
                                             @endif
-                                            <span class="fw-semibold">₱{{ number_format($log->amount_after, 2) }}</span>
+                                            @if($amountAfter)
+                                                <span class="fw-semibold">₱{{ number_format($amountAfter, 2) }}</span>
+                                            @endif
                                         </div>
                                     @else
                                         <span class="text-muted">-</span>

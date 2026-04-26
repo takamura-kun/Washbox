@@ -5,6 +5,8 @@ namespace App\Observers;
 use App\Models\RetailSale;
 use App\Models\AdminNotification;
 use App\Models\BranchNotification;
+use App\Models\ActivityLog;
+use App\Models\DeletedRecord;
 
 class RetailSaleObserver
 {
@@ -14,6 +16,11 @@ class RetailSaleObserver
     public function created(RetailSale $sale): void
     {
         $sale->loadMissing('branch');
+
+        ActivityLog::log('created', "Retail sale {$sale->sale_number} ₱" . number_format($sale->total_amount, 2), 'retail', $sale, [
+            'sale_number'  => $sale->sale_number,
+            'total_amount' => $sale->total_amount,
+        ], $sale->branch_id);
 
         // 🔔 NOTIFY ADMIN: New retail sale
         AdminNotification::create([
@@ -65,5 +72,14 @@ class RetailSaleObserver
                 'branch_id' => $sale->branch_id,
             ]);
         }
+    }
+
+    public function deleting(RetailSale $sale): void
+    {
+        DeletedRecord::snapshot($sale, 'retail');
+        ActivityLog::log('deleted', "Retail sale {$sale->sale_number} deleted", 'retail', null, [
+            'sale_number'  => $sale->sale_number,
+            'total_amount' => $sale->total_amount,
+        ], $sale->branch_id);
     }
 }

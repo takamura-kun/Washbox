@@ -7,877 +7,893 @@
     <link rel="stylesheet" href="{{ asset('assets/css/laundry.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/dark-mode-fixes.css') }}">
     <style>
-        .info-card {
-            border-left: 4px solid #3D3B6B;
-            transition: transform 0.2s;
+        .section-card {
+            background: var(--card-bg, #fff);
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
         }
-        .info-card:hover {
-            transform: translateX(4px);
+        .section-card h6 {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color, #f0f0f0);
         }
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-        .timeline-vertical .timeline-item {
-            position: relative;
-            padding-left: 40px;
-            padding-bottom: 24px;
-        }
-        .timeline-vertical .timeline-item:not(:last-child)::before {
+        .meta-row { display: flex; flex-direction: column; margin-bottom: 8px; }
+        .meta-row label { font-size: 0.68rem; color: #9ca3af; margin-bottom: 1px; }
+        .meta-row .val { font-size: 0.82rem; font-weight: 600; }
+
+        /* Timeline */
+        .tl-wrap { position: relative; padding-left: 28px; }
+        .tl-wrap .tl-item { position: relative; padding-bottom: 14px; }
+        .tl-wrap .tl-item:not(:last-child)::before {
             content: '';
             position: absolute;
-            left: 15px;
-            top: 40px;
-            bottom: 0;
-            width: 2px;
-            background: #E5E7EB;
+            left: -18px; top: 20px; bottom: 0;
+            width: 2px; background: #e5e7eb;
         }
-        .timeline-vertical .timeline-marker {
+        .tl-dot {
             position: absolute;
-            left: 0;
-            width: 32px;
-            height: 32px;
+            left: -26px; top: 3px;
+            width: 18px; height: 18px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.55rem; color: #fff;
         }
+        .tl-dot.done    { background: #10b981; }
+        .tl-dot.current { background: #3b82f6; }
+        .tl-dot.pend    { background: #d1d5db; }
+        .tl-label { font-size: 0.78rem; font-weight: 600; }
+        .tl-time  { font-size: 0.68rem; color: #9ca3af; }
+
+        /* History */
+        .hist-item { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border-color, #f3f4f6); }
+        .hist-item:last-child { border-bottom: none; }
+        .hist-icon { width: 28px; height: 28px; min-width: 28px; border-radius: 50%; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; }
+        .hist-text .hw { font-size: 0.78rem; font-weight: 600; }
+        .hist-text .hm { font-size: 0.68rem; color: #9ca3af; }
+
+        /* Pricing */
+        .price-table td { padding: 4px 4px; font-size: 0.78rem; border: none; }
+        .price-table tr.pt-divider td { border-top: 1px solid var(--border-color, #e5e7eb); padding-top: 8px; }
+        .price-table tr.pt-total td { font-size: 0.9rem; font-weight: 700; border-top: 2px solid var(--border-color, #e5e7eb); padding-top: 8px; }
+        .price-table tr.pt-paid td  { background: rgba(16,185,129,0.06); border-radius: 6px; }
+        .price-table tr.pt-unpaid td{ background: rgba(239,68,68,0.06); border-radius: 6px; }
+
+        .action-btn { font-size: 0.78rem; padding: 6px 10px; }
+        .section-card .d-flex.flex-column form { width: 100%; }
+        .section-card .d-flex.flex-column form button { width: 100%; }
+        /* Fix Quick Actions button icon overlap */
+        .section-card .btn i.bi {
+            position: static !important;
+            display: inline-block !important;
+            width: auto !important;
+            height: auto !important;
+            line-height: 1 !important;
+            vertical-align: -0.125em !important;
+            font-size: 0.9em !important;
+        }
+
+        /* Items table */
+        .items-table th, .items-table td { font-size: 0.75rem; padding: 6px 8px; }
     </style>
 @endpush
 
 @section('content')
-    <div class="row g-4">
-        <!-- Left Column -->
-        <div class="col-lg-8">
-            <!-- Laundry Information -->
-            <div class="table-container mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">Laundry Information</h5>
-                    <span class="badge {{ $laundry->status === 'completed' ? 'bg-success' : ($laundry->status === 'cancelled' ? 'bg-danger' : 'bg-warning') }} fs-6">
-                        {{ $laundry->status_label }}
-                    </span>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="text-muted small">Tracking Number</label>
-                        <div class="fw-semibold">{{ $laundry->tracking_number }}</div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="text-muted small">Branch</label>
-                        <div><span class="badge bg-secondary">{{ $laundry->branch->name ?? 'N/A' }}</span></div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="text-muted small">Service</label>
-                        <div class="fw-semibold">
-                            {{ $laundry->service ? $laundry->service->name : 'Promotion Only' }}
-                            @if($laundry->service)
-                                <small class="text-muted d-block mt-1">{{ $laundry->service->service_type_label }}</small>
-                            @endif
-                        </div>
-                    </div>
-                    {{-- Weight (always shown when available) --}}
-                    @if($laundry->weight)
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted small">Weight</label>
-                            <div class="fw-semibold">{{ number_format($laundry->weight, 1) }} kg</div>
-                        </div>
-                    @endif
+<div class="row g-3">
 
-                    {{-- Loads (shown for per_load services) --}}
-                    @if($laundry->number_of_loads)
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted small">
-                                @if($laundry->service && $laundry->service->service_type === 'special_item')
-                                    Number of Pieces
-                                @else
-                                    Number of Loads
-                                @endif
-                            </label>
-                            <div class="fw-semibold">{{ $laundry->number_of_loads }}</div>
-                        </div>
-                    @endif
-                    @if($laundry->service && $laundry->service->service_type === 'full_service' && $laundry->service->max_weight)
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted small">Max Weight per Load</label>
-                            <div class="fw-semibold">{{ number_format($laundry->service->max_weight, 1) }} kg</div>
-                        </div>
-                    @endif
-                    <div class="col-md-6 mb-3">
-                        <label class="text-muted small">Created By</label>
-                        <div>{{ $laundry->createdBy->name ?? 'N/A' }}</div>
+    {{-- ══════════════ LEFT COLUMN ══════════════ --}}
+    <div class="col-lg-8">
+
+        {{-- Laundry Information --}}
+        <div class="section-card">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Laundry Information</h6>
+                <span class="badge {{ $laundry->status === 'completed' ? 'bg-success' : ($laundry->status === 'cancelled' ? 'bg-danger' : 'bg-warning text-dark') }}">
+                    {{ $laundry->status_label }}
+                </span>
+            </div>
+            <div class="row g-0">
+                <div class="col-6 col-md-3">
+                    <div class="meta-row">
+                        <label>Tracking #</label>
+                        <span class="val" style="font-size:0.72rem;">{{ $laundry->tracking_number }}</span>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="text-muted small">Created At</label>
-                        <div>{{ $laundry->created_at->format('M d, Y h:i A') }}</div>
-                    </div>
-                    @if($laundry->staff)
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted small">Assigned Staff</label>
-                            <div>{{ $laundry->staff->name ?? 'N/A' }}</div>
-                        </div>
-                    @endif
-                    @if($laundry->pickup_request_id)
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted small">Pickup Request</label>
-                            <div>
-                                <a href="{{ route('admin.pickups.show', $laundry->pickup_request_id) }}" class="badge bg-info text-decoration-none">
-                                    #{{ $laundry->pickup_request_id }}
-                                </a>
-                            </div>
-                        </div>
-                    @endif
                 </div>
-                @if($laundry->notes)
-                    <div class="alert alert-info mt-3">
-                        <strong>Notes:</strong> {{ $laundry->notes }}
+                <div class="col-6 col-md-3">
+                    <div class="meta-row">
+                        <label>Branch</label>
+                        <span class="val"><span class="badge bg-secondary">{{ $laundry->branch->name ?? 'N/A' }}</span></span>
                     </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="meta-row">
+                        <label>Service</label>
+                        <span class="val">{{ $laundry->service ? $laundry->service->name : 'Promotion Only' }}</span>
+                        @if($laundry->service)
+                            <span style="font-size:0.68rem;color:#9ca3af;">{{ $laundry->service->service_type_label }}</span>
+                        @endif
+                    </div>
+                </div>
+                @if($laundry->weight)
+                <div class="col-6 col-md-3">
+                    <div class="meta-row">
+                        <label>Weight</label>
+                        <span class="val">{{ number_format($laundry->weight,1) }} kg</span>
+                    </div>
+                </div>
                 @endif
-            </div>
-
-            <!-- Customer Information -->
-            <div class="table-container mb-4">
-                <h5 class="mb-3">Customer Information</h5>
-                <div class="d-flex align-items-center mb-3">
-                    @if($laundry->customer->profile_photo_url)
-                        <img src="{{ $laundry->customer->profile_photo_url }}" alt="{{ $laundry->customer->name }}"
-                            class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
-                    @else
-                        <div class="rounded-circle me-3 d-flex align-items-center justify-content-center"
-                            style="width: 60px; height: 60px; background: #E5E7EB; font-size: 1.5rem; font-weight: 600;">
-                            {{ strtoupper(substr($laundry->customer->name, 0, 1)) }}
-                        </div>
-                    @endif
-                    <div>
-                        <h6 class="mb-0">
-                            <a href="{{ route('admin.customers.show', $laundry->customer) }}">{{ $laundry->customer->name }}</a>
-                        </h6>
-                        <div class="text-muted small">{{ $laundry->customer->phone }}</div>
-                        @if($laundry->customer->email)
-                            <div class="text-muted small">{{ $laundry->customer->email }}</div>
-                        @endif
+                @if($laundry->number_of_loads)
+                <div class="col-6 col-md-3">
+                    <div class="meta-row">
+                        <label>{{ $laundry->service && $laundry->service->service_type === 'special_item' ? 'Pieces' : 'Loads' }}</label>
+                        <span class="val">{{ $laundry->number_of_loads }}</span>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <label class="text-muted small">Registration Type</label>
-                        <div>
-                            <span class="badge bg-{{ $laundry->customer->isWalkIn() ? 'secondary' : 'primary' }}">
-                                {{ $laundry->customer->registration_type_label }}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="text-muted small">Total Laundries</label>
-                        <div class="fw-semibold">{{ $laundry->customer->laundries()->count() }}</div>
+                @endif
+                @if($laundry->service && $laundry->service->service_type === 'full_service' && $laundry->service->max_weight)
+                <div class="col-6 col-md-3">
+                    <div class="meta-row">
+                        <label>Max / Load</label>
+                        <span class="val">{{ number_format($laundry->service->max_weight,1) }} kg</span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Pricing Breakdown -->
-            <div class="table-container mb-4">
-                <h5 class="mb-3">Pricing Breakdown</h5>
-                <table class="table table-borderless mb-0">
-                    @if($laundry->promotion && $laundry->promotion->application_type === 'per_load_override')
-                        <tr>
-                            <td colspan="2" class="pb-2">
-                                <strong class="text-primary">
-                                    <i class="bi bi-tag-fill me-1"></i>{{ $laundry->promotion->name }}
-                                </strong>
-                                @if($laundry->promotion->promo_code)
-                                    <span class="badge bg-primary ms-2">{{ $laundry->promotion->promo_code }}</span>
-                                @endif
-                                <div class="small text-muted mt-1">Fixed price promotion: ₱{{ number_format($laundry->promotion->display_price, 2) }}/load</div>
-                            </td>
-                        </tr>
-                        @if($laundry->number_of_loads)
-                            @for($i = 1; $i <= $laundry->number_of_loads; $i++)
-                                <tr class="small">
-                                    <td class="ps-4">
-                                        <i class="bi bi-circle-fill text-primary me-2" style="font-size: 0.5rem;"></i>
-                                        Promotion Load {{ $i }}
-                                    </td>
-                                    <td class="text-end">₱{{ number_format($laundry->promotion->display_price, 2) }}</td>
-                                </tr>
-                            @endfor
-                            <tr class="small border-top">
-                                <td class="ps-4"><strong>Total ({{ $laundry->number_of_loads }} load{{ $laundry->number_of_loads > 1 ? 's' : '' }}):</strong></td>
-                                <td class="text-end fw-semibold text-success">₱{{ number_format($laundry->number_of_loads * $laundry->promotion->display_price, 2) }}</td>
-                            </tr>
-                        @endif
-
-                    @elseif($laundry->service)
-                        {{-- All services use per_load; special_item shows "pieces" label --}}
-                        <tr>
-                                <td colspan="2" class="pb-2">
-                                    <strong>{{ $laundry->service->name }}</strong>
-                                    <div class="small text-muted mt-1">
-                                        @if($laundry->service->pricing_type === 'per_piece')
-                                            {{ $laundry->number_of_loads }} piece{{ $laundry->number_of_loads > 1 ? 's' : '' }} × ₱{{ number_format($laundry->service->price_per_piece, 2) }}/piece
-                                        @else
-                                            {{ $laundry->number_of_loads }} load{{ $laundry->number_of_loads > 1 ? 's' : '' }} × ₱{{ number_format($laundry->service->price_per_load, 2) }}/load
-                                        @endif
-                                        @if($laundry->service->service_type === 'full_service')
-                                            <br>{{ number_format($laundry->weight ?? 0, 1) }} kg total
-                                            @if($laundry->service->max_weight)
-                                                ({{ number_format($laundry->service->max_weight, 1) }} kg per load)
-                                            @endif
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                            @if($laundry->number_of_loads > 1)
-                                @for($i = 1; $i <= $laundry->number_of_loads; $i++)
-                                    <tr class="small">
-                                        <td class="ps-4">
-                                            <i class="bi bi-circle-fill text-primary me-2" style="font-size: 0.5rem;"></i>
-                                            Service Load {{ $i }}
-                                        </td>
-                                        <td class="text-end">₱{{ number_format($laundry->service->pricing_type === 'per_piece' ? $laundry->service->price_per_piece : $laundry->service->price_per_load, 2) }}</td>
-                                    </tr>
-                                @endfor
-                                <tr class="small border-top">
-                                    <td class="ps-4"><strong>Service Total ({{ $laundry->number_of_loads }} load{{ $laundry->number_of_loads > 1 ? 's' : '' }}):</strong></td>
-                                    <td class="text-end fw-semibold text-success">₱{{ number_format($laundry->subtotal, 2) }}</td>
-                                </tr>
-                            @else
-                                <tr class="small">
-                                    <td class="ps-4">Service Subtotal</td>
-                                    <td class="text-end fw-semibold">₱{{ number_format($laundry->subtotal, 2) }}</td>
-                                </tr>
-                            @endif
-                    @elseif($laundry->promotion)
-                        <tr>
-                            <td>
-                                <strong>{{ $laundry->promotion->name }}</strong>
-                                <div class="small text-muted mt-1">Promotion applied to laundry</div>
-                            </td>
-                            <td class="text-end fw-semibold">₱{{ number_format($laundry->subtotal, 2) }}</td>
-                        </tr>
-                    @endif
-
-                    {{-- Add-ons (Old AddOn model - for backward compatibility) --}}
-                    @if($laundry->addons && $laundry->addons->count())
-                        <tr>
-                            <td colspan="2" class="pt-3 border-top">
-                                <strong><i class="bi bi-plus-circle text-success me-1"></i> Add-ons</strong>
-                            </td>
-                        </tr>
-                        @foreach($laundry->addons as $addon)
-                            <tr class="small">
-                                <td class="ps-4">
-                                    <i class="bi bi-circle-fill text-success me-2" style="font-size: 0.5rem;"></i>
-                                    {{ $addon->name }}
-                                    <span class="text-muted">({{ $addon->pivot->quantity }} × ₱{{ number_format($addon->pivot->price_at_purchase, 2) }})</span>
-                                </td>
-                                <td class="text-end">₱{{ number_format($addon->pivot->price_at_purchase * $addon->pivot->quantity, 2) }}</td>
-                            </tr>
-                        @endforeach
-                        <tr class="small border-top">
-                            <td class="ps-4 text-end"><strong>Add-ons Total:</strong></td>
-                            <td class="text-end fw-semibold text-success">₱{{ number_format($laundry->addons_total, 2) }}</td>
-                        </tr>
-                    @endif
-
-                    {{-- Add-ons (New InventoryItem model) --}}
-                    @if($laundry->inventoryItems && $laundry->inventoryItems->count())
-                        <tr>
-                            <td colspan="2" class="pt-3 border-top">
-                                <strong><i class="bi bi-plus-circle text-success me-1"></i> Add-ons</strong>
-                            </td>
-                        </tr>
-                        @foreach($laundry->inventoryItems as $item)
-                            <tr class="small">
-                                <td class="ps-4">
-                                    <i class="bi bi-circle-fill text-success me-2" style="font-size: 0.5rem;"></i>
-                                    {{ $item->name }}
-                                    @if($item->brand)
-                                        <span class="badge bg-secondary">{{ $item->brand }}</span>
-                                    @endif
-                                    <span class="text-muted">({{ $item->pivot->quantity }} {{ $item->distribution_unit }} × ₱{{ number_format($item->pivot->price_at_purchase, 2) }})</span>
-                                </td>
-                                <td class="text-end">₱{{ number_format($item->pivot->price_at_purchase * $item->pivot->quantity, 2) }}</td>
-                            </tr>
-                        @endforeach
-                        <tr class="small border-top">
-                            <td class="ps-4 text-end"><strong>Add-ons Total:</strong></td>
-                            <td class="text-end fw-semibold text-success">₱{{ number_format($laundry->addons_total, 2) }}</td>
-                        </tr>
-                    @endif
-
-                    {{-- Pickup & Delivery Fees --}}
-                    @if($laundry->pickup_fee > 0 || $laundry->delivery_fee > 0)
-                        <tr>
-                            <td colspan="2" class="pt-3 border-top">
-                                <strong><i class="bi bi-truck text-primary me-1"></i> Pickup & Delivery</strong>
-                            </td>
-                        </tr>
-                        @if($laundry->pickup_fee > 0)
-                            <tr class="small">
-                                <td class="ps-4"><i class="bi bi-arrow-down-circle text-primary me-2"></i>Pickup Fee</td>
-                                <td class="text-end">₱{{ number_format($laundry->pickup_fee, 2) }}</td>
-                            </tr>
-                        @endif
-                        @if($laundry->delivery_fee > 0)
-                            <tr class="small">
-                                <td class="ps-4"><i class="bi bi-arrow-up-circle text-success me-2"></i>Delivery Fee</td>
-                                <td class="text-end">₱{{ number_format($laundry->delivery_fee, 2) }}</td>
-                            </tr>
-                        @endif
-                        <tr class="small border-top">
-                            <td class="ps-4 text-end"><strong>Fees Total:</strong></td>
-                            <td class="text-end fw-semibold">₱{{ number_format($laundry->pickup_fee + $laundry->delivery_fee, 2) }}</td>
-                        </tr>
-                    @endif
-
-                    {{-- Promotion Discount (non-override) --}}
-                    @if($laundry->promotion && $laundry->promotion->application_type !== 'per_load_override' && $laundry->discount_amount > 0)
-                        <tr class="text-success border-top pt-2">
-                            <td class="pt-3">
-                                <i class="bi bi-tag-fill me-1"></i>
-                                <strong>Promotion Discount:</strong> {{ $laundry->promotion->name }}
-                                @if($laundry->promotion->promo_code)
-                                    <span class="badge bg-success ms-2">{{ $laundry->promotion->promo_code }}</span>
-                                @endif
-                                <div class="small text-muted mt-1">
-                                    @if($laundry->promotion->discount_type === 'percentage')
-                                        {{ $laundry->promotion->discount_value }}% discount applied
-                                    @else
-                                        Fixed discount of ₱{{ number_format($laundry->promotion->discount_value, 2) }}
-                                    @endif
-                                </div>
-                            </td>
-                            <td class="text-end fw-semibold pt-3">-₱{{ number_format($laundry->discount_amount, 2) }}</td>
-                        </tr>
-                    @endif
-
-                    {{-- Grand Total --}}
-                    <tr class="border-top">
-                        <td class="fs-5 fw-bold pt-3">
-                            <i class="bi bi-calculator me-2" style="color: #3D3B6B;"></i>Grand Total
-                        </td>
-                        <td class="text-end fs-5 fw-bold text-primary pt-3">₱{{ number_format($laundry->total_amount, 2) }}</td>
-                    </tr>
-
-                    {{-- Payment Status --}}
-                    @if($laundry->payment_status === 'paid')
-                        <tr class="text-success bg-success bg-opacity-10">
-                            <td class="pt-3">
-                                <i class="bi bi-check-circle-fill me-2"></i>
-                                <strong>Payment Status</strong>
-                                <div class="small text-muted mt-1">
-                                    Paid via {{ ucfirst($laundry->payment_method) }}
-                                    @if($laundry->paid_at) on {{ $laundry->paid_at ? $laundry->paid_at->format('M d, Y h:i A') : '' }} @endif
-                                </div>
-                            </td>
-                            <td class="text-end fw-semibold pt-3">
-                                <span class="badge bg-success fs-6">PAID</span>
-                            </td>
-                        </tr>
-                    @else
-                        <tr class="text-danger bg-danger bg-opacity-10">
-                            <td class="pt-3">
-                                <i class="bi bi-exclamation-circle-fill me-2"></i>
-                                <strong>Payment Status</strong>
-                            </td>
-                            <td class="text-end fw-semibold pt-3">
-                                <span class="badge bg-danger fs-6">UNPAID</span>
-                            </td>
-                        </tr>
-                    @endif
-                </table>
-            </div>
-
-            <!-- Payment Status Banner -->
-            @if($laundry->payment_status === 'paid')
-                <div class="alert alert-success mb-4">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-check-circle-fill me-3 fs-4"></i>
-                        <div>
-                            <strong class="d-block">Payment Completed</strong>
-                            <div class="small mt-1">
-                                {{ ucfirst($laundry->payment_method) }} •
-                                @if($laundry->paid_at)
-                                    {{ $laundry->paid_at ? $laundry->paid_at->format('M d, Y h:i A') : '' }}
-                                @else
-                                    Payment date not recorded
-                                @endif
-                            </div>
-                        </div>
+                @endif
+                <div class="col-6 col-md-3">
+                    <div class="meta-row">
+                        <label>Created By</label>
+                        <span class="val">{{ $laundry->createdBy->name ?? 'N/A' }}</span>
                     </div>
                 </div>
-            @elseif($laundry->payment_status === 'pending_verification')
-                <div class="alert alert-warning mb-4">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-clock-fill me-3 fs-4"></i>
-                        <div>
-                            <strong class="d-block">Payment Verification Pending</strong>
-                            <div class="small mt-1">
-                                Customer has submitted payment proof. Please verify and approve.
-                            </div>
-                        </div>
+                <div class="col-6 col-md-3">
+                    <div class="meta-row">
+                        <label>Created At</label>
+                        <span class="val">{{ $laundry->created_at->format('M d, Y h:i A') }}</span>
                     </div>
                 </div>
-            @endif
-
-            <!-- Payment Proof Section -->
-            @if($laundry->latestPaymentProof)
-                <div class="table-container mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0">Payment Proof</h5>
-                        <span class="badge {{ $laundry->latestPaymentProof->status === 'approved' ? 'bg-success' : ($laundry->latestPaymentProof->status === 'rejected' ? 'bg-danger' : 'bg-warning') }} fs-6">
-                            {{ ucfirst($laundry->latestPaymentProof->status) }}
+                @if($laundry->staff)
+                <div class="col-6 col-md-3">
+                    <div class="meta-row">
+                        <label>Assigned Staff</label>
+                        <span class="val">{{ $laundry->staff->name ?? 'N/A' }}</span>
+                    </div>
+                </div>
+                @endif
+                @if($laundry->pickup_request_id)
+                <div class="col-6 col-md-3">
+                    <div class="meta-row">
+                        <label>Pickup Request</label>
+                        <span class="val">
+                            <a href="{{ route('admin.pickups.show', $laundry->pickup_request_id) }}" class="badge bg-info text-decoration-none">
+                                #{{ $laundry->pickup_request_id }}
+                            </a>
                         </span>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted small">Payment Method</label>
-                            <div class="fw-semibold">{{ ucfirst($laundry->latestPaymentProof->payment_method) }}</div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted small">Amount</label>
-                            <div class="fw-semibold">₱{{ number_format($laundry->latestPaymentProof->amount, 2) }}</div>
-                        </div>
-                        @if($laundry->latestPaymentProof->reference_number)
-                            <div class="col-md-6 mb-3">
-                                <label class="text-muted small">Reference Number</label>
-                                <div class="fw-semibold">{{ $laundry->latestPaymentProof->reference_number }}</div>
-                            </div>
-                        @endif
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted small">Submitted At</label>
-                            <div class="fw-semibold">{{ $laundry->latestPaymentProof->created_at->format('M d, Y h:i A') }}</div>
-                        </div>
-                        @if($laundry->latestPaymentProof->verified_at)
-                            <div class="col-md-6 mb-3">
-                                <label class="text-muted small">Verified At</label>
-                                <div class="fw-semibold">{{ $laundry->latestPaymentProof->verified_at->format('M d, Y h:i A') }}</div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="text-muted small">Verified By</label>
-                                <div class="fw-semibold">{{ $laundry->latestPaymentProof->verifiedBy->name ?? 'System' }}</div>
-                            </div>
-                        @endif
-                    </div>
-                    
-                    @if($laundry->latestPaymentProof->proof_image)
-                        <div class="mb-3">
-                            <label class="text-muted small">Payment Proof Image</label>
-                            <div class="mt-2">
-                                <img src="{{ $laundry->latestPaymentProof->proof_image_url }}" 
-                                     alt="Payment Proof" 
-                                     class="img-thumbnail" 
-                                     style="max-width: 300px; cursor: pointer;"
-                                     data-bs-toggle="modal" 
-                                     data-bs-target="#paymentProofModal">
-                            </div>
-                        </div>
-                    @endif
-                    
-                    @if($laundry->latestPaymentProof->admin_notes)
-                        <div class="alert alert-info">
-                            <strong>Admin Notes:</strong> {{ $laundry->latestPaymentProof->admin_notes }}
-                        </div>
-                    @endif
-                    
-                    @if($laundry->latestPaymentProof->status === 'pending')
-                        <div class="d-flex gap-2 mt-3">
-                            <a href="{{ route('admin.payments.verification.show', $laundry->latestPaymentProof) }}" class="btn btn-primary">
-                                <i class="bi bi-eye"></i> Review Payment
-                            </a>
-                        </div>
-                    @endif
+                </div>
+                @endif
+            </div>
+            @if($laundry->notes)
+                <div class="alert alert-info py-2 px-3 mb-0 mt-2" style="font-size:0.78rem;">
+                    <i class="bi bi-sticky me-1"></i><strong>Notes:</strong> {{ $laundry->notes }}
                 </div>
             @endif
+        </div>
 
-            <!-- Delivery Information -->
-            @if($laundry->delivery_address || $laundry->expected_delivery_date)
-                <div class="table-container mb-4">
-                    <h5 class="mb-3">Delivery Information</h5>
-                    <div class="row">
-                        @if($laundry->delivery_address)
-                            <div class="col-md-6 mb-3">
-                                <label class="text-muted small">Delivery Address</label>
-                                <div class="fw-semibold">{{ $laundry->delivery_address }}</div>
-                            </div>
-                        @endif
-                        @if($laundry->expected_delivery_date)
-                            <div class="col-md-6 mb-3">
-                                <label class="text-muted small">Expected Delivery</label>
-                                <div class="fw-semibold">{{ $laundry->expected_delivery_date ? $laundry->expected_delivery_date->format('M d, Y') : '' }}</div>
-                            </div>
-                        @endif
+        {{-- Customer Information --}}
+        <div class="section-card">
+            <h6>Customer Information</h6>
+            <div class="d-flex align-items-center gap-3">
+                @if($laundry->customer->profile_photo_url)
+                    <img src="{{ $laundry->customer->profile_photo_url }}" alt="{{ $laundry->customer->name }}"
+                        class="rounded-circle flex-shrink-0" style="width:42px;height:42px;object-fit:cover;">
+                @else
+                    <div class="rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center"
+                        style="width:42px;height:42px;background:#e5e7eb;font-size:1rem;font-weight:700;color:#6b7280;">
+                        {{ strtoupper(substr($laundry->customer->name,0,1)) }}
                     </div>
-                </div>
-            @endif
-
-            <!-- Laundry Items -->
-            @if($laundry->items && $laundry->items->count())
-                <div class="table-container mb-4">
-                    <h5 class="mb-3">Laundry Items</h5>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Item</th>
-                                    <th>Quantity</th>
-                                    <th>Unit Price</th>
-                                    <th>Subtotal</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($laundry->items as $item)
-                                    <tr>
-                                        <td>{{ $item->name }}</td>
-                                        <td>{{ $item->pivot->quantity }}</td>
-                                        <td>₱{{ number_format($item->pivot->unit_price, 2) }}</td>
-                                        <td>₱{{ number_format($item->pivot->quantity * $item->pivot->unit_price, 2) }}</td>
-                                        <td>
-                                            <span class="badge bg-{{ $item->pivot->status === 'completed' ? 'success' : ($item->pivot->status === 'cancelled' ? 'danger' : 'warning') }}">
-                                                {{ ucfirst($item->pivot->status) }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                @endif
+                <div>
+                    <div class="fw-semibold" style="font-size:0.85rem;">
+                        <a href="{{ route('admin.customers.show', $laundry->customer) }}">{{ $laundry->customer->name }}</a>
                     </div>
+                    <div class="text-muted" style="font-size:0.72rem;">{{ $laundry->customer->phone }}</div>
+                    @if($laundry->customer->email)
+                        <div class="text-muted" style="font-size:0.72rem;">{{ $laundry->customer->email }}</div>
+                    @endif
                 </div>
-            @endif
-
-            <!-- Status History -->
-            <div class="table-container">
-                <h5 class="mb-3">Status History</h5>
-                <div class="timeline">
-                    @foreach($laundry->statusHistories as $history)
-                        <div class="d-flex mb-3 pb-3 border-bottom">
-                            <div class="me-3">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                    style="width: 40px; height: 40px; background: #E5E7EB;">
-                                    @php
-                                        $icon = match($history->status) {
-                                            'received'   => 'inbox',
-                                            'processing' => 'gear',
-                                            'ready'      => 'check-circle',
-                                            'paid'       => 'currency-dollar',
-                                            'completed'  => 'check-all',
-                                            'cancelled'  => 'x-circle',
-                                            default      => 'clock'
-                                        };
-                                    @endphp
-                                    <i class="bi bi-{{ $icon }}"></i>
-                                </div>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="fw-semibold">
-                                    {{ ucfirst($history->status) }}
-                                    @if($history->status === 'paid')
-                                        <span class="badge bg-success ms-2">Paid</span>
-                                    @endif
-                                </div>
-                                <div class="text-muted small">
-                                    {{ $history->changedBy ? 'by ' . $history->changedBy->name : 'System' }} •
-                                    {{ $history->created_at->format('M d, Y h:i A') }}
-                                </div>
-                                @if($history->notes)
-                                    <div class="mt-1 small text-muted">{{ $history->notes }}</div>
-                                @endif
-                            </div>
-                        </div>
-                    @endforeach
+                <div class="ms-auto text-end">
+                    <span class="badge bg-{{ $laundry->customer->isWalkIn() ? 'secondary' : 'primary' }}">
+                        {{ $laundry->customer->registration_type_label }}
+                    </span>
+                    <div class="text-muted mt-1" style="font-size:0.68rem;">
+                        {{ $laundry->customer->laundries()->count() }} laundries
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Right Column -->
-        <div class="col-lg-4">
-            <!-- Timeline -->
-            <div class="table-container mb-4">
-                <h5 class="mb-3">
-                    <i class="bi bi-clock-history me-2 text-primary"></i>
-                    Laundry Timeline
-                </h5>
-                <div class="timeline-vertical">
-                    @php
-                        $timeline = $laundry->getTimeline();
-                        $stages = [
-                            'received' => ['icon' => 'inbox-fill', 'label' => 'Order Received'],
-                            'processing' => ['icon' => 'gear-fill', 'label' => 'Processing'],
-                            'ready' => ['icon' => 'check-circle-fill', 'label' => 'Ready for Pickup'],
-                            'paid' => ['icon' => 'credit-card-fill', 'label' => 'Payment Completed'],
-                            'completed' => ['icon' => 'check-all', 'label' => 'Order Completed']
-                        ];
-                        $currentReached = false;
-                    @endphp
-                    @foreach($stages as $stage => $config)
-                        @php
-                            $isActive = $timeline[$stage] !== null;
-                            $isPending = !$isActive && !$currentReached;
-                            if (!$isActive && !$currentReached) $currentReached = true;
-                        @endphp
-                        <div class="timeline-item {{ $isActive ? 'active' : ($isPending ? 'current' : 'pending') }}">
-                            <div class="timeline-marker {{ $isActive ? 'bg-success' : 'bg-secondary' }}">
-                                <i class="bi bi-{{ $isActive ? 'check' : $config['icon'] }}"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <div class="fw-semibold">
-                                    {{ $config['label'] }}
-                                    @if($isActive)
-                                        <div class="status-icon bg-success text-white ms-auto">
-                                            <i class="bi bi-check"></i>
-                                        </div>
-                                    @endif
-                                </div>
-                                <small class="text-muted">
-                                    @if($isActive)
-                                        <i class="bi bi-calendar-check me-1"></i>
-                                        {{ $timeline[$stage]->format('M d, Y') }} at {{ $timeline[$stage]->format('h:i A') }}
-                                    @else
-                                        <i class="bi bi-clock me-1"></i>
-                                        {{ $isPending ? 'In Progress...' : 'Pending' }}
-                                    @endif
-                                </small>
-                            </div>
-                        </div>
-                    @endforeach
+        {{-- Payment Status Banner --}}
+        @if($laundry->payment_status === 'paid')
+            <div class="alert alert-success d-flex align-items-center py-2 px-3 mb-2" style="font-size:0.78rem;">
+                <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                <div>
+                    <strong>Payment Completed</strong> &mdash;
+                    {{ ucfirst($laundry->payment_method) }}
+                    @if($laundry->paid_at) &bull; {{ $laundry->paid_at->format('M d, Y h:i A') }} @endif
                 </div>
             </div>
-
-            <!-- Quick Actions -->
-            <div class="table-container mb-4">
-                <h5 class="mb-3">Quick Actions</h5>
-                <div class="d-grid gap-2">
-                    @if($laundry->status === 'received')
-                        <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST" class="status-change-form">
-                            @csrf
-                            @method('PUT')
-                            <input type="hidden" name="status" value="processing">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="bi bi-play-circle"></i> Start Processing
-                            </button>
-                        </form>
-                    @endif
-                    @if($laundry->status === 'processing')
-                        <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST" class="status-change-form">
-                            @csrf
-                            @method('PUT')
-                            <input type="hidden" name="status" value="ready">
-                            <button type="submit" class="btn btn-success w-100">
-                                <i class="bi bi-check-circle"></i> Mark as Ready
-                            </button>
-                        </form>
-                    @endif
-                    @if($laundry->status === 'ready' && $laundry->payment_status !== 'paid')
-                        @if($laundry->latestPaymentProof && $laundry->latestPaymentProof->status === 'pending')
-                            <a href="{{ route('admin.payments.verification.show', $laundry->latestPaymentProof) }}" class="btn btn-warning w-100">
-                                <i class="bi bi-eye"></i> Review Payment Proof
-                            </a>
-                        @else
-                            <form action="{{ route('admin.laundries.record-payment', $laundry) }}" method="POST">
-                                @csrf
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="bi bi-currency-dollar"></i> Record Payment
-                                </button>
-                            </form>
-                        @endif
-                    @endif
-                    @if($laundry->status === 'paid')
-                        <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST" class="status-change-form">
-                            @csrf
-                            @method('PUT')
-                            <input type="hidden" name="status" value="completed">
-                            <button type="submit" class="btn btn-success w-100">
-                                <i class="bi bi-check-all"></i> Mark as Completed
-                            </button>
-                        </form>
-                    @endif
-                    <a href="{{ route('admin.receipts.show', $laundry) }}" class="btn btn-outline-primary w-100" target="_blank">
-                        <i class="bi bi-receipt"></i> View Receipt
-                    </a>
-                    <a href="{{ route('admin.laundries.edit', $laundry) }}" class="btn btn-outline-secondary w-100">
-                        <i class="bi bi-pencil"></i> Edit Laundry
-                    </a>
-                    @if(!in_array($laundry->status, ['completed', 'cancelled']))
-                        <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#cancelModal">
-                            <i class="bi bi-x-circle"></i> Cancel Laundry
-                        </button>
-                    @endif
-                </div>
+        @elseif($laundry->payment_status === 'pending_verification')
+            <div class="alert alert-warning d-flex align-items-center py-2 px-3 mb-2" style="font-size:0.78rem;">
+                <i class="bi bi-clock-fill me-2 fs-5"></i>
+                <div><strong>Payment Verification Pending</strong> &mdash; Customer has submitted proof. Please verify.</div>
             </div>
+        @endif
 
-            <!-- Laundry Summary -->
-            <div class="table-container">
-                <h5 class="mb-3">Laundry Summary</h5>
-                <div class="mb-3">
-                    <small class="text-muted">Category</small>
-                    <div class="fw-semibold">
-                        @if($laundry->service)
-                            @php
-                                $catColor = match($laundry->service->category ?? 'drop_off') {
-                                    'drop_off'     => '#3D3B6B',
-                                    'self_service' => '#10B981',
-                                    'addon'        => '#F59E0B',
-                                    default        => '#6B7280',
-                                };
-                            @endphp
-                            <span class="badge" style="background:{{ $catColor }};">
-                                {{ $laundry->service->category_label ?? ucfirst($laundry->service->category ?? 'Drop Off') }}
+        {{-- Pricing Breakdown --}}
+        <div class="section-card">
+            <h6>Pricing Breakdown</h6>
+            <table class="table price-table mb-0 w-100">
+
+                {{-- Per-load override promo --}}
+                @if($laundry->promotion && $laundry->promotion->application_type === 'per_load_override')
+                    <tr>
+                        <td colspan="2">
+                            <span class="fw-semibold text-primary">
+                                <i class="bi bi-tag-fill me-1"></i>{{ $laundry->promotion->name }}
                             </span>
-                        @else
-                            <span class="badge bg-secondary">N/A</span>
-                        @endif
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <small class="text-muted">Service Type</small>
-                    <div class="fw-semibold">
-                        @if($laundry->service)
-                            @php
-                                $typeColors = ['regular_clothes' => 'primary', 'full_service' => 'primary', 'self_service' => 'success', 'special_item' => 'warning', 'addon' => 'info'];
-                            @endphp
-                            <span class="badge bg-{{ $typeColors[$laundry->service->service_type] ?? 'secondary' }}">
-                                {{ $laundry->service->service_type_label }}
-                            </span>
-                        @else
-                            <span class="badge bg-secondary">Promotion</span>
-                        @endif
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <small class="text-muted">Pricing Type</small>
-                    <div class="fw-semibold">
-                        @if($laundry->service)
-                            {{ ucfirst(str_replace('_', ' ', $laundry->service->pricing_type ?? 'per_load')) }}
-                        @else
-                            Promotion Fixed Price
-                        @endif
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <small class="text-muted">Turnaround Time</small>
-                    <div class="fw-semibold">
-                        @if($laundry->service) {{ $laundry->service->turnaround_time }} hours @else N/A @endif
-                    </div>
-                </div>
-                @if($laundry->promotion)
-                    <div class="mb-3">
-                        <small class="text-muted">Promotion Applied</small>
-                        <div class="fw-semibold text-success">
-                            {{ $laundry->promotion->name }}
                             @if($laundry->promotion->promo_code)
-                                <div class="small text-muted">({{ $laundry->promotion->promo_code }})</div>
+                                <span class="badge bg-primary ms-1">{{ $laundry->promotion->promo_code }}</span>
+                            @endif
+                            <span class="text-muted ms-1">₱{{ number_format($laundry->promotion->display_price,2) }}/load</span>
+                        </td>
+                    </tr>
+                    @if($laundry->number_of_loads)
+                        @for($i = 1; $i <= $laundry->number_of_loads; $i++)
+                            <tr>
+                                <td class="ps-3 text-muted">
+                                    <i class="bi bi-circle-fill me-1" style="font-size:0.4rem;vertical-align:middle;color:#6366f1;"></i>
+                                    Promo Load {{ $i }}
+                                </td>
+                                <td class="text-end">₱{{ number_format($laundry->promotion->display_price,2) }}</td>
+                            </tr>
+                        @endfor
+                        <tr>
+                            <td class="text-muted text-end">
+                                Total ({{ $laundry->number_of_loads }} load{{ $laundry->number_of_loads > 1 ? 's' : '' }})
+                            </td>
+                            <td class="text-end fw-semibold text-success">
+                                ₱{{ number_format($laundry->number_of_loads * $laundry->promotion->display_price,2) }}
+                            </td>
+                        </tr>
+                    @endif
+
+                {{-- Standard service --}}
+                @elseif($laundry->service)
+                    @php
+                        $isSpecial = $laundry->service->service_type === 'special_item';
+                        $loads     = $laundry->number_of_loads ?? 1;
+                        $isPiece   = $laundry->service->pricing_type === 'per_piece';
+                        $unitPrice = $isPiece ? $laundry->service->price_per_piece : $laundry->service->price_per_load;
+                        $unitLabel = $isPiece ? 'piece' : 'load';
+                    @endphp
+                    <tr>
+                        <td colspan="2">
+                            <span class="fw-semibold">{{ $laundry->service->name }}</span>
+                            <span class="text-muted ms-1">
+                                {{ $loads }} {{ $unitLabel }}{{ $loads > 1 ? 's' : '' }}
+                                × ₱{{ number_format($unitPrice,2) }}/{{ $unitLabel }}
+                                @if($laundry->service->service_type === 'full_service' && $laundry->weight)
+                                    &bull; {{ number_format($laundry->weight,1) }} kg
+                                    @if($laundry->service->max_weight)
+                                        ({{ number_format($laundry->service->max_weight,1) }} kg/load)
+                                    @endif
+                                @endif
+                            </span>
+                        </td>
+                    </tr>
+                    @if($loads > 1)
+                        @for($i = 1; $i <= $loads; $i++)
+                            <tr>
+                                <td class="ps-3 text-muted">
+                                    <i class="bi bi-circle-fill me-1" style="font-size:0.4rem;vertical-align:middle;color:#3b82f6;"></i>
+                                    {{ $isPiece ? 'Piece' : 'Load' }} {{ $i }}
+                                </td>
+                                <td class="text-end">₱{{ number_format($unitPrice,2) }}</td>
+                            </tr>
+                        @endfor
+                    @endif
+                    <tr>
+                        <td class="text-muted text-end">Service subtotal</td>
+                        <td class="text-end fw-semibold">₱{{ number_format($laundry->subtotal,2) }}</td>
+                    </tr>
+
+                {{-- Promotion-only (no service) --}}
+                @elseif($laundry->promotion)
+                    @php
+                        $promoSubtotal = $laundry->promotion_override_total
+                            ?? ($laundry->promotion_price_per_load * ($laundry->number_of_loads ?? 1))
+                            ?? $laundry->subtotal;
+                    @endphp
+                    <tr>
+                        <td>
+                            <span class="fw-semibold">{{ $laundry->promotion->name }}</span>
+                            @if($laundry->number_of_loads)
+                                <span class="text-muted">({{ $laundry->number_of_loads }} load{{ $laundry->number_of_loads > 1 ? 's' : '' }})</span>
+                            @endif
+                            @if($laundry->promotion->display_price)
+                                <span class="text-muted ms-1">₱{{ number_format($laundry->promotion->display_price,2) }}/load</span>
+                            @endif
+                        </td>
+                        <td class="text-end fw-semibold">₱{{ number_format($promoSubtotal,2) }}</td>
+                    </tr>
+                @endif
+
+                {{-- Add-ons --}}
+                @php
+                    $addonCollection = ($laundry->inventoryItems && $laundry->inventoryItems->count())
+                        ? $laundry->inventoryItems
+                        : (($laundry->addons && $laundry->addons->count()) ? $laundry->addons : collect());
+                @endphp
+                @if($addonCollection->count())
+                    <tr class="pt-divider">
+                        <td colspan="2">
+                            <strong><i class="bi bi-plus-circle text-success me-1"></i>Add-ons</strong>
+                        </td>
+                    </tr>
+                    @foreach($addonCollection as $item)
+                        <tr>
+                            <td class="ps-3 text-muted">
+                                <i class="bi bi-circle-fill me-1" style="font-size:0.4rem;vertical-align:middle;color:#10b981;"></i>
+                                {{ $item->name }}
+                                @if(isset($item->brand) && $item->brand)
+                                    <span class="badge bg-secondary" style="font-size:0.6rem;">{{ $item->brand }}</span>
+                                @endif
+                                <span class="text-muted">
+                                    ({{ $item->pivot->quantity }} {{ $item->distribution_unit ?? '' }} × ₱{{ number_format($item->pivot->price_at_purchase,2) }})
+                                </span>
+                            </td>
+                            <td class="text-end">₱{{ number_format($item->pivot->price_at_purchase * $item->pivot->quantity,2) }}</td>
+                        </tr>
+                    @endforeach
+                    <tr>
+                        <td class="text-muted text-end">Add-ons total</td>
+                        <td class="text-end fw-semibold text-success">₱{{ number_format($laundry->addons_total,2) }}</td>
+                    </tr>
+                @endif
+
+                {{-- Pickup & Delivery --}}
+                @if($laundry->pickup_fee > 0 || $laundry->delivery_fee > 0)
+                    <tr class="pt-divider">
+                        <td colspan="2">
+                            <strong><i class="bi bi-truck text-primary me-1"></i>Pickup &amp; Delivery</strong>
+                        </td>
+                    </tr>
+                    @if($laundry->pickup_fee > 0)
+                        <tr>
+                            <td class="ps-3 text-muted"><i class="bi bi-arrow-down-circle text-primary me-1"></i>Pickup Fee</td>
+                            <td class="text-end">₱{{ number_format($laundry->pickup_fee,2) }}</td>
+                        </tr>
+                    @endif
+                    @if($laundry->delivery_fee > 0)
+                        <tr>
+                            <td class="ps-3 text-muted"><i class="bi bi-arrow-up-circle text-success me-1"></i>Delivery Fee</td>
+                            <td class="text-end">₱{{ number_format($laundry->delivery_fee,2) }}</td>
+                        </tr>
+                    @endif
+                    <tr>
+                        <td class="text-muted text-end">Fees total</td>
+                        <td class="text-end fw-semibold">₱{{ number_format($laundry->pickup_fee + $laundry->delivery_fee,2) }}</td>
+                    </tr>
+                @endif
+
+                {{-- Discount (non-override) --}}
+                @if($laundry->promotion && $laundry->promotion->application_type !== 'per_load_override' && $laundry->discount_amount > 0)
+                    <tr class="pt-divider text-success">
+                        <td>
+                            <i class="bi bi-tag-fill me-1"></i>
+                            <strong>{{ $laundry->promotion->name }}</strong>
+                            @if($laundry->promotion->promo_code)
+                                <span class="badge bg-success ms-1">{{ $laundry->promotion->promo_code }}</span>
+                            @endif
+                            <span class="text-muted ms-1">
+                                @if($laundry->promotion->discount_type === 'percentage')
+                                    {{ $laundry->promotion->discount_value }}% off
+                                @else
+                                    ₱{{ number_format($laundry->promotion->discount_value,2) }} off
+                                @endif
+                            </span>
+                        </td>
+                        <td class="text-end fw-semibold">-₱{{ number_format($laundry->discount_amount,2) }}</td>
+                    </tr>
+                @endif
+
+                {{-- Grand Total --}}
+                <tr class="pt-total">
+                    <td><i class="bi bi-calculator me-1" style="color:#3D3B6B;"></i>Grand Total</td>
+                    <td class="text-end text-primary">₱{{ number_format($laundry->total_amount,2) }}</td>
+                </tr>
+
+                {{-- Payment row --}}
+                @if($laundry->payment_status === 'paid')
+                    <tr class="pt-paid">
+                        <td class="py-2">
+                            <i class="bi bi-check-circle-fill text-success me-1"></i>
+                            <strong>Payment</strong>
+                            <span class="text-muted ms-1">via {{ ucfirst($laundry->payment_method) }}</span>
+                            @if($laundry->paid_at)
+                                <span class="text-muted"> &bull; {{ $laundry->paid_at->format('M d, Y h:i A') }}</span>
+                            @endif
+                        </td>
+                        <td class="text-end py-2"><span class="badge bg-success">PAID</span></td>
+                    </tr>
+                @else
+                    <tr class="pt-unpaid">
+                        <td class="py-2">
+                            <i class="bi bi-exclamation-circle-fill text-danger me-1"></i>
+                            <strong>Payment</strong>
+                        </td>
+                        <td class="text-end py-2"><span class="badge bg-danger">UNPAID</span></td>
+                    </tr>
+                @endif
+            </table>
+        </div>
+
+        {{-- Payment Proof --}}
+        @if($laundry->latestPaymentProof)
+            <div class="section-card">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">Payment Proof</h6>
+                    <span class="badge {{ $laundry->latestPaymentProof->status === 'approved' ? 'bg-success' : ($laundry->latestPaymentProof->status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark') }}">
+                        {{ ucfirst($laundry->latestPaymentProof->status) }}
+                    </span>
+                </div>
+                <div class="row g-0">
+                    <div class="col-6 col-md-3">
+                        <div class="meta-row">
+                            <label>Method</label>
+                            <span class="val">{{ ucfirst($laundry->latestPaymentProof->payment_method) }}</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="meta-row">
+                            <label>Amount</label>
+                            <span class="val">₱{{ number_format($laundry->latestPaymentProof->amount,2) }}</span>
+                        </div>
+                    </div>
+                    @if($laundry->latestPaymentProof->reference_number)
+                    <div class="col-6 col-md-3">
+                        <div class="meta-row">
+                            <label>Reference #</label>
+                            <span class="val">{{ $laundry->latestPaymentProof->reference_number }}</span>
+                        </div>
+                    </div>
+                    @endif
+                    <div class="col-6 col-md-3">
+                        <div class="meta-row">
+                            <label>Submitted</label>
+                            <span class="val">{{ $laundry->latestPaymentProof->created_at->format('M d, Y h:i A') }}</span>
+                        </div>
+                    </div>
+                    @if($laundry->latestPaymentProof->verified_at)
+                    <div class="col-6 col-md-3">
+                        <div class="meta-row">
+                            <label>Verified At</label>
+                            <span class="val">{{ $laundry->latestPaymentProof->verified_at->format('M d, Y h:i A') }}</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="meta-row">
+                            <label>Verified By</label>
+                            <span class="val">{{ $laundry->latestPaymentProof->verifiedBy->name ?? 'System' }}</span>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+                @if($laundry->latestPaymentProof->proof_image)
+                    <div class="mt-2">
+                        <label class="meta-row mb-1"><label>Proof Image</label></label>
+                        <img src="{{ $laundry->latestPaymentProof->proof_image_url }}"
+                             alt="Payment Proof"
+                             class="img-thumbnail"
+                             style="max-width:180px;cursor:pointer;"
+                             data-bs-toggle="modal"
+                             data-bs-target="#paymentProofModal">
+                    </div>
+                @endif
+                @if($laundry->latestPaymentProof->admin_notes)
+                    <div class="alert alert-info py-2 px-3 mt-2 mb-0" style="font-size:0.75rem;">
+                        <strong>Admin Notes:</strong> {{ $laundry->latestPaymentProof->admin_notes }}
+                    </div>
+                @endif
+                @if($laundry->latestPaymentProof->status === 'pending')
+                    <div class="mt-2">
+                        <a href="{{ route('admin.payments.verification.show', $laundry->latestPaymentProof) }}" class="btn btn-primary btn-sm action-btn">
+                            <i class="bi bi-eye me-1"></i>Review Payment
+                        </a>
+                    </div>
+                @endif
+            </div>
+        @endif
+
+        {{-- Delivery Information --}}
+        @if($laundry->delivery_address || $laundry->expected_delivery_date)
+            <div class="section-card">
+                <h6>Delivery Information</h6>
+                <div class="row g-0">
+                    @if($laundry->delivery_address)
+                    <div class="col-md-6">
+                        <div class="meta-row">
+                            <label>Delivery Address</label>
+                            <span class="val">{{ $laundry->delivery_address }}</span>
+                        </div>
+                    </div>
+                    @endif
+                    @if($laundry->expected_delivery_date)
+                    <div class="col-md-6">
+                        <div class="meta-row">
+                            <label>Expected Delivery</label>
+                            <span class="val">{{ $laundry->expected_delivery_date->format('M d, Y') }}</span>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        @endif
+
+        {{-- Laundry Items --}}
+        @if($laundry->items && $laundry->items->count())
+            <div class="section-card">
+                <h6>Laundry Items</h6>
+                <div class="table-responsive">
+                    <table class="table items-table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-end">Unit Price</th>
+                                <th class="text-end">Subtotal</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($laundry->items as $item)
+                                <tr>
+                                    <td>{{ $item->name }}</td>
+                                    <td class="text-center">{{ $item->pivot->quantity }}</td>
+                                    <td class="text-end">₱{{ number_format($item->pivot->unit_price,2) }}</td>
+                                    <td class="text-end">₱{{ number_format($item->pivot->quantity * $item->pivot->unit_price,2) }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ $item->pivot->status === 'completed' ? 'success' : ($item->pivot->status === 'cancelled' ? 'danger' : 'warning text-dark') }}">
+                                            {{ ucfirst($item->pivot->status) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
+
+        {{-- Status History --}}
+        <div class="section-card">
+            <h6>Status History</h6>
+            @foreach($laundry->statusHistories as $history)
+                @php
+                    $icon = match($history->status) {
+                        'received'   => 'inbox',
+                        'processing' => 'gear',
+                        'ready'      => 'check-circle',
+                        'paid'       => 'currency-dollar',
+                        'completed'  => 'check-all',
+                        'cancelled'  => 'x-circle',
+                        default      => 'clock'
+                    };
+                @endphp
+                <div class="hist-item">
+                    <div class="hist-icon"><i class="bi bi-{{ $icon }}"></i></div>
+                    <div class="hist-text">
+                        <div class="hw">
+                            {{ ucfirst($history->status) }}
+                            @if($history->status === 'paid')
+                                <span class="badge bg-success ms-1" style="font-size:0.6rem;">Paid</span>
+                            @endif
+                        </div>
+                        <div class="hm">
+                            {{ $history->changedBy ? 'by ' . $history->changedBy->name : 'System' }}
+                            &bull; {{ $history->created_at->format('M d, Y h:i A') }}
+                        </div>
+                        @if($history->notes)
+                            <div class="hm mt-1">{{ $history->notes }}</div>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+    </div>{{-- end col-lg-8 --}}
+
+    {{-- ══════════════ RIGHT COLUMN ══════════════ --}}
+    <div class="col-lg-4">
+
+        {{-- Timeline --}}
+        <div class="section-card">
+            <h6>Laundry Timeline</h6>
+            @php
+                $timeline = $laundry->getTimeline();
+                $stages = [
+                    'received'   => ['icon' => 'inbox-fill',       'label' => 'Order Received'],
+                    'processing' => ['icon' => 'gear-fill',         'label' => 'Processing'],
+                    'ready'      => ['icon' => 'check-circle-fill', 'label' => 'Ready for Pickup'],
+                    'paid'       => ['icon' => 'credit-card-fill',  'label' => 'Payment Completed'],
+                    'completed'  => ['icon' => 'check-all',         'label' => 'Order Completed'],
+                ];
+                $currentReached = false;
+            @endphp
+            <div class="tl-wrap">
+                @foreach($stages as $stage => $config)
+                    @php
+                        $isActive  = $timeline[$stage] !== null;
+                        $isCurrent = !$isActive && !$currentReached;
+                        if ($isCurrent) $currentReached = true;
+                    @endphp
+                    <div class="tl-item">
+                        <div class="tl-dot {{ $isActive ? 'done' : ($isCurrent ? 'current' : 'pend') }}">
+                            <i class="bi bi-{{ $isActive ? 'check' : ($isCurrent ? 'arrow-right' : 'circle') }}"></i>
+                        </div>
+                        <div class="tl-label">{{ $config['label'] }}</div>
+                        <div class="tl-time">
+                            @if($isActive)
+                                {{ $timeline[$stage]->format('M d, Y h:i A') }}
+                            @elseif($isCurrent)
+                                In Progress…
+                            @else
+                                Pending
                             @endif
                         </div>
                     </div>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- Quick Actions --}}
+        <div class="section-card">
+            <h6>Quick Actions</h6>
+            <div class="d-flex flex-column gap-2">
+                @if($laundry->status === 'received')
+                    <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST" class="status-change-form">
+                        @csrf @method('PUT')
+                        <input type="hidden" name="status" value="processing">
+                        <button type="submit" class="btn btn-primary w-100 action-btn">
+                            <i class="bi bi-play-circle me-1"></i>Start Processing
+                        </button>
+                    </form>
                 @endif
-                <div class="mb-3">
-                    <small class="text-muted">Laundry Age</small>
-                    <div class="fw-semibold">{{ $laundry->created_at->diffForHumans() }}</div>
+
+                @if($laundry->status === 'processing')
+                    <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST" class="status-change-form">
+                        @csrf @method('PUT')
+                        <input type="hidden" name="status" value="ready">
+                        <button type="submit" class="btn btn-success w-100 action-btn">
+                            <i class="bi bi-check-circle me-1"></i>Mark as Ready
+                        </button>
+                    </form>
+                @endif
+
+                @if($laundry->status === 'ready' && $laundry->payment_status !== 'paid')
+                    @if($laundry->latestPaymentProof && $laundry->latestPaymentProof->status === 'pending')
+                        <a href="{{ route('admin.payments.verification.show', $laundry->latestPaymentProof) }}"
+                           class="btn btn-warning w-100 action-btn">
+                            <i class="bi bi-eye me-1"></i>Review Payment Proof
+                        </a>
+                    @else
+                        <form action="{{ route('admin.laundries.record-payment', $laundry) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-primary w-100 action-btn">
+                                <i class="bi bi-currency-dollar me-1"></i>Record Payment
+                            </button>
+                        </form>
+                    @endif
+                @endif
+
+                @if($laundry->status === 'paid')
+                    <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST" class="status-change-form">
+                        @csrf @method('PUT')
+                        <input type="hidden" name="status" value="completed">
+                        <button type="submit" class="btn btn-success w-100 action-btn">
+                            <i class="bi bi-check-all me-1"></i>Mark as Completed
+                        </button>
+                    </form>
+                @endif
+
+                <a href="{{ route('admin.receipts.show', $laundry) }}" class="btn btn-outline-primary w-100 action-btn" target="_blank">
+                    <i class="bi bi-receipt me-1"></i>View Receipt
+                </a>
+                <a href="{{ route('admin.laundries.edit', $laundry) }}" class="btn btn-outline-secondary w-100 action-btn">
+                    <i class="bi bi-pencil me-1"></i>Edit Laundry
+                </a>
+                @if(!in_array($laundry->status, ['completed','cancelled']))
+                    <button type="button" class="btn btn-outline-danger w-100 action-btn" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                        <i class="bi bi-x-circle me-1"></i>Cancel Laundry
+                    </button>
+                @endif
+            </div>
+        </div>
+
+        {{-- Laundry Summary --}}
+        <div class="section-card">
+            <h6>Laundry Summary</h6>
+            <div class="row g-0">
+                <div class="col-6">
+                    <div class="meta-row">
+                        <label>Category</label>
+                        <span class="val">
+                            @if($laundry->service)
+                                @php
+                                    $catColor = match($laundry->service->category ?? 'drop_off') {
+                                        'drop_off'     => '#3D3B6B',
+                                        'self_service' => '#10B981',
+                                        'addon'        => '#F59E0B',
+                                        default        => '#6B7280',
+                                    };
+                                @endphp
+                                <span class="badge" style="background:{{ $catColor }};">
+                                    {{ $laundry->service->category_label ?? ucfirst($laundry->service->category ?? 'Drop Off') }}
+                                </span>
+                            @else
+                                <span class="badge bg-secondary">N/A</span>
+                            @endif
+                        </span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="meta-row">
+                        <label>Service Type</label>
+                        <span class="val">
+                            @if($laundry->service)
+                                @php $typeColors = ['regular_clothes'=>'primary','full_service'=>'primary','self_service'=>'success','special_item'=>'warning','addon'=>'info']; @endphp
+                                <span class="badge bg-{{ $typeColors[$laundry->service->service_type] ?? 'secondary' }}">
+                                    {{ $laundry->service->service_type_label }}
+                                </span>
+                            @else
+                                <span class="badge bg-secondary">Promotion</span>
+                            @endif
+                        </span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="meta-row">
+                        <label>Pricing Type</label>
+                        <span class="val">
+                            {{ $laundry->service ? ucfirst(str_replace('_',' ',$laundry->service->pricing_type ?? 'per_load')) : 'Promo Fixed' }}
+                        </span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="meta-row">
+                        <label>Turnaround</label>
+                        <span class="val">{{ $laundry->service ? $laundry->service->turnaround_time . 'h' : 'N/A' }}</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="meta-row">
+                        <label>Laundry Age</label>
+                        <span class="val">{{ $laundry->created_at->diffForHumans() }}</span>
+                    </div>
                 </div>
                 @if($laundry->payment_status !== 'paid')
-                    <div class="mb-3">
-                        <small class="text-muted">Days Unclaimed</small>
-                        <div class="fw-semibold {{ $laundry->days_unclaimed >= 3 ? 'text-danger' : '' }}">
+                <div class="col-6">
+                    <div class="meta-row">
+                        <label>Days Unclaimed</label>
+                        <span class="val {{ $laundry->days_unclaimed >= 3 ? 'text-danger' : '' }}">
                             {{ $laundry->days_unclaimed }} days
-                        </div>
+                        </span>
                     </div>
+                </div>
+                @endif
+                @if($laundry->promotion)
+                <div class="col-12">
+                    <div class="meta-row">
+                        <label>Promotion Applied</label>
+                        <span class="val text-success">
+                            {{ $laundry->promotion->name }}
+                            @if($laundry->promotion->promo_code)
+                                <span class="text-muted" style="font-size:0.68rem;">({{ $laundry->promotion->promo_code }})</span>
+                            @endif
+                        </span>
+                    </div>
+                </div>
                 @endif
             </div>
         </div>
-    </div>
 
-    <!-- Cancel Laundry Modal -->
-    <div class="modal fade" id="cancelModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" name="status" value="cancelled">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Cancel Laundry</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>{{-- end col-lg-4 --}}
+</div>
+
+{{-- Cancel Modal --}}
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST">
+                @csrf @method('PUT')
+                <input type="hidden" name="status" value="cancelled">
+                <div class="modal-header py-2 px-3">
+                    <h6 class="modal-title mb-0">Cancel Laundry</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-2 px-3">
+                    <div class="alert alert-warning py-2 mb-2" style="font-size:0.78rem;">
+                        <i class="bi bi-exclamation-triangle me-1"></i>This action cannot be undone.
                     </div>
-                    <div class="modal-body">
-                        <div class="alert alert-warning">
-                            <i class="bi bi-exclamation-triangle"></i> This action cannot be undone.
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Cancellation Reason <span class="text-danger">*</span></label>
-                            <textarea name="notes" class="form-control" rows="3" required
-                                placeholder="Please provide a reason for cancellation"></textarea>
-                        </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold" style="font-size:0.78rem;">Cancellation Reason <span class="text-danger">*</span></label>
+                        <textarea name="notes" class="form-control form-control-sm" rows="3" required
+                            placeholder="Please provide a reason for cancellation"></textarea>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-danger">Cancel Laundry</button>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer py-2 px-3">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Cancel Laundry</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- Payment Proof Modal -->
-    @if($laundry->latestPaymentProof && $laundry->latestPaymentProof->proof_image)
-        <div class="modal fade" id="paymentProofModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Payment Proof</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body text-center">
-                        <img src="{{ $laundry->latestPaymentProof->proof_image_url }}" 
-                             alt="Payment Proof" 
-                             class="img-fluid" 
-                             style="max-height: 70vh;">
-                        <div class="mt-3">
-                            <p class="mb-1"><strong>Amount:</strong> ₱{{ number_format($laundry->latestPaymentProof->amount, 2) }}</p>
-                            <p class="mb-1"><strong>Method:</strong> {{ ucfirst($laundry->latestPaymentProof->payment_method) }}</p>
-                            @if($laundry->latestPaymentProof->reference_number)
-                                <p class="mb-1"><strong>Reference:</strong> {{ $laundry->latestPaymentProof->reference_number }}</p>
-                            @endif
-                            <p class="mb-0"><strong>Submitted:</strong> {{ $laundry->latestPaymentProof->created_at->format('M d, Y h:i A') }}</p>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        @if($laundry->latestPaymentProof->status === 'pending')
-                            <a href="{{ route('admin.payments.verification.show', $laundry->latestPaymentProof) }}" class="btn btn-primary">
-                                <i class="bi bi-eye"></i> Review & Verify
-                            </a>
+{{-- Payment Proof Modal --}}
+@if($laundry->latestPaymentProof && $laundry->latestPaymentProof->proof_image)
+    <div class="modal fade" id="paymentProofModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header py-2 px-3">
+                    <h6 class="modal-title mb-0">Payment Proof</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-3">
+                    <img src="{{ $laundry->latestPaymentProof->proof_image_url }}"
+                         alt="Payment Proof" class="img-fluid" style="max-height:65vh;">
+                    <div class="mt-2" style="font-size:0.78rem;">
+                        <span class="me-3"><strong>Amount:</strong> ₱{{ number_format($laundry->latestPaymentProof->amount,2) }}</span>
+                        <span class="me-3"><strong>Method:</strong> {{ ucfirst($laundry->latestPaymentProof->payment_method) }}</span>
+                        @if($laundry->latestPaymentProof->reference_number)
+                            <span class="me-3"><strong>Ref:</strong> {{ $laundry->latestPaymentProof->reference_number }}</span>
                         @endif
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <span><strong>Submitted:</strong> {{ $laundry->latestPaymentProof->created_at->format('M d, Y h:i A') }}</span>
                     </div>
+                </div>
+                <div class="modal-footer py-2 px-3">
+                    @if($laundry->latestPaymentProof->status === 'pending')
+                        <a href="{{ route('admin.payments.verification.show', $laundry->latestPaymentProof) }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-eye me-1"></i>Review &amp; Verify
+                        </a>
+                    @endif
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
-    @endif
+    </div>
+@endif
 @endsection
 
 @push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.status-change-form').forEach(form => {
-                form.addEventListener('submit', function(e) {
-                    if (!confirm('Are you sure you want to change the laundry status?')) {
-                        e.preventDefault();
-                    }
-                });
-            });
-            const recordPaymentForm = document.querySelector('form[action*="record-payment"]');
-            if (recordPaymentForm) {
-                recordPaymentForm.addEventListener('submit', function(e) {
-                    if (!confirm('Are you sure you want to record payment for this laundry?')) {
-                        e.preventDefault();
-                    }
-                });
-            }
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.status-change-form').forEach(form => {
+        form.addEventListener('submit', function (e) {
+            if (!confirm('Are you sure you want to change the laundry status?')) e.preventDefault();
         });
-    </script>
+    });
+    const recordPaymentForm = document.querySelector('form[action*="record-payment"]');
+    if (recordPaymentForm) {
+        recordPaymentForm.addEventListener('submit', function (e) {
+            if (!confirm('Are you sure you want to record payment for this laundry?')) e.preventDefault();
+        });
+    }
+});
+</script>
 @endpush

@@ -4,7 +4,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { Platform } from 'react-native';
-import { setupNotificationListeners, registerForPushNotifications } from '../utils/notification';
+import { setupNotificationListeners, registerForPushNotifications, handleInitialNotification } from '../utils/notification';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../constants/config';
 
@@ -73,6 +73,9 @@ function RootLayoutNav() {
     AsyncStorage.getItem(STORAGE_KEYS.TOKEN).then(authToken => {
       if (authToken) registerForPushNotifications(authToken);
     });
+
+    // Handle notification that cold-launched the app (app was fully killed)
+    handleInitialNotification(router);
     
     return cleanup;
   }, [hasToken, isReady, router]);

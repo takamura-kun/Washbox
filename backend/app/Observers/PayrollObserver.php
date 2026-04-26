@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\PayrollItem;
 use App\Models\AdminNotification;
 use App\Models\BranchNotification;
+use App\Models\ActivityLog;
 
 class PayrollObserver
 {
@@ -16,6 +17,12 @@ class PayrollObserver
         $payroll->loadMissing('user', 'branch', 'payrollPeriod');
 
         $periodLabel = $payroll->payrollPeriod->period_label ?? 'N/A';
+
+        ActivityLog::log('created', "Payroll generated for {$payroll->user->name} ₱" . number_format($payroll->net_pay, 2), 'payroll', $payroll, [
+            'staff'    => $payroll->user->name,
+            'net_pay'  => $payroll->net_pay,
+            'period'   => $periodLabel,
+        ], $payroll->branch_id);
 
         // 🔔 NOTIFY ADMIN: Payroll generated
         AdminNotification::create([
@@ -56,6 +63,11 @@ class PayrollObserver
         // Check if payment status changed to paid
         if ($payroll->isDirty('payment_status') && $payroll->payment_status === 'paid') {
             $payroll->loadMissing('user', 'branch');
+
+            ActivityLog::log('paid', "Payroll paid for {$payroll->user->name} ₱" . number_format($payroll->net_pay, 2), 'payroll', $payroll, [
+                'staff'   => $payroll->user->name,
+                'net_pay' => $payroll->net_pay,
+            ], $payroll->branch_id);
 
             // 🔔 NOTIFY ADMIN: Payroll paid
             AdminNotification::create([

@@ -6,6 +6,7 @@ use App\Models\PickupRequest;
 use App\Models\Notification;
 use App\Models\AdminNotification;
 use App\Models\BranchNotification;
+use App\Models\ActivityLog;
 
 class PickupRequestObserver
 {
@@ -15,6 +16,12 @@ class PickupRequestObserver
 public function created(PickupRequest $pickupRequest): void
 {
     $pickupRequest->loadMissing('customer', 'branch');
+
+    ActivityLog::log('created', "Pickup request from {$pickupRequest->customer->name} at {$pickupRequest->pickup_address}", 'pickup', $pickupRequest, [
+        'customer'       => $pickupRequest->customer->name,
+        'pickup_address' => $pickupRequest->pickup_address,
+        'preferred_date' => $pickupRequest->preferred_date?->format('Y-m-d'),
+    ], $pickupRequest->branch_id);
 
     // 🔔 NOTIFY ADMIN: New pickup request
     AdminNotification::create([
@@ -102,6 +109,12 @@ public function created(PickupRequest $pickupRequest): void
 
         $pickupRequest->loadMissing('customer', 'assignedStaff', 'branch');
         $newStatus = $pickupRequest->status;
+
+        ActivityLog::log('status_changed', "Pickup #{$pickupRequest->id} status changed to {$newStatus} for {$pickupRequest->customer->name}", 'pickup', $pickupRequest, [
+            'from'   => $pickupRequest->getOriginal('status'),
+            'to'     => $newStatus,
+            'customer' => $pickupRequest->customer->name,
+        ], $pickupRequest->branch_id);
 
         switch ($newStatus) {
             case 'accepted':

@@ -1907,3 +1907,57 @@ p, span, small,
     color: #6c757d;
     margin-bottom: 8px;
 }
+
+/* Compact form layout */
+.laundry-create-form .form-label { margin-bottom: 0.25rem; font-size: 0.8rem; }
+.laundry-create-form .form-control,
+.laundry-create-form .form-select { padding: 0.35rem 0.6rem; font-size: 0.875rem; }
+.laundry-create-form .card { margin-bottom: 0.5rem !important; }
+.laundry-create-form .card-header { padding: 0.4rem 0.75rem !important; }
+.laundry-create-form .card-body { padding: 0.6rem 0.75rem !important; }
+.laundry-create-form h6 { font-size: 0.85rem; margin-bottom: 0; }
+
+/* Compact addon cards */
+.laundry-create-form .addon-item {
+    padding: 0.4rem 0.5rem !important;
+    border-radius: 6px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.laundry-create-form .addon-header {
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+}
+.laundry-create-form .addon-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+}
+.laundry-create-form .addon-description {
+    margin-bottom: 4px;
+    font-size: 0.72rem;
+}
+.laundry-create-form .addon-price-total {
+    font-size: 0.72rem;
+    margin-top: 2px !important;
+}
+.laundry-create-form .quantity-btn {
+    width: 22px;
+    height: 22px;
+    font-size: 0.75rem;
+    padding: 0;
+}
+.laundry-create-form .addon-quantity {
+    width: 40px;
+    padding: 2px 4px;
+    font-size: 0.8rem;
+}
+.laundry-create-form .quantity-control {
+    gap: 4px;
+    margin-left: 4px;
+}

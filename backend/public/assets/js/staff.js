@@ -917,24 +917,52 @@ function addPickupMarker(pickup) {
     pickupMarkers.push(marker);
 }
 
+// Cache for reverse geocoded addresses to avoid repeated API calls
+const geocodeCache = {};
+
+async function reverseGeocodeAddress(lat, lng) {
+    const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    if (geocodeCache[key]) return geocodeCache[key];
+    try {
+        const r = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16&addressdetails=1`,
+            { headers: { 'User-Agent': 'WashBox Laundry Management System' } }
+        );
+        const d = await r.json();
+        const a = d.address || {};
+        const parts = [];
+        if (a.house_number) parts.push(a.house_number);
+        if (a.road)         parts.push(a.road);
+        if (a.suburb || a.village) parts.push(a.suburb || a.village);
+        if (a.city || a.town || a.municipality) parts.push(a.city || a.town || a.municipality);
+        const result = parts.length >= 2 ? parts.join(', ') : (d.display_name || null);
+        if (result) geocodeCache[key] = result;
+        return result;
+    } catch (e) {
+        return null;
+    }
+}
+
 function createPickupPopup(pickup) {
-    // Sanitize to prevent XSS
     const sanitize = (str) => {
         const temp = document.createElement('div');
         temp.textContent = String(str);
         return temp.innerHTML;
     };
-    
+
     const name = sanitize(pickup.customer?.name || 'Customer');
     const address = sanitize(pickup.pickup_address || 'No address');
     const status = sanitize(pickup.status);
     const isSel = selectedPickups.has(parseInt(pickup.id));
     const lat = parseFloat(pickup.latitude), lng = parseFloat(pickup.longitude);
     const pickupId = parseInt(pickup.id);
-    
-    return `<div style="min-width:250px" class="pickup-${pickupId}">
+
+    // Build popup with stored address first, then update with accurate geocoded address
+    const popupId = `popup-addr-${pickupId}`;
+
+    const html = `<div style="min-width:250px" class="pickup-${pickupId}">
         <h6><b>${name}</b></h6>
-        <p class="mb-1 small">${address}</p>
+        <p class="mb-1 small" id="${popupId}">${address}</p>
         <span class="badge bg-${getStatusColor(pickup.status)}">${status}</span>
         <hr class="my-2">
         <div class="d-grid gap-1">
@@ -951,6 +979,19 @@ function createPickupPopup(pickup) {
                 <i class="bi bi-eye me-1"></i> View Details
             </button>
         </div></div>`;
+
+    // After popup renders, update address with accurate reverse geocoded one
+    if (lat && lng) {
+        setTimeout(() => {
+            reverseGeocodeAddress(lat, lng).then(accurate => {
+                if (!accurate) return;
+                const el = document.getElementById(popupId);
+                if (el) el.textContent = accurate;
+            });
+        }, 300);
+    }
+
+    return html;
 }
 
 function clearPickupMarkers() {
@@ -1287,7 +1328,7 @@ async function getRouteToPickup(pickupLat, pickupLng, customerName) {
         toggleRouteControls(true);
         const eta = new Date(Date.now()+route.duration*1000).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
         const panel = document.getElementById('routeDetailsPanel');
-        panel.innerHTML = `<div class="card border-0 shadow-sm"><div class="card-header bg-primary text-white d-flex justify-content-between align-items-center"><h6 class="mb-0">Route Details</h6><button class="btn btn-sm btn-light" onclick="window.closeRouteDetails()"><i class="bi bi-x-lg"></i></button></div><div class="card-body"><div class="mb-3"><h5 class="text-success"><i class="bi bi-signpost"></i> ${distKm} km</h5><p class="text-muted"><i class="bi bi-clock"></i> ${durMin} min</p></div><hr><div class="mb-3"><small class="text-muted">From:</small><p class="mb-0"><b>${branch.name}</b></p></div><div class="mb-3"><small class="text-muted">To:</small><p class="mb-0"><b>${customerName}</b></p><small class="text-muted">${eta} ETA</small></div><hr><div class="d-grid gap-2"><button class="btn btn-outline-primary" onclick="window.printRoute()"><i class="bi bi-printer me-2"></i>Print</button><button class="btn btn-outline-danger" onclick="window.clearRoute()"><i class="bi bi-x-circle me-2"></i>Clear</button></div></div></div>`;
+        panel.innerHTML = `<div class="card border-0 shadow-sm"><div class="card-header bg-primary text-white d-flex justify-content-between align-items-center"><h6 class="mb-0">Route Details</h6><button class="btn btn-sm btn-light" onclick="window.closeRouteDetails()"><i class="bi bi-x-lg"></i></button></div><div class="card-body"><div class="mb-3"><h5 class="text-success"><i class="bi bi-signpost"></i> ${distKm} km</h5><p class="text-muted"><i class="bi bi-clock"></i> ${durMin} min</p></div><hr><div class="mb-3"><small class="text-muted">From:</small><p class="mb-0"><b>${branch.name}</b></p></div><div class="mb-3"><small class="text-muted">To:</small><p class="mb-0"><b>${customerName}</b></p><small class="text-muted">${eta} ETA</small></div><hr><div class="d-grid gap-2"><button class="btn btn-success" onclick="window.startNavigation(${parseInt(pickupLat*1e6)})" style="display:none"></button><a class="btn btn-success" href="https://www.google.com/maps/dir/?api=1&destination=${pickupLat},${pickupLng}&travelmode=driving" target="_blank"><i class="bi bi-google me-2"></i>Open in Google Maps</a><a class="btn btn-outline-primary" href="https://waze.com/ul?ll=${pickupLat},${pickupLng}&navigate=yes" target="_blank"><i class="bi bi-map me-2"></i>Open in Waze</a><button class="btn btn-outline-secondary" onclick="window.printRoute()"><i class="bi bi-printer me-2"></i>Print</button><button class="btn btn-outline-danger" onclick="window.clearRoute()"><i class="bi bi-x-circle me-2"></i>Clear</button></div></div></div>`;
         panel.style.display = 'block';
         showToast(`Route: ${distKm} km, ~${durMin} min`,'success');
     } catch(err) {
@@ -1411,11 +1452,31 @@ async function startMultiPickupNavigation() {
 async function startNavigation(pickupId) {
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-        const r = await fetch(`/staff/pickups/${pickupId}/start-navigation`, { method:'POST', headers:{'X-CSRF-TOKEN': csrfToken, 'Content-Type':'application/json'} });
+        const r = await fetch(`/branch/pickups/${pickupId}/start-navigation`, { method:'POST', headers:{'X-CSRF-TOKEN': csrfToken, 'Content-Type':'application/json','Accept':'application/json'} });
         const d = await r.json();
-        if (d.success) { showToast('Navigation started!','success'); refreshMapMarkers(); }
-        else showToast(d.error||'Failed','danger');
-    } catch(e) { showToast('Navigation failed: ' + e.message,'danger'); }
+        if (d.success) {
+            showToast('Navigation started!','success');
+            refreshMapMarkers();
+
+            // Find pickup coordinates
+            const pickup = PICKUP_LOCATIONS.find(p => parseInt(p.id) === parseInt(pickupId));
+            if (pickup?.latitude && pickup?.longitude) {
+                const lat = parseFloat(pickup.latitude);
+                const lng = parseFloat(pickup.longitude);
+                const label = encodeURIComponent(pickup.customer?.name || 'Pickup Location');
+
+                // Ask driver which maps app to open
+                const useGoogle = confirm('Open in Google Maps?\n\nClick OK for Google Maps, Cancel for Waze.');
+                if (useGoogle) {
+                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank');
+                } else {
+                    window.open(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`, '_blank');
+                }
+            }
+        } else {
+            showToast(d.error || 'Failed', 'danger');
+        }
+    } catch(e) { showToast('Navigation failed: ' + e.message, 'danger'); }
 }
 
 // ================================================================

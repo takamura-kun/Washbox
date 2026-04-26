@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryCategory;
+use App\Models\DeletedRecord;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 
 class InventoryCategoryController extends Controller
@@ -49,6 +51,11 @@ class InventoryCategoryController extends Controller
 
     public function destroy(InventoryCategory $category)
     {
+        DeletedRecord::snapshot($category, 'inventory');
+        ActivityLog::log('deleted', "Inventory category \"{$category->name}\" deleted", 'inventory', null, [
+            'name' => $category->name,
+        ]);
+
         if ($category->items()->count() > 0) {
             $category->items()->delete();
         }

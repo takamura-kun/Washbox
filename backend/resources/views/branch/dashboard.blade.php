@@ -752,13 +752,26 @@
         .kpi-grid { grid-template-columns: repeat(3, 1fr); }
         .main-grid { grid-template-columns: 1fr; }
         .bottom-grid { grid-template-columns: 1fr; }
-        .actions-row { grid-template-columns: repeat(2, 1fr); }
+        .actions-row { grid-template-columns: repeat(4, 1fr); }
         .logistics-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+        .actions-row { grid-template-columns: repeat(2, 1fr); }
     }
 
     @media (max-width: 576px) {
         .kpi-grid { grid-template-columns: repeat(2, 1fr); }
         .actions-row { grid-template-columns: repeat(2, 1fr); }
+        .acard {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            padding: 10px;
+        }
+        .aico { width: 28px; height: 28px; font-size: 12px; }
+        .acard .atitle { font-size: 11px; }
+        .acard .adesc  { font-size: 9px; }
         .feedback-widget { width: 200px; }
         #feedbackWidget { bottom: 80px; right: 8px; }
         #branchRatingWidget { bottom: 170px; right: 8px; }
@@ -830,26 +843,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Feedback Widget Dragging
-    const feedbackWidget = document.getElementById('feedbackWidget');
-    const feedbackHeader = document.getElementById('feedbackHeader');
-    const minimizeBtn = document.getElementById('minimizeBtn');
-    const closeBtn = document.getElementById('closeBtn');
-    const feedbackBody = document.getElementById('feedbackBody');
+    // Widget collapse/expand/drag — same pattern as admin
+    function initFeedbackWidget(widgetId, headerId, minimizeBtnId, closeBtnId, bodyId) {
+        const widget = document.getElementById(widgetId);
+        const header = document.getElementById(headerId);
+        const minimizeBtn = document.getElementById(minimizeBtnId);
+        const closeBtn = document.getElementById(closeBtnId);
+        const body = document.getElementById(bodyId);
+        if (!widget || !header) return;
 
-    if (feedbackWidget && feedbackHeader) {
-        let isDragging = false;
-        let currentX, currentY, initialX, initialY;
-        let xOffset = 0, yOffset = 0;
+        // Click collapsed bubble to expand
+        widget.addEventListener('click', function(e) {
+            if (widget.classList.contains('collapsed') && !e.target.closest('.feedback-btn')) {
+                widget.classList.remove('collapsed');
+            }
+        });
 
-        feedbackHeader.addEventListener('mousedown', dragStart);
-        feedbackHeader.addEventListener('touchstart', dragStart);
+        // Drag
+        let isDragging = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+        header.addEventListener('mousedown', dragStart);
+        header.addEventListener('touchstart', dragStart);
         document.addEventListener('mousemove', drag);
         document.addEventListener('touchmove', drag);
         document.addEventListener('mouseup', dragEnd);
         document.addEventListener('touchend', dragEnd);
 
         function dragStart(e) {
+            if (widget.classList.contains('collapsed')) return;
             if (e.type === 'touchstart') {
                 initialX = e.touches[0].clientX - xOffset;
                 initialY = e.touches[0].clientY - yOffset;
@@ -857,82 +877,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 initialX = e.clientX - xOffset;
                 initialY = e.clientY - yOffset;
             }
-
-            if (e.target === feedbackHeader || feedbackHeader.contains(e.target)) {
-                if (!e.target.closest('.feedback-btn')) {
-                    isDragging = true;
-                    feedbackWidget.classList.add('dragging');
-                }
+            if (header.contains(e.target) && !e.target.closest('.feedback-btn')) {
+                isDragging = true;
+                widget.classList.add('dragging');
             }
         }
-
         function drag(e) {
-            if (isDragging) {
-                e.preventDefault();
-
-                if (e.type === 'touchmove') {
-                    currentX = e.touches[0].clientX - initialX;
-                    currentY = e.touches[0].clientY - initialY;
-                } else {
-                    currentX = e.clientX - initialX;
-                    currentY = e.clientY - initialY;
-                }
-
-                xOffset = currentX;
-                yOffset = currentY;
-
-                setTranslate(currentX, currentY, feedbackWidget);
-            }
-        }
-
-        function dragEnd(e) {
-            if (isDragging) {
-                initialX = currentX;
-                initialY = currentY;
-                isDragging = false;
-                feedbackWidget.classList.remove('dragging');
-            }
-        }
-
-        function setTranslate(xPos, yPos, el) {
-            el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
-        }
-    }
-
-    // Minimize/Maximize functionality
-    if (minimizeBtn && feedbackBody) {
-        minimizeBtn.addEventListener('click', function() {
-            feedbackWidget.classList.toggle('minimized');
-            feedbackBody.classList.toggle('minimized');
-            const icon = minimizeBtn.querySelector('i');
-            if (feedbackWidget.classList.contains('minimized')) {
-                icon.className = 'bi bi-plus';
-                minimizeBtn.title = 'Maximize';
+            if (!isDragging) return;
+            e.preventDefault();
+            if (e.type === 'touchmove') {
+                currentX = e.touches[0].clientX - initialX;
+                currentY = e.touches[0].clientY - initialY;
             } else {
-                icon.className = 'bi bi-dash';
-                minimizeBtn.title = 'Minimize';
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
             }
-        });
+            xOffset = currentX; yOffset = currentY;
+            widget.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+        }
+        function dragEnd() {
+            if (isDragging) { initialX = currentX; initialY = currentY; isDragging = false; widget.classList.remove('dragging'); }
+        }
+
+        // Minimize
+        if (minimizeBtn && body) {
+            minimizeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                widget.classList.toggle('minimized');
+                body.classList.toggle('minimized');
+                const icon = minimizeBtn.querySelector('i');
+                if (widget.classList.contains('minimized')) {
+                    icon.className = 'bi bi-plus'; minimizeBtn.title = 'Maximize';
+                } else {
+                    icon.className = 'bi bi-dash'; minimizeBtn.title = 'Minimize';
+                }
+            });
+        }
+
+        // Close — collapse back to bubble
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                widget.classList.add('collapsed');
+                widget.classList.remove('minimized');
+                if (body) body.classList.remove('minimized');
+            });
+        }
     }
 
-    // Close functionality
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function() {
-            feedbackWidget.classList.add('hidden');
-            localStorage.setItem('feedbackWidgetClosed', 'true');
-        });
-    }
-
-    // Check if widget was closed
-    if (localStorage.getItem('feedbackWidgetClosed') === 'true') {
-        feedbackWidget.classList.add('hidden');
-    }
-
-    // Optional: Add a way to reopen the widget
-    window.showFeedbackWidget = function() {
-        feedbackWidget.classList.remove('hidden');
-        localStorage.removeItem('feedbackWidgetClosed');
-    };
+    initFeedbackWidget('feedbackWidget', 'feedbackHeader', 'minimizeBtn', 'closeBtn', 'feedbackBody');
+    initFeedbackWidget('branchRatingWidget', 'branchRatingHeader', 'branchRatingMinimizeBtn', 'branchRatingCloseBtn', 'branchRatingBody');
 });
 </script>
 @endpush
@@ -1593,7 +1587,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {{-- Revenue Breakdown Modal --}}
 <div class="modal fade" id="revenueBreakdownModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header border-bottom">
                 <div>
@@ -1619,23 +1613,59 @@ document.addEventListener('DOMContentLoaded', function() {
                     $laundryByService = \App\Models\Laundry::where('branch_id', $branchId)
                         ->whereDate('created_at', $todayStart)
                         ->whereIn('status', ['paid', 'completed'])
-                        ->with(['service:id,name', 'customer:id,name'])
+                        ->with([
+                            'service:id,name',
+                            'service.supplies.category',
+                            'promotion:id,name',
+                            'promotion.promotionItems.inventoryItem.category',
+                            'customer:id,name',
+                            'inventoryItems:id,name,category_id',
+                            'inventoryItems.category:id,name',
+                        ])
                         ->orderBy('created_at', 'desc')
                         ->get()
                         ->map(function($laundry) {
-                            $addons = \DB::table('laundry_inventory_items')
-                                ->join('inventory_items', 'laundry_inventory_items.inventory_item_id', '=', 'inventory_items.id')
-                                ->leftJoin('inventory_categories', 'inventory_items.category_id', '=', 'inventory_categories.id')
-                                ->where('laundry_inventory_items.laundries_id', $laundry->id)
-                                ->selectRaw('inventory_categories.name as category_name, SUM(laundry_inventory_items.quantity) as total_qty')
-                                ->groupBy('inventory_categories.name')
-                                ->get()
-                                ->pluck('total_qty', 'category_name');
+                            $loads = max(1, $laundry->number_of_loads ?? 1);
 
-                            $laundry->detergent_qty = $addons->get('Detergent', 0);
-                            $laundry->fabcon_qty = $addons->get('Fabcon', 0);
-                            $laundry->bleach_qty = $addons->get('Bleach', 0);
-                            $laundry->plastics_qty = $addons->get('Plastics', 0);
+                            // Add-ons: manually added items when creating laundry
+                            $addonItems = [];
+                            foreach ($laundry->inventoryItems as $i) {
+                                $addonItems[] = [
+                                    'name'     => $i->name,
+                                    'category' => $i->category->name ?? '',
+                                    'qty'      => (float) $i->pivot->quantity,
+                                ];
+                            }
+                            $laundry->items_list = array_sum(array_map(fn($i) => (int) round($i['qty']), $addonItems));
+
+                            // All items for category totals: add-ons + service supplies + promotion items
+                            $allItems = $addonItems;
+
+                            foreach (($laundry->service?->supplies ?? collect()) as $supply) {
+                                $qty   = (float) $supply->pivot->quantity_required * $loads;
+                                $found = false;
+                                foreach ($allItems as &$row) {
+                                    if ($row['name'] === $supply->name) { $row['qty'] += $qty; $found = true; break; }
+                                } unset($row);
+                                if (!$found) $allItems[] = ['name' => $supply->name, 'category' => $supply->category->name ?? '', 'qty' => $qty];
+                            }
+
+                            foreach (($laundry->promotion?->promotionItems ?? collect()) as $promoItem) {
+                                if (!$promoItem->is_active || !$promoItem->inventoryItem) continue;
+                                $qty   = (float) $promoItem->quantity_per_use * $loads;
+                                $name  = $promoItem->inventoryItem->name;
+                                $cat   = $promoItem->inventoryItem->category->name ?? '';
+                                $found = false;
+                                foreach ($allItems as &$row) {
+                                    if ($row['name'] === $name) { $row['qty'] += $qty; $found = true; break; }
+                                } unset($row);
+                                if (!$found) $allItems[] = ['name' => $name, 'category' => $cat, 'qty' => $qty];
+                            }
+
+                            $laundry->detergent_qty = array_sum(array_column(array_filter($allItems, fn($i) => $i['category'] === 'DETERGENT'), 'qty'));
+                            $laundry->fabcon_qty    = array_sum(array_column(array_filter($allItems, fn($i) => $i['category'] === 'FABRIC CONDTIONER'), 'qty'));
+                            $laundry->bleach_qty    = array_sum(array_column(array_filter($allItems, fn($i) => $i['category'] === 'BLEACH'), 'qty'));
+                            $laundry->plastics_qty  = array_sum(array_column(array_filter($allItems, fn($i) => $i['category'] === 'PACKAGING PLASTICS'), 'qty'));
 
                             return $laundry;
                         });
@@ -1706,9 +1736,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <th class="text-muted" style="font-size: 0.75rem; font-weight: 700; padding: 0.75rem;">#</th>
                                     <th class="text-muted" style="font-size: 0.75rem; font-weight: 700; padding: 0.75rem;">Customer</th>
                                     <th class="text-muted" style="font-size: 0.75rem; font-weight: 700; padding: 0.75rem;">Service</th>
+                                    <th class="text-muted" style="font-size: 0.75rem; font-weight: 700; padding: 0.75rem;">Add-ons</th>
                                     <th class="text-center text-muted" style="font-size: 0.75rem; font-weight: 700; padding: 0.75rem;">Loads/Pieces</th>
                                     <th class="text-center text-muted" style="font-size: 0.75rem; font-weight: 700; padding: 0.75rem;">Detergent</th>
-                                    <th class="text-center text-muted" style="font-size: 0.75rem; font-weight: 700; padding: 0.75rem;">Fabcon</th>
+                                    <th class="text-center text-muted" style="font-size: 0.75rem; font-weight: 700; padding: 0.75rem;">Fab Con</th>
                                     <th class="text-center text-muted" style="font-size: 0.75rem; font-weight: 700; padding: 0.75rem;">Bleach</th>
                                     <th class="text-center text-muted" style="font-size: 0.75rem; font-weight: 700; padding: 0.75rem;">Plastics</th>
                                     <th class="text-end text-muted" style="font-size: 0.75rem; font-weight: 700; padding: 0.75rem;">Revenue</th>
@@ -1722,7 +1753,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #2563eb; font-size: 0.7rem;">#{{ $item->id }}</span>
                                     </td>
                                     <td style="padding: 0.75rem;">{{ $item->customer->name ?? 'N/A' }}</td>
-                                    <td style="padding: 0.75rem;"><span class="fw-600">{{ $item->service->name ?? 'N/A' }}</span></td>
+                                    <td style="padding: 0.75rem;"><span class="fw-600">{{ $item->service->name ?? $item->promotion->name ?? 'N/A' }}</span>
+                                        @if($item->promotion)
+                                            <span class="badge ms-1" style="background: rgba(139,92,246,0.15); color:#7c3aed; font-size:0.65rem;">Promo</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center" style="padding: 0.75rem;">
+                                        <span class="badge" style="background: rgba(99,102,241,0.15); color:#4f46e5; font-size:0.7rem;">{{ $item->items_list }}</span>
+                                    </td>
                                     <td class="text-center" style="padding: 0.75rem;">
                                         <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #2563eb; font-size: 0.7rem;">{{ $item->number_of_loads ?? 0 }}</span>
                                     </td>
@@ -1804,38 +1842,45 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="modal fade" id="attendanceModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Time In Staff</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Staff Member</label>
-                    <select class="form-select" id="staffSelect">
-                        <option value="">Select Staff</option>
-                    </select>
+            <form action="{{ route('branch.attendance.time-in') }}" method="POST" id="dashTimeInForm">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Time In Staff</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Take Photo <span class="text-danger">*</span></label>
-                    <div class="text-center">
-                        <video id="attendanceVideo" width="100%" height="300" autoplay style="border-radius: 8px; background: #000;"></video>
-                        <canvas id="attendanceCanvas" style="display:none;"></canvas>
-                        <img id="capturedPhoto" style="display:none; width:100%; border-radius: 8px;" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Staff Member</label>
+                        <select name="user_id" class="form-select" id="staffSelect" required>
+                            <option value="">Select Staff</option>
+                        </select>
                     </div>
-                    <div class="mt-3 d-grid gap-2">
-                        <button type="button" class="btn-primary-dash" id="captureBtn">
-                            <i class="bi bi-camera-fill me-2"></i>Capture Photo
-                        </button>
-                        <button type="button" class="btn-outline-dash" id="retakeBtn" style="display:none;">
-                            <i class="bi bi-arrow-clockwise me-2"></i>Retake
-                        </button>
+                    <div class="mb-3">
+                        <label class="form-label">Take Photo <span class="text-danger">*</span></label>
+                        <div class="text-center">
+                            <video id="attendanceVideo" width="100%" height="300" autoplay style="display:none; border-radius: 8px; background: #000;"></video>
+                            <canvas id="attendanceCanvas" style="display:none;"></canvas>
+                            <img id="capturedPhoto" style="display:none; width:100%; border-radius: 8px;" />
+                            <input type="hidden" name="photo_data" id="dashPhotoData" required>
+                        </div>
+                        <div class="mt-3 d-flex gap-2">
+                            <button type="button" class="btn-primary-dash" id="dashStartCamera">
+                                <i class="bi bi-camera me-2"></i>Open Camera
+                            </button>
+                            <button type="button" class="btn-primary-dash" id="dashCaptureBtn" style="display:none;">
+                                <i class="bi bi-camera-fill me-2"></i>Capture
+                            </button>
+                            <button type="button" class="btn-outline-dash" id="dashRetakeBtn" style="display:none;">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Retake
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-outline-dash" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn-primary-dash" id="timeInBtn">Time In</button>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-outline-dash" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-primary-dash">Time In</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -2136,46 +2181,70 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ── Attendance Modal ──
-    let videoStream = null;
+    let dashVideoStream = null;
     const attendanceModal = document.getElementById('attendanceModal');
-    const video          = document.getElementById('attendanceVideo');
-    const canvas         = document.getElementById('attendanceCanvas');
-    const capturedPhoto  = document.getElementById('capturedPhoto');
-    const captureBtn     = document.getElementById('captureBtn');
-    const retakeBtn      = document.getElementById('retakeBtn');
 
     attendanceModal?.addEventListener('shown.bs.modal', async () => {
-        try {
-            videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
-            video.srcObject = videoStream;
-        } catch (e) { console.error('Camera error:', e); }
+        const res = await fetch('{{ route("branch.attendance.staff-list") }}');
+        const staff = await res.json();
+        const select = document.getElementById('staffSelect');
+        select.innerHTML = '<option value="">Select Staff</option>';
+        staff.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            select.appendChild(opt);
+        });
     });
 
     attendanceModal?.addEventListener('hidden.bs.modal', () => {
-        videoStream?.getTracks().forEach(t => t.stop());
-        videoStream = null;
-        video.style.display = 'block';
-        capturedPhoto.style.display = 'none';
-        captureBtn.style.display = 'block';
-        retakeBtn.style.display = 'none';
+        dashVideoStream?.getTracks().forEach(t => t.stop());
+        dashVideoStream = null;
+        const video = document.getElementById('attendanceVideo');
+        const photo = document.getElementById('capturedPhoto');
+        video.style.display = 'none';
+        photo.style.display = 'none';
+        document.getElementById('dashStartCamera').style.display = 'inline-block';
+        document.getElementById('dashCaptureBtn').style.display = 'none';
+        document.getElementById('dashRetakeBtn').style.display = 'none';
+        document.getElementById('dashPhotoData').value = '';
     });
 
-    captureBtn?.addEventListener('click', () => {
+    document.getElementById('dashStartCamera')?.addEventListener('click', () => {
+        const video = document.getElementById('attendanceVideo');
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } })
+            .then(stream => {
+                dashVideoStream = stream;
+                video.srcObject = stream;
+                video.style.display = 'block';
+                document.getElementById('dashStartCamera').style.display = 'none';
+                document.getElementById('dashCaptureBtn').style.display = 'inline-block';
+            })
+            .catch(e => alert('Camera error: ' + e.message));
+    });
+
+    document.getElementById('dashCaptureBtn')?.addEventListener('click', () => {
+        const video = document.getElementById('attendanceVideo');
+        const canvas = document.getElementById('attendanceCanvas');
+        const photo = document.getElementById('capturedPhoto');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         canvas.getContext('2d').drawImage(video, 0, 0);
-        capturedPhoto.src = canvas.toDataURL('image/jpeg', 0.8);
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        photo.src = imageData;
+        photo.style.display = 'block';
+        document.getElementById('dashPhotoData').value = imageData;
         video.style.display = 'none';
-        capturedPhoto.style.display = 'block';
-        captureBtn.style.display = 'none';
-        retakeBtn.style.display = 'block';
+        document.getElementById('dashCaptureBtn').style.display = 'none';
+        document.getElementById('dashRetakeBtn').style.display = 'inline-block';
+        dashVideoStream?.getTracks().forEach(t => t.stop());
     });
 
-    retakeBtn?.addEventListener('click', () => {
-        video.style.display = 'block';
-        capturedPhoto.style.display = 'none';
-        captureBtn.style.display = 'block';
-        retakeBtn.style.display = 'none';
+    document.getElementById('dashRetakeBtn')?.addEventListener('click', () => {
+        document.getElementById('capturedPhoto').style.display = 'none';
+        document.getElementById('dashPhotoData').value = '';
+        document.getElementById('dashRetakeBtn').style.display = 'none';
+        document.getElementById('dashStartCamera').style.display = 'inline-block';
     });
 
     // ── Retail POS Cart ──

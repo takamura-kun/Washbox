@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Models\Branch;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
+use App\Models\DeletedRecord;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -222,6 +224,11 @@ class PayrollController extends Controller
         if ($period->status !== 'draft') {
             return back()->with('error', 'Only draft payroll can be deleted.');
         }
+
+        DeletedRecord::snapshot($period, 'payroll');
+        ActivityLog::log('deleted', "Payroll period \"{$period->period_label}\" deleted", 'payroll', null, [
+            'period' => $period->period_label ?? $period->id,
+        ]);
 
         $period->delete();
 

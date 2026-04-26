@@ -16,6 +16,8 @@ use App\Models\Attendance;
 use App\Models\User;
 use App\Models\Budget;
 use App\Models\InventoryPurchase;
+use App\Models\Service;
+use App\Models\InventoryItem;
 use Laravel\Sanctum\Sanctum;
 use App\Observers\LaundryObserver;
 use App\Observers\CustomerObserver;
@@ -30,6 +32,8 @@ use App\Observers\AttendanceObserver;
 use App\Observers\UserObserver;
 use App\Observers\BudgetObserver;
 use App\Observers\InventoryPurchaseObserver;
+use App\Observers\ServiceObserver;
+use App\Observers\InventoryItemObserver;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -69,6 +73,8 @@ class AppServiceProvider extends ServiceProvider
         User::observe(UserObserver::class);
         Budget::observe(BudgetObserver::class);
         InventoryPurchase::observe(InventoryPurchaseObserver::class);
+        Service::observe(ServiceObserver::class);
+        InventoryItem::observe(InventoryItemObserver::class);
 
         if (!app()->runningInConsole() && Schema::hasTable('branches')) {
             view()->share('branches', Branch::all());

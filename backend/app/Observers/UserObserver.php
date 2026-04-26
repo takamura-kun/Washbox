@@ -5,6 +5,8 @@ namespace App\Observers;
 use App\Models\User;
 use App\Models\AdminNotification;
 use App\Models\BranchNotification;
+use App\Models\ActivityLog;
+use App\Models\DeletedRecord;
 
 class UserObserver
 {
@@ -15,6 +17,11 @@ class UserObserver
     {
         // Only notify for staff members
         if ($user->role === 'staff' && $user->branch_id) {
+            ActivityLog::log('created', "Staff member {$user->name} added to {$user->branch->name}", 'staff', $user, [
+                'role'   => $user->role,
+                'branch' => $user->branch->name,
+            ], $user->branch_id);
+
             // 🔔 NOTIFY ADMIN: New staff member
             AdminNotification::create([
                 'type' => 'new_staff',
@@ -51,6 +58,8 @@ class UserObserver
     {
         // Check if staff status changed to inactive
         if ($user->isDirty('is_active') && !$user->is_active && $user->role === 'staff') {
+            ActivityLog::log('deactivated', "Staff member {$user->name} was deactivated", 'staff', $user, [], $user->branch_id);
+
             // 🔔 NOTIFY ADMIN: Staff deactivated
             AdminNotification::create([
                 'type' => 'staff_deactivated',
@@ -80,6 +89,12 @@ class UserObserver
         if ($user->isDirty('branch_id') && $user->role === 'staff') {
             $oldBranchId = $user->getOriginal('branch_id');
             $newBranchId = $user->branch_id;
+
+            ActivityLog::log('transferred', "Staff member {$user->name} transferred to {$user->branch->name}", 'staff', $user, [
+                'from_branch_id' => $oldBranchId,
+                'to_branch_id'   => $newBranchId,
+                'to_branch'      => $user->branch->name,
+            ], $newBranchId);
 
             // 🔔 NOTIFY ADMIN: Staff transferred
             AdminNotification::create([
@@ -118,5 +133,14 @@ class UserObserver
                 ]);
             }
         }
+    }
+
+    public function deleting(User $user): void
+    {
+        DeletedRecord::snapshot($user, 'staff');
+        ActivityLog::log('deleted', "Staff member {$user->name} deleted", 'staff', null, [
+            'role'   => $user->role,
+            'branch' => $user->branch?->name,
+        ], $user->branch_id);
     }
 }
