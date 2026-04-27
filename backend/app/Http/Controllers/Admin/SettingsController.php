@@ -180,6 +180,11 @@ class SettingsController extends Controller
      */
     public function downloadBackup($filename)
     {
+        // Sanitize filename to prevent path traversal attacks
+        $filename = basename($filename);
+        if (!preg_match('/^backup-[\d\-]+\.sql$/', $filename)) {
+            abort(400, 'Invalid backup filename.');
+        }
         $path = storage_path('app/backups/' . $filename);
         if (File::exists($path)) {
             return response()->download($path);

@@ -499,24 +499,24 @@ export default function HomeScreen() {
                 onPress={() => router.push('/(tabs)/pickup')}
               />
               <ServiceCard
-                icon="shirt-outline"
-                title="Laundry"
-                subtitle="Track Laundries"
-                color={COLORS.secondary}
-                onPress={() => router.push('/(tabs)/laundry')}
+                icon="time-outline"
+                title="History"
+                subtitle="Past pickups"
+                color={COLORS.success}
+                onPress={() => router.push('/pickups')}
               />
               <ServiceCard
-                icon="star-outline"
-                title="Rate"
-                subtitle="Share feedback"
-                color={COLORS.warning}
-                onPress={() => router.push('/ratings')}
+                icon="shirt-outline"
+                title="Laundry"
+                subtitle="Track orders"
+                color={COLORS.secondary}
+                onPress={() => router.push('/(tabs)/laundry')}
               />
               <ServiceCard
                 icon="gift-outline"
                 title="Offers"
                 subtitle="Save money"
-                color={COLORS.success}
+                color={COLORS.warning}
                 onPress={() => router.push('/promotions')}
                 badge={featuredPromos.length > 0 ? featuredPromos.length : null}
               />
@@ -810,6 +810,10 @@ const ServiceCard = ({ icon, title, subtitle, color, onPress, badge }) => (
 // ─────────────────────────────────────────────
 const LaundryCard = ({ laundry }) => {
   const statusColor = getStatusColor(laundry.status);
+  const isActive = !['completed', 'cancelled'].includes(laundry.status?.toLowerCase());
+  const hasPickup = !!laundry.pickup_request_id;
+  const isEnRoute = laundry.status?.toLowerCase() === 'en_route' ||
+    (hasPickup && ['accepted', 'en_route'].includes(laundry.pickup_status?.toLowerCase()));
 
   return (
     <TouchableOpacity
@@ -843,11 +847,23 @@ const LaundryCard = ({ laundry }) => {
             <Text style={styles.laundryBranchText}>{laundry.branch_name}</Text>
           </View>
         )}
-        {laundry.total_amount > 0 && (
-          <Text style={styles.laundryAmount}>
-            ₱{Number(laundry.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </Text>
-        )}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {laundry.total_amount > 0 && (
+            <Text style={styles.laundryAmount}>
+              ₱{Number(laundry.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </Text>
+          )}
+          {isActive && hasPickup && laundry.pickup_id && (
+            <TouchableOpacity
+              style={styles.trackChip}
+              onPress={(e) => { e.stopPropagation(); router.push(`/pickup-tracking?id=${laundry.pickup_id}`); }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="navigate" size={12} color={COLORS.success} />
+              <Text style={styles.trackChipText}>Track</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -1496,6 +1512,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
+  trackChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: COLORS.success + '15',
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+    borderWidth: 1, borderColor: COLORS.success + '30',
+  },
+  trackChipText: { fontSize: 11, fontWeight: '600', color: COLORS.success },
 
   // ─── Empty CTA ───
   emptyCta: {

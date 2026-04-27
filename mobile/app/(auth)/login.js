@@ -147,9 +147,11 @@ export default function LoginScreen() {
         await login(data.data.token, data.data.customer);
         registerForPushNotifications(data.data.token).catch(() => {});
       } else {
-        // Show attempts left warning
         if (data.attempts_left !== undefined) {
           setAttemptsLeft(data.attempts_left);
+        }
+        if (!data.locked_out) {
+          setErrors({ password: data.message || 'Invalid email or password' });
         }
       }
     } catch (error) {

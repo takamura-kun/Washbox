@@ -81,7 +81,9 @@
             <strong>Please fix the following errors:</strong>
             <ul class="mb-0 mt-2">
                 @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
+                    @if($error !== $errors->first('weight_warning'))
+                        <li>{{ $error }}</li>
+                    @endif
                 @endforeach
             </ul>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>

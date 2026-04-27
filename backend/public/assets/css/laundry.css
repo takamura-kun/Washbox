@@ -824,6 +824,7 @@ p, span, small,
 /* ── Badge and status elements (light mode) ──────────────────────────────── */
 .badge {
     color: #ffffff !important;
+    text-transform: none !important;
 }
 
 .badge.bg-secondary {

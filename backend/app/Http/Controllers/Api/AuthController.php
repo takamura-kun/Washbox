@@ -117,17 +117,17 @@ class AuthController extends Controller
         $customer = Customer::where('email', $request->email)->first();
 
         if (!$customer || !Hash::check($request->password, $customer->password)) {
-            // Hit the rate limiter — decay depends on how many attempts so far
-            $currentAttempts = RateLimiter::attempts($key) + 1;
-            $decay = $currentAttempts >= 4 ? 60 : 20;
+            $currentAttempts = RateLimiter::attempts($key); // before hit
+            $decay = ($currentAttempts + 1) >= 3 ? 60 : 20;
             RateLimiter::hit($key, $decay);
 
-            $remaining = 3 - RateLimiter::attempts($key);
+            $afterAttempts = RateLimiter::attempts($key);
+            $remaining     = max(0, 3 - $afterAttempts);
 
             return response()->json([
-                'success'           => false,
-                'message'           => 'Invalid credentials',
-                'attempts_left'     => max(0, $remaining),
+                'success'       => false,
+                'message'       => 'Invalid credentials',
+                'attempts_left' => $remaining,
             ], 401);
         }
 
@@ -389,11 +389,12 @@ class AuthController extends Controller
 
         $customer = Customer::where('email', $request->email)->first();
 
+        // Always return the same response to prevent user enumeration
         if (!$customer) {
             return response()->json([
-                'success' => false,
-                'message' => 'No account found with this email address',
-            ], 404);
+                'success' => true,
+                'message' => 'If an account with that email exists, a reset code has been sent.',
+            ]);
         }
 
         // Generate 6-digit reset code

@@ -57,33 +57,65 @@ const COLORS = {
 };
 
 const STATUS_MAP = {
-  received:         { gradient: ['#3B82F6', '#2563EB'], color: '#3B82F6', icon: 'receipt-outline',              label: 'Received',          description: 'Your laundry has been received and is being prepared' },
-  processing:       { gradient: ['#8B5CF6', '#7C3AED'], color: '#8B5CF6', icon: 'sync-outline',                label: 'Processing',        description: 'Your laundry is being washed and cared for' },
-  washing:          { gradient: ['#06B6D4', '#0891B2'], color: '#06B6D4', icon: 'water-outline',               label: 'Washing',           description: 'Your clothes are in the washing machine' },
-  drying:           { gradient: ['#F59E0B', '#D97706'], color: '#F59E0B', icon: 'sunny-outline',               label: 'Drying',            description: 'Your clothes are being dried' },
-  ironing:          { gradient: ['#EC4899', '#DB2777'], color: '#EC4899', icon: 'shirt-outline',               label: 'Ironing',           description: 'Your clothes are being pressed and ironed' },
-  folding:          { gradient: ['#F97316', '#EA580C'], color: '#F97316', icon: 'layers-outline',              label: 'Folding',           description: 'Your clothes are being neatly folded' },
-  ready:            { gradient: ['#F59E0B', '#D97706'], color: '#F59E0B', icon: 'bag-check-outline',           label: 'Ready for Pickup',  description: 'Your laundry is clean and ready to collect!' },
-  ready_for_pickup: { gradient: ['#F59E0B', '#D97706'], color: '#F59E0B', icon: 'bag-check-outline',           label: 'Ready for Pickup',  description: 'Your laundry is clean and ready to collect!' },
-  paid:             { gradient: ['#10B981', '#059669'], color: '#10B981', icon: 'card-outline',                label: 'Paid',              description: 'Payment confirmed — thank you!' },
-  completed:        { gradient: ['#10B981', '#059669'], color: '#10B981', icon: 'checkmark-done-circle-outline',label: 'Completed',         description: 'Your laundry has been completed successfully' },
-  cancelled:        { gradient: ['#EF4444', '#DC2626'], color: '#EF4444', icon: 'close-circle-outline',        label: 'Cancelled',         description: 'This laundry order has been cancelled' },
+  received:         { gradient: ['#3B82F6', '#2563EB'], color: '#3B82F6', icon: 'receipt-outline',              label: 'Received',            description: 'Your laundry has been received and is being prepared' },
+  processing:       { gradient: ['#8B5CF6', '#7C3AED'], color: '#8B5CF6', icon: 'sync-outline',                label: 'Processing',          description: 'Your laundry is being washed and cared for' },
+  washing:          { gradient: ['#06B6D4', '#0891B2'], color: '#06B6D4', icon: 'water-outline',               label: 'Washing',             description: 'Your clothes are in the washing machine' },
+  drying:           { gradient: ['#F59E0B', '#D97706'], color: '#F59E0B', icon: 'sunny-outline',               label: 'Drying',              description: 'Your clothes are being dried' },
+  ironing:          { gradient: ['#EC4899', '#DB2777'], color: '#EC4899', icon: 'shirt-outline',               label: 'Ironing',             description: 'Your clothes are being pressed and ironed' },
+  folding:          { gradient: ['#F97316', '#EA580C'], color: '#F97316', icon: 'layers-outline',              label: 'Folding',             description: 'Your clothes are being neatly folded' },
+  ready:            { gradient: ['#F59E0B', '#D97706'], color: '#F59E0B', icon: 'bag-check-outline',           label: 'Ready for Pickup',    description: 'Your laundry is clean and ready to collect!' },
+  ready_for_pickup: { gradient: ['#F59E0B', '#D97706'], color: '#F59E0B', icon: 'bag-check-outline',           label: 'Ready for Pickup',    description: 'Your laundry is clean and ready to collect!' },
+  out_for_delivery: { gradient: ['#0EA5E9', '#0284C7'], color: '#0EA5E9', icon: 'bicycle-outline',             label: 'Out for Delivery',    description: 'Your laundry is on its way to you!' },
+  delivered:        { gradient: ['#10B981', '#059669'], color: '#10B981', icon: 'home-outline',                label: 'Delivered',           description: 'Your laundry has been delivered!' },
+  paid:             { gradient: ['#10B981', '#059669'], color: '#10B981', icon: 'card-outline',                label: 'Paid',                description: 'Payment confirmed — thank you!' },
+  completed:        { gradient: ['#10B981', '#059669'], color: '#10B981', icon: 'checkmark-done-circle-outline',label: 'Completed',           description: 'Your laundry has been completed successfully' },
+  cancelled:        { gradient: ['#EF4444', '#DC2626'], color: '#EF4444', icon: 'close-circle-outline',        label: 'Cancelled',           description: 'This laundry order has been cancelled' },
 };
 
-const getStatusConfig = (status) => STATUS_MAP[status?.toLowerCase()] || STATUS_MAP.received;
+const getStatusConfig = (status, isDelivery = false) => {
+  const cfg = STATUS_MAP[status?.toLowerCase()] || STATUS_MAP.received;
+  // Override label/description for ready status based on flow type
+  if (status?.toLowerCase() === 'ready' && isDelivery) {
+    return { ...cfg, label: 'Ready for Delivery', description: 'Your laundry is ready and will be delivered soon!' };
+  }
+  return cfg;
+};
 
-const TIMELINE_STAGES = [
-  { key: 'received',   label: 'Received', icon: 'receipt-outline' },
+// Walk-in timeline stages
+const WALKIN_STAGES = [
+  { key: 'received',   label: 'Received',   icon: 'receipt-outline' },
   { key: 'processing', label: 'Processing', icon: 'sync-outline' },
-  { key: 'ready',      label: 'Ready',    icon: 'bag-check-outline' },
-  { key: 'paid',       label: 'Paid',     icon: 'card-outline' },
-  { key: 'completed',  label: 'Done',     icon: 'checkmark-done-circle-outline' },
+  { key: 'ready',      label: 'Ready',      icon: 'bag-check-outline' },
+  { key: 'paid',       label: 'Paid',       icon: 'card-outline' },
+  { key: 'completed',  label: 'Done',       icon: 'checkmark-done-circle-outline' },
 ];
 
-const STAGE_ORDER = ['received','processing','washing','drying','ironing','folding','ready','ready_for_pickup','paid','completed'];
+// Delivery timeline stages
+const DELIVERY_STAGES = [
+  { key: 'received',         label: 'Received',     icon: 'receipt-outline' },
+  { key: 'processing',       label: 'Processing',   icon: 'sync-outline' },
+  { key: 'ready',            label: 'Ready',        icon: 'bag-check-outline' },
+  { key: 'out_for_delivery', label: 'On the Way',   icon: 'bicycle-outline' },
+  { key: 'delivered',        label: 'Delivered',    icon: 'home-outline' },
+  { key: 'completed',        label: 'Done',         icon: 'checkmark-done-circle-outline' },
+];
 
-const getStageIndex = (status) => {
-  const idx = STAGE_ORDER.indexOf(status?.toLowerCase());
+const WALKIN_ORDER    = ['received','processing','washing','drying','ironing','folding','ready','ready_for_pickup','paid','completed'];
+const DELIVERY_ORDER  = ['received','processing','washing','drying','ironing','folding','ready','ready_for_pickup','out_for_delivery','delivered','completed'];
+
+const getStageIndex = (status, isDelivery) => {
+  const s = status?.toLowerCase();
+  if (isDelivery) {
+    const idx = DELIVERY_ORDER.indexOf(s);
+    if (idx <= 1) return idx;        // received=0, processing=1
+    if (idx <= 5) return 1;          // washing/drying/ironing/folding → still Processing
+    if (idx <= 7) return 2;          // ready/ready_for_pickup
+    if (idx === 8) return 3;         // out_for_delivery
+    if (idx === 9) return 4;         // delivered
+    if (idx === 10) return 5;        // completed
+    return 0;
+  }
+  const idx = WALKIN_ORDER.indexOf(s);
   if (idx <= 1) return idx;
   if (idx <= 5) return 1;
   if (idx <= 7) return 2;
@@ -92,16 +124,17 @@ const getStageIndex = (status) => {
   return 0;
 };
 
-const HorizontalTimeline = ({ currentStatus }) => {
-  const activeIdx = getStageIndex(currentStatus);
+const HorizontalTimeline = ({ currentStatus, isDelivery }) => {
+  const stages     = isDelivery ? DELIVERY_STAGES : WALKIN_STAGES;
+  const activeIdx  = getStageIndex(currentStatus, isDelivery);
   const isCancelled = currentStatus?.toLowerCase() === 'cancelled';
 
   return (
     <View style={tlStyles.container}>
-      {TIMELINE_STAGES.map((stage, index) => {
+      {stages.map((stage, index) => {
         const isCompleted = !isCancelled && index < activeIdx;
         const isCurrent   = !isCancelled && index === activeIdx;
-        const isLast      = index === TIMELINE_STAGES.length - 1;
+        const isLast      = index === stages.length - 1;
 
         return (
           <View key={stage.key} style={tlStyles.stepWrapper}>
@@ -591,14 +624,17 @@ export default function LaundryDetailsScreen() {
     );
   }
 
-  const statusCfg      = getStatusConfig(laundry.status);
+  const isDelivery     = !!laundry.pickup_request_id && ['both','delivery_only'].includes(laundry.service_type);
+  const statusCfg      = getStatusConfig(laundry.status, isDelivery);
   const isCancelled    = laundry.status?.toLowerCase() === 'cancelled';
   const isCompleted    = laundry.status?.toLowerCase() === 'completed';
   const isPaid         = laundry.payment_status === 'paid' || isCompleted;
   const isPendingVerification = laundry.payment_status === 'pending_verification';
   const isCashPayment  = laundry.payment_method === 'cash';
   const isReady        = ['ready', 'ready_for_pickup'].includes(laundry.status?.toLowerCase());
-  const canPay         = !isPaid && !isPendingVerification && !isCancelled && !isCompleted && isReady;
+  // For delivery: payment happens after delivered; for walk-in: after ready
+  const canPay         = !isPaid && !isPendingVerification && !isCancelled && !isCompleted &&
+                         (isDelivery ? ['ready','ready_for_pickup','out_for_delivery','delivered'].includes(laundry.status?.toLowerCase()) : isReady);
   const hasPickupFee   = parseFloat(laundry.pickup_fee) > 0;
   const hasDeliveryFee = parseFloat(laundry.delivery_fee) > 0;
   const hasDiscount    = parseFloat(laundry.discount_amount) > 0;
@@ -676,8 +712,14 @@ export default function LaundryDetailsScreen() {
               <View style={styles.cardHead}>
                 <Ionicons name="git-commit-outline" size={18} color={COLORS.primary} />
                 <Text style={styles.cardTitle}>Progress</Text>
+                {isDelivery && (
+                  <View style={styles.deliveryBadge}>
+                    <Ionicons name="bicycle-outline" size={12} color={COLORS.primary} />
+                    <Text style={styles.deliveryBadgeText}>Delivery</Text>
+                  </View>
+                )}
               </View>
-              <HorizontalTimeline currentStatus={laundry.status} />
+              <HorizontalTimeline currentStatus={laundry.status} isDelivery={isDelivery} />
             </View>
           )}
 
@@ -1256,6 +1298,8 @@ const styles = StyleSheet.create({
   tsDot:         { width: 4, height: 4, borderRadius: 2, backgroundColor: COLORS.border },
   addonsHeader:  { paddingVertical: 8, marginTop: 4 },
   addonsTitle:   { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  deliveryBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.primarySoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  deliveryBadgeText: { fontSize: 10, fontWeight: '700', color: COLORS.primary, textTransform: 'uppercase', letterSpacing: 0.5 },
   bottomBar:     { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.background, paddingHorizontal: 16, paddingTop: 12, paddingBottom: Platform.OS === 'ios' ? 34 : 20, borderTopWidth: 1, borderTopColor: COLORS.borderLight },
   bottomBtn:     { borderRadius: 16, overflow: 'hidden' },
   bottomGradient:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16 },

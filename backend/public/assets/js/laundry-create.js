@@ -1435,15 +1435,17 @@ initAddonQuantityControls() {
 
         // Validate weight/loads for normal services
         if (hasService) {
-            let pricingType, serviceType;
+            let pricingType, serviceType, minWeight = 0;
             
             if (this.serviceSelect?.value) {
                 const selected = this.serviceSelect.options[this.serviceSelect.selectedIndex];
                 pricingType = selected.dataset.pricingType;
                 serviceType = selected.dataset.serviceType;
+                minWeight = parseFloat(selected.dataset.minWeight) || 0;
             } else if (this.lockedServiceInput?.value) {
                 pricingType = this.lockedServiceInput.dataset.pricingType;
                 serviceType = this.lockedServiceInput.dataset.serviceType;
+                minWeight = parseFloat(this.lockedServiceInput.dataset.minWeight) || 0;
             }
 
             const loads = parseInt(this.loadsInput?.value) || 0;
@@ -1454,6 +1456,19 @@ initAddonQuantityControls() {
                 this.showToast(`Please enter a valid ${label}`, 'warning');
                 this.loadsInput?.focus();
                 return false;
+            }
+
+            // Validate minimum weight for per-load services
+            if (pricingType !== 'per_piece' && minWeight > 0) {
+                const weight = parseFloat(this.weightInput?.value) || 0;
+                if (weight < minWeight) {
+                    this.showToast(`Weight must be at least ${minWeight} kg for this service`, 'warning');
+                    if (this.weightInput) {
+                        this.weightInput.classList.add('is-invalid');
+                        this.weightInput.focus();
+                    }
+                    return false;
+                }
             }
         }
 

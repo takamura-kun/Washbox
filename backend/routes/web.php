@@ -172,7 +172,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // LAUNDRIES
     // ========================================================================
     Route::resource('laundries', LaundryController::class);
-    Route::get('/receipts/{laundry}', [ReceiptController::class, 'show'])->name('receipts.show');
     Route::post('/laundries/{laundry}/assign-staff', [LaundryController::class, 'assignStaff'])->name('laundries.assign-staff');
     Route::post('/laundries/{laundry}/mark-paid', [LaundryController::class, 'markPaid'])->name('laundries.mark-paid');
     Route::post('/laundries/{laundry}/mark-unclaimed', [LaundryController::class, 'markUnclaimed'])->name('laundries.mark-unclaimed');
@@ -850,8 +849,8 @@ Route::post('/profile/password', [BranchSettingsController::class, 'updatePasswo
     })->name('search');
 });
 
-// Test route for chart debugging
-Route::get('/admin/test-chart', function() {
+// Test route for chart debugging - ADMIN AUTH REQUIRED
+Route::middleware(['auth', 'admin'])->get('/admin/test-chart', function() {
     $controller = new \App\Http\Controllers\Admin\DashboardController();
     $reflection = new ReflectionClass($controller);
     $method = $reflection->getMethod('getLaundriesStatusTrends');

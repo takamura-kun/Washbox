@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Laundry extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasFactory;
 
     protected $fillable = [
         'tracking_number',
@@ -562,28 +563,28 @@ public function latestPaymentProof()
             [
                 'day' => 3,
                 'label' => 'First Reminder',
-                'date' => $readyDate->addDays(3),
+                'date' => $readyDate->copy()->addDays(3),
                 'completed' => $days >= 3,
                 'status' => 'info',
             ],
             [
                 'day' => 7,
                 'label' => 'Storage Fees Start',
-                'date' => $readyDate->addDays(7),
+                'date' => $readyDate->copy()->addDays(7),
                 'completed' => $days >= 7,
                 'status' => 'warning',
             ],
             [
                 'day' => 14,
                 'label' => 'Critical Alert',
-                'date' => $readyDate->addDays(14),
+                'date' => $readyDate->copy()->addDays(14),
                 'completed' => $days >= 14,
                 'status' => 'danger',
             ],
             [
                 'day' => 30,
                 'label' => 'Disposal Eligible',
-                'date' => $readyDate->addDays(30),
+                'date' => $readyDate->copy()->addDays(30),
                 'completed' => $days >= 30,
                 'status' => 'danger',
             ],

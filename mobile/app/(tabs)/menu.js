@@ -485,6 +485,20 @@ export default function MenuScreen() {
       action: () => router.push('/promotions'),
     },
     {
+      icon: 'time-outline',
+      label: 'Pickup History',
+      subtitle: 'View all past pickups',
+      color: COLORS.primary,
+      action: () => router.push('/pickups'),
+    },
+    {
+      icon: 'location-outline',
+      label: 'Branch Locator',
+      subtitle: 'Find nearest branches',
+      color: COLORS.cyan,
+      action: () => router.push('/branch-locator'),
+    },
+    {
       icon: 'card-outline',
       label: 'Payment Methods',
       subtitle: 'Manage payment options',
@@ -492,7 +506,7 @@ export default function MenuScreen() {
       action: () => router.push('/payment-methods'),
     },
     {
-      icon: 'location-outline',
+      icon: 'map-outline',
       label: 'Saved Addresses',
       subtitle: 'Manage delivery locations',
       color: COLORS.primaryLight,
@@ -509,24 +523,18 @@ export default function MenuScreen() {
       action: () => router.push('/privacy-security'),
     },
     {
+      icon: 'notifications-outline',
+      label: 'Notification Settings',
+      subtitle: 'Manage what alerts you receive',
+      color: COLORS.purple,
+      action: () => router.push('/notification-settings'),
+    },
+    {
       icon: 'help-circle-outline',
-      label: 'Help Center',
-      subtitle: 'FAQs and support',
+      label: 'Help Center / FAQ',
+      subtitle: 'Common questions & answers',
       color: COLORS.primary,
-      action: () => {
-        const phone = branch?.phone ?? '(035) 123-4567';
-        const email = branch?.email ?? 'support@washbox.com';
-        const name  = branch?.name  ?? 'WashBox';
-        Alert.alert(
-          `${name} Support`,
-          `📞 ${phone}\n✉️ ${email}`,
-          [
-            { text: 'Network Diagnostic', onPress: () => router.push('/network-diagnostic') },
-            { text: 'Feature Integrations', onPress: () => router.push('/feature-integrations') },
-            { text: 'OK' }
-          ]
-        );
-      },
+      action: () => router.push('/faq'),
     },
     {
       icon: 'document-text-outline',

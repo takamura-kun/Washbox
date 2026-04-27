@@ -143,7 +143,19 @@ export default function RegisterScreen() {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Full name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
+
+    const rawPhone = formData.phone.replace(/[\s\-]/g, '');
+    if (!rawPhone) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!/^(09|\+639)\d{9}$/.test(rawPhone)) {
+      const digits = rawPhone.replace(/\D/g, '');
+      if (digits.length !== 11) {
+        newErrors.phone = `Phone number must be 11 digits (you entered ${digits.length})`;
+      } else {
+        newErrors.phone = 'Enter a valid PH number starting with 09 (e.g. 09XX XXX XXXX)';
+      }
+    }
+
     if (formData.password.length < 8) newErrors.password = 'Password must be 8+ characters';
     if (formData.password !== formData.passwordConfirmation) {
       newErrors.passwordConfirmation = 'Passwords do not match';
@@ -372,6 +384,7 @@ export default function RegisterScreen() {
                       value={formData.phone}
                       onChangeText={(text) => updateField('phone', text)}
                       keyboardType="phone-pad"
+                      maxLength={13}
                       editable={!loading}
                     />
                   </View>

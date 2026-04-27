@@ -211,6 +211,7 @@
                                         data-service-type="{{ $pickup->service->service_type ?? 'full_service' }}"
                                         data-price-per-load="{{ $pickup->service->price_per_load ?? 0 }}"
                                         data-price-per-piece="{{ $pickup->service->price_per_piece ?? 0 }}"
+                                        data-min-weight="{{ $pickup->service->min_weight ?? 0 }}"
                                         data-max-weight="{{ $pickup->service->max_weight ?? 0 }}">
                                     <div class="alert alert-info border-info mb-0">
                                         <div class="d-flex align-items-start">

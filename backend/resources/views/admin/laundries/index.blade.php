@@ -11,16 +11,27 @@
             transform: translateY(-4px);
             box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
         }
-        /* Light mode */
         [data-theme="light"] .hover-lift {
             background-color: #ffffff !important;
             color: #111827 !important;
         }
-        /* Dark mode */
         [data-theme="dark"] .hover-lift {
             background-color: #1F2937 !important;
             color: #F9FAFB !important;
         }
+        [data-theme="light"] .laundry-filter-card {
+            background-color: #ffffff !important;
+        }
+        [data-theme="dark"] .laundry-filter-card {
+            background-color: #1F2937 !important;
+        }
+        [data-theme="light"] .hover-lift .text-white { color: #111827 !important; }
+        [data-theme="light"] .hover-lift .text-white-50 { color: #6b7280 !important; }
+        [data-theme="light"] .hover-lift .tracking-number { color: #111827 !important; }
+        [data-theme="light"] .hover-lift .amount { color: #111827 !important; }
+        [data-theme="light"] .hover-lift .border-top { border-color: #e5e7eb !important; }
+        [data-theme="dark"] .hover-lift .text-white { color: #F9FAFB !important; }
+        [data-theme="dark"] .hover-lift .text-white-50 { color: #9ca3af !important; }
     </style>
 @endpush
 
@@ -135,7 +146,7 @@
     </div>
 
     {{-- Filters --}}
-    <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: #2d3748;">
+    <div class="card border-0 shadow-sm rounded-4 mb-4 laundry-filter-card">
         <div class="card-body p-3">
             <form method="GET" class="row g-2 align-items-center">
                 <div class="col-md-2">
@@ -196,7 +207,7 @@
                 $color = $statusColors[$laundry->status] ?? 'secondary';
             @endphp
             <div class="col-md-6 col-lg-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift" style="background-color: #2d3748;">
+                <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
                     <div class="card-body p-3 text-white">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
@@ -224,8 +235,8 @@
                                 </div>
                             </div>
                             <div class="d-flex align-items-center mb-2">
-                                <i class="bi bi-shop me-2 text-white-50"></i>
-                                <span class="badge bg-secondary">{{ $laundry->branch->name ?? 'N/A' }}</span>
+                                <i class="bi bi-shop me-2 text-white-50 flex-shrink-0"></i>
+                                <span class="badge bg-secondary text-truncate" style="font-size:0.72rem; font-weight:500; max-width:100%;">{{ $laundry->branch->name ?? 'N/A' }}</span>
                             </div>
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-droplet me-2 text-white-50"></i>
@@ -264,9 +275,9 @@
         </div>
         @endif
     @empty
-        <div class="card border-0 shadow-sm rounded-4" style="background-color: #2d3748;">
+        <div class="card border-0 shadow-sm rounded-4">
             <div class="card-body p-5">
-                <div class="empty-state text-white">
+                <div class="empty-state">
                     <i class="bi bi-inbox"></i>
                     <p>
                         @if(request()->anyFilled(['search','status','branch_id','service_id','date_from']))
@@ -285,10 +296,10 @@
     @endforelse
 
     @if($laundries->hasPages())
-    <div class="card border-0 shadow-sm rounded-4 mt-3" style="background-color: #2d3748;">
+    <div class="card border-0 shadow-sm rounded-4 mt-3 laundry-filter-card">
         <div class="card-body p-3">
             <div class="d-flex justify-content-between align-items-center">
-                <small class="text-white-50">
+                <small class="text-muted">
                     Showing {{ $laundries->firstItem() }}–{{ $laundries->lastItem() }}
                     of {{ $laundries->total() }} laundries
                 </small>

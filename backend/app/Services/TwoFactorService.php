@@ -28,13 +28,13 @@ class TwoFactorService
      */
     public static function verifyCode($user, string $code): bool
     {
-        // Check if code matches
-        if ($user->two_factor_code !== $code) {
+        // Check if code is expired (10 minutes) — check first to avoid timing leak
+        if (!$user->two_factor_expires_at || now()->isAfter($user->two_factor_expires_at)) {
             return false;
         }
 
-        // Check if code is expired (10 minutes)
-        if (now()->isAfter($user->two_factor_expires_at)) {
+        // Use hash_equals to prevent timing attacks
+        if (!hash_equals((string) $user->two_factor_code, $code)) {
             return false;
         }
 
