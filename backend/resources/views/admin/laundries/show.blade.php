@@ -586,13 +586,15 @@
             @foreach($laundry->statusHistories as $history)
                 @php
                     $icon = match($history->status) {
-                        'received'   => 'inbox',
-                        'processing' => 'gear',
-                        'ready'      => 'check-circle',
-                        'paid'       => 'currency-dollar',
-                        'completed'  => 'check-all',
-                        'cancelled'  => 'x-circle',
-                        default      => 'clock'
+                        'received'         => 'inbox',
+                        'processing'       => 'gear',
+                        'ready'            => 'check-circle',
+                        'out_for_delivery' => 'truck',
+                        'delivered'        => 'house-check',
+                        'paid'             => 'currency-dollar',
+                        'completed'        => 'check-all',
+                        'cancelled'        => 'x-circle',
+                        default            => 'clock'
                     };
                 @endphp
                 <div class="hist-item">
@@ -623,24 +625,36 @@
 
         {{-- Timeline --}}
         <div class="section-card">
-            <h6>Laundry Timeline</h6>
+            <h6>Laundry Timeline
+                @if($laundry->isDeliveryOrder())
+                    <span class="badge bg-primary ms-1" style="font-size:0.6rem;">Delivery</span>
+                @else
+                    <span class="badge bg-secondary ms-1" style="font-size:0.6rem;">Walk-in</span>
+                @endif
+            </h6>
             @php
                 $timeline = $laundry->getTimeline();
-                $stages = [
-                    'received'   => ['icon' => 'inbox-fill',       'label' => 'Order Received'],
-                    'processing' => ['icon' => 'gear-fill',         'label' => 'Processing'],
-                    'ready'      => ['icon' => 'check-circle-fill', 'label' => 'Ready for Pickup'],
-                    'paid'       => ['icon' => 'credit-card-fill',  'label' => 'Payment Completed'],
-                    'completed'  => ['icon' => 'check-all',         'label' => 'Order Completed'],
+                $stageLabels = [
+                    'received'         => ['icon' => 'inbox-fill',        'label' => 'Order Received'],
+                    'processing'       => ['icon' => 'gear-fill',          'label' => 'Processing'],
+                    'ready'            => ['icon' => 'check-circle-fill',  'label' => $laundry->isDeliveryOrder() ? 'Ready for Delivery' : 'Ready for Pickup'],
+                    'out_for_delivery' => ['icon' => 'truck',              'label' => 'Out for Delivery'],
+                    'delivered'        => ['icon' => 'house-check-fill',   'label' => 'Delivered'],
+                    'paid'             => ['icon' => 'credit-card-fill',   'label' => 'Payment Completed'],
+                    'completed'        => ['icon' => 'check-all',          'label' => 'Order Completed'],
                 ];
+                $stages = $laundry->isDeliveryOrder()
+                    ? ['received','processing','ready','out_for_delivery','delivered','paid','completed']
+                    : ['received','processing','ready','paid','completed'];
                 $currentReached = false;
             @endphp
             <div class="tl-wrap">
-                @foreach($stages as $stage => $config)
+                @foreach($stages as $stage)
                     @php
-                        $isActive  = $timeline[$stage] !== null;
+                        $isActive  = isset($timeline[$stage]) && $timeline[$stage] !== null;
                         $isCurrent = !$isActive && !$currentReached;
                         if ($isCurrent) $currentReached = true;
+                        $config = $stageLabels[$stage];
                     @endphp
                     <div class="tl-item">
                         <div class="tl-dot {{ $isActive ? 'done' : ($isCurrent ? 'current' : 'pend') }}">
@@ -651,7 +665,7 @@
                             @if($isActive)
                                 {{ $timeline[$stage]->format('M d, Y h:i A') }}
                             @elseif($isCurrent)
-                                In Progress…
+                                In Progress&hellip;
                             @else
                                 Pending
                             @endif
@@ -680,35 +694,77 @@
                         @csrf @method('PUT')
                         <input type="hidden" name="status" value="ready">
                         <button type="submit" class="btn btn-success w-100 action-btn">
-                            <i class="bi bi-check-circle me-1"></i>Mark as Ready
+                            <i class="bi bi-check-circle me-1"></i>
+                            {{ $laundry->isDeliveryOrder() ? 'Mark as Ready for Delivery' : 'Mark as Ready for Pickup' }}
                         </button>
                     </form>
                 @endif
 
-                @if($laundry->status === 'ready' && $laundry->payment_status !== 'paid')
-                    @if($laundry->latestPaymentProof && $laundry->latestPaymentProof->status === 'pending')
-                        <a href="{{ route('admin.payments.verification.show', $laundry->latestPaymentProof) }}"
-                           class="btn btn-warning w-100 action-btn">
-                            <i class="bi bi-eye me-1"></i>Review Payment Proof
-                        </a>
-                    @else
-                        <form action="{{ route('admin.laundries.record-payment', $laundry) }}" method="POST">
-                            @csrf
+                {{-- DELIVERY FLOW --}}
+                @if($laundry->isDeliveryOrder())
+                    @if($laundry->status === 'ready')
+                        <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST" class="status-change-form">
+                            @csrf @method('PUT')
+                            <input type="hidden" name="status" value="out_for_delivery">
                             <button type="submit" class="btn btn-primary w-100 action-btn">
-                                <i class="bi bi-currency-dollar me-1"></i>Record Payment
+                                <i class="bi bi-truck me-1"></i>Out for Delivery
                             </button>
                         </form>
                     @endif
-                @endif
 
-                @if($laundry->status === 'paid')
-                    <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST" class="status-change-form">
-                        @csrf @method('PUT')
-                        <input type="hidden" name="status" value="completed">
-                        <button type="submit" class="btn btn-success w-100 action-btn">
-                            <i class="bi bi-check-all me-1"></i>Mark as Completed
-                        </button>
-                    </form>
+                    @if($laundry->status === 'out_for_delivery')
+                        <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST" class="status-change-form">
+                            @csrf @method('PUT')
+                            <input type="hidden" name="status" value="delivered">
+                            <button type="submit" class="btn btn-success w-100 action-btn">
+                                <i class="bi bi-house-check me-1"></i>Mark as Delivered
+                            </button>
+                        </form>
+                    @endif
+
+                    @if($laundry->status === 'delivered' && $laundry->payment_status !== 'paid')
+                        <div class="alert alert-info py-2 px-3 mb-0" style="font-size:0.75rem;">
+                            <i class="bi bi-info-circle me-1"></i>Laundry delivered &mdash; collect payment.
+                        </div>
+                        <form action="{{ route('admin.laundries.record-payment', $laundry) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-primary w-100 action-btn">
+                                <i class="bi bi-currency-dollar me-1"></i>Record Payment &amp; Complete
+                            </button>
+                        </form>
+                    @endif
+
+                {{-- WALK-IN / DROP-OFF FLOW --}}
+                @else
+                    @if($laundry->status === 'ready' && $laundry->payment_status !== 'paid')
+                        @if($laundry->latestPaymentProof && $laundry->latestPaymentProof->status === 'pending')
+                            <a href="{{ route('admin.payments.verification.show', $laundry->latestPaymentProof) }}"
+                               class="btn btn-warning w-100 action-btn">
+                                <i class="bi bi-eye me-1"></i>Review Payment Proof
+                            </a>
+                        @else
+                            <form action="{{ route('admin.laundries.record-payment', $laundry) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-primary w-100 action-btn">
+                                    <i class="bi bi-currency-dollar me-1"></i>Record Payment
+                                </button>
+                            </form>
+                        @endif
+                    @endif
+
+                    {{-- After payment: customer still needs to physically pick up --}}
+                    @if($laundry->status === 'paid')
+                        <div class="alert alert-success py-2 px-3 mb-0" style="font-size:0.75rem;">
+                            <i class="bi bi-check-circle me-1"></i>Payment received &mdash; waiting for customer to pick up.
+                        </div>
+                        <form action="{{ route('admin.laundries.update-status', $laundry) }}" method="POST" class="status-change-form">
+                            @csrf @method('PUT')
+                            <input type="hidden" name="status" value="completed">
+                            <button type="submit" class="btn btn-success w-100 action-btn">
+                                <i class="bi bi-check-all me-1"></i>Customer Picked Up &mdash; Complete
+                            </button>
+                        </form>
+                    @endif
                 @endif
 
                 <a href="{{ route('admin.receipts.show', $laundry) }}" class="btn btn-outline-primary w-100 action-btn" target="_blank">

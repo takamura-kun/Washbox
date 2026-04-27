@@ -1011,7 +1011,7 @@
 
 {{-- Laundries Breakdown Modal --}}
 <div class="modal fade" id="laundriesBreakdownModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content" style="background:#0f172a;border:1px solid #334155;">
             <div class="modal-header" style="border-color:#334155;">
                 <div>
@@ -1022,6 +1022,148 @@
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
+            <div class="modal-body">
+                @php
+                    $todayStart = today();
+                    $todayEnd   = today()->endOfDay();
+                    $branchId = request('branch_id');
+                    $allBranches = \App\Models\Branch::where('is_active', true)->orderBy('name')->get(['id','name']);
+
+                    $recentLaundries = \App\Models\Laundry::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                        ->whereBetween('created_at', [$todayStart, $todayEnd])
+                        ->with(['customer:id,name,phone', 'service:id,name', 'branch:id,name', 'promotion:id,name'])
+                        ->orderByDesc('created_at')
+                        ->get();
+
+                    $groupedByStatus = $recentLaundries->groupBy('status');
+
+                    $statusColors = [
+                        'received'   => ['bg' => 'rgba(59,130,246,0.2)',   'color' => '#60a5fa'],
+                        'processing' => ['bg' => 'rgba(245,158,11,0.2)',   'color' => '#fbbf24'],
+                        'ready'      => ['bg' => 'rgba(139,92,246,0.2)',   'color' => '#a78bfa'],
+                        'paid'       => ['bg' => 'rgba(16,185,129,0.2)',   'color' => '#34d399'],
+                        'completed'  => ['bg' => 'rgba(16,185,129,0.2)',   'color' => '#10b981'],
+                        'cancelled'  => ['bg' => 'rgba(239,68,68,0.2)',    'color' => '#f87171'],
+                    ];
+                @endphp
+
+                {{-- Branch Filter --}}
+                <div class="mb-3 d-flex align-items-center gap-2">
+                    <label style="color:#94a3b8;font-size:0.8rem;white-space:nowrap;"><i class="bi bi-building me-1"></i>Filter by Branch:</label>
+                    <select id="laundryBranchFilter" class="form-select form-select-sm" style="background:#1e293b;color:#f1f5f9;border-color:#334155;max-width:220px;">
+                        <option value="">All Branches</option>
+                        @foreach($allBranches as $branch)
+                            <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                @if($recentLaundries->count() > 0)
+                {{-- Status Tabs --}}
+                <ul class="nav nav-pills mb-3" style="gap:0.5rem;">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#adminAllTab" style="background:rgba(16,185,129,0.2);color:#10b981;border:none;font-size:0.875rem;">
+                            All ({{ $recentLaundries->count() }})
+                        </button>
+                    </li>
+                    @foreach($statusColors as $statusKey => $sc)
+                        @if($groupedByStatus->has($statusKey))
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#adminTab{{ ucfirst($statusKey) }}" style="background:{{ $sc['bg'] }};color:{{ $sc['color'] }};border:none;font-size:0.875rem;">
+                                {{ ucfirst($statusKey) }} ({{ $groupedByStatus[$statusKey]->count() }})
+                            </button>
+                        </li>
+                        @endif
+                    @endforeach
+                </ul>
+
+                @php
+                $renderTable = function($laundries, $statusColors) {
+                    return $laundries;
+                };
+                @endphp
+
+                <div class="tab-content">
+                    @foreach(['all' => $recentLaundries] + $groupedByStatus->toArray() as $tabKey => $tabLaundries)
+                    @php
+                        $tabId    = $tabKey === 'all' ? 'adminAllTab' : 'adminTab' . ucfirst($tabKey);
+                        $isActive = $tabKey === 'all';
+                        $items    = $tabKey === 'all' ? $recentLaundries : $groupedByStatus->get($tabKey, collect());
+                    @endphp
+                    <div class="tab-pane fade {{ $isActive ? 'show active' : '' }}" id="{{ $tabId }}">
+                        <div class="table-responsive">
+                            <table class="table table-sm" style="color:#cbd5e1;">
+                                <thead style="background:rgba(59,130,246,0.1);border-bottom:2px solid #334155;">
+                                    <tr>
+                                        <th style="color:#94a3b8;font-size:0.75rem;font-weight:700;padding:0.75rem;">ID</th>
+                                        <th style="color:#94a3b8;font-size:0.75rem;font-weight:700;padding:0.75rem;">Customer</th>
+                                        <th style="color:#94a3b8;font-size:0.75rem;font-weight:700;padding:0.75rem;">Service</th>
+                                        <th style="color:#94a3b8;font-size:0.75rem;font-weight:700;padding:0.75rem;">Branch</th>
+                                        <th class="text-center" style="color:#94a3b8;font-size:0.75rem;font-weight:700;padding:0.75rem;">Status</th>
+                                        <th class="text-center" style="color:#94a3b8;font-size:0.75rem;font-weight:700;padding:0.75rem;">Weight</th>
+                                        <th class="text-end" style="color:#94a3b8;font-size:0.75rem;font-weight:700;padding:0.75rem;">Amount</th>
+                                        <th class="text-center" style="color:#94a3b8;font-size:0.75rem;font-weight:700;padding:0.75rem;">Created</th>
+                                        <th class="text-center" style="color:#94a3b8;font-size:0.75rem;font-weight:700;padding:0.75rem;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($items as $laundry)
+                                    @php $sc = $statusColors[$laundry->status] ?? ['bg'=>'rgba(100,116,139,0.2)','color'=>'#94a3b8']; @endphp
+                                    <tr style="border-bottom:1px solid #1e293b;" data-branch="{{ $laundry->branch_id }}">
+                                        <td style="padding:0.75rem;">
+                                            <span class="badge" style="background:rgba(59,130,246,0.2);color:#60a5fa;font-size:0.75rem;">#{{ $laundry->id }}</span>
+                                        </td>
+                                        <td style="padding:0.75rem;">
+                                            <span class="fw-600" style="color:#f1f5f9;">{{ $laundry->customer->name ?? 'N/A' }}</span>
+                                            <div style="font-size:0.7rem;color:#64748b;"><i class="bi bi-telephone"></i> {{ $laundry->customer->phone ?? 'N/A' }}</div>
+                                        </td>
+                                        <td style="padding:0.75rem;">
+                                            <span style="color:#cbd5e1;">{{ $laundry->service->name ?? $laundry->promotion->name ?? 'N/A' }}</span>
+                                            @if(!$laundry->service && $laundry->promotion)
+                                                <span class="badge ms-1" style="background:rgba(139,92,246,0.15);color:#7c3aed;font-size:0.65rem;">Promo</span>
+                                            @endif
+                                        </td>
+                                        <td style="padding:0.75rem;color:#94a3b8;font-size:0.75rem;">{{ $laundry->branch->name ?? 'N/A' }}</td>
+                                        <td class="text-center" style="padding:0.75rem;">
+                                            <span class="badge" style="background:{{ $sc['bg'] }};color:{{ $sc['color'] }};font-size:0.7rem;text-transform:capitalize;">{{ $laundry->status }}</span>
+                                        </td>
+                                        <td class="text-center" style="padding:0.75rem;color:#94a3b8;">{{ number_format($laundry->weight, 2) }} kg</td>
+                                        <td class="text-end" style="padding:0.75rem;">
+                                            <span class="fw-bold" style="color:#10b981;">&#8369;{{ number_format($laundry->total_amount, 2) }}</span>
+                                        </td>
+                                        <td class="text-center" style="padding:0.75rem;">
+                                            <span style="color:#94a3b8;font-size:0.75rem;">{{ $laundry->created_at->format('M d, Y') }}</span>
+                                            <div style="color:#64748b;font-size:0.7rem;">{{ $laundry->created_at->diffForHumans() }}</div>
+                                        </td>
+                                        <td class="text-center" style="padding:0.75rem;">
+                                            <a href="{{ route('admin.laundries.show', $laundry->id) }}" class="btn btn-sm" style="background:rgba(59,130,246,0.2);color:#60a5fa;border:none;font-size:0.75rem;">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                <div class="text-center py-5">
+                    <i class="bi bi-basket3" style="font-size:2.5rem;color:#334155;"></i>
+                    <p style="color:#475569;margin-top:8px;font-size:0.8rem;">No laundries recorded today</p>
+                </div>
+                @endif
+            </div>
+            <div class="modal-footer" style="border-color:#334155;">
+                <a href="{{ route('admin.laundries.index') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-list me-1"></i>View all laundries
+                </a>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
             <div class="modal-body">
                 @php
                     $todayStart = today();
@@ -2311,4 +2453,13 @@
     </script>
 
     <script type="module" src="{{ asset('assets/js/admin.js') }}"></script>
+
+    <script>
+    document.getElementById('laundryBranchFilter')?.addEventListener('change', function() {
+        const selected = this.value;
+        document.querySelectorAll('#laundriesBreakdownModal tbody tr').forEach(row => {
+            row.style.display = (!selected || row.dataset.branch === selected) ? '' : 'none';
+        });
+    });
+    </script>
 @endpush

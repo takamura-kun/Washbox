@@ -64,6 +64,20 @@
         </div>
         @endforeach
     </div>
+    {{-- Tabs --}}
+    <div class="d-flex gap-2 mb-3">
+        <a href="{{ route('admin.pickups.index', array_merge(request()->except('tab','page'), ['tab'=>'active'])) }}"
+           class="btn {{ $tab === 'active' ? 'btn-primary' : 'btn-outline-secondary' }}">
+            <i class="bi bi-truck me-1"></i>Active Pickups
+            <span class="badge {{ $tab === 'active' ? 'bg-white text-primary' : 'bg-primary' }} ms-1">{{ $activeCount }}</span>
+        </a>
+        <a href="{{ route('admin.pickups.index', array_merge(request()->except('tab','page'), ['tab'=>'laundry'])) }}"
+           class="btn {{ $tab === 'laundry' ? 'btn-success' : 'btn-outline-secondary' }}">
+            <i class="bi bi-basket me-1"></i>Transferred to Laundry
+            <span class="badge {{ $tab === 'laundry' ? 'bg-white text-success' : 'bg-success' }} ms-1">{{ $laundryCount }}</span>
+        </a>
+    </div>
+
 
     {{-- ── Filters ─────────────────────────────────────────────── --}}
     <div class="pk-filter-card" style="background-color: var(--card-bg) !important; color: var(--text-primary) !important;">
@@ -216,16 +230,14 @@
                             <a href="{{ route('admin.pickups.show', $pickup->id) }}" class="btn btn-sm btn-outline-primary flex-fill">
                                 <i class="bi bi-eye"></i> View
                             </a>
-                            @if($pickup->status === 'picked_up')
-                                @if(!$hasLaundry)
-                                    <a href="{{ route('admin.laundries.create', ['pickup_id' => $pickup->id]) }}" class="btn btn-sm btn-success flex-fill">
-                                        <i class="bi bi-plus-circle"></i> Create Laundry
-                                    </a>
-                                @else
-                                    <a href="{{ route('admin.laundries.show', $pickup->laundry->id) }}" class="btn btn-sm btn-info flex-fill">
-                                        <i class="bi bi-box-seam"></i> View Laundry
-                                    </a>
-                                @endif
+                            @if($tab === 'laundry' && $hasLaundry)
+                                <a href="{{ route('admin.laundries.show', $pickup->laundry->id) }}" class="btn btn-sm btn-success flex-fill">
+                                    <i class="bi bi-basket"></i> View Laundry
+                                </a>
+                            @elseif($pickup->status === 'picked_up' && !$hasLaundry)
+                                <a href="{{ route('admin.laundries.create', ['pickup_id' => $pickup->id]) }}" class="btn btn-sm btn-success flex-fill">
+                                    <i class="bi bi-plus-circle"></i> Create Laundry
+                                </a>
                             @endif
                         </div>
                     </div>

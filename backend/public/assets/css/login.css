@@ -35,9 +35,9 @@ body {
 body.admin-bg,
 body.staff-bg {
     background:
-        radial-gradient(ellipse at 0% 0%,    #bfdbfe 0%, transparent 50%),
-        radial-gradient(ellipse at 100% 100%, #c7d2fe 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 50%,   #eff6ff 0%, #dbeafe 100%);
+       radial-gradient(circle at 15% 25%, rgba(37,99,235,.12), transparent 30%),
+        radial-gradient(circle at 85% 75%, rgba(79,70,229,.12), transparent 30%),
+        radial-gradient(circle at 50% 10%, rgba(59,130,246,.08), transparent 25%);
 }
 
 body.admin-bg::before,

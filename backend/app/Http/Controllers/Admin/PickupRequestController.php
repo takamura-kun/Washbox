@@ -30,8 +30,17 @@ class PickupRequestController extends Controller
      */
     public function index(Request $request)
     {
+        $tab = $request->input('tab', 'active'); // 'active' or 'laundry'
+
         $query = PickupRequest::with(['customer','branch','service','assignedStaff','laundry'])
-            ->orderBy('created_at','desc');
+            ->orderBy('created_at','asc');
+
+        if ($tab === 'laundry') {
+            $query->has('laundry');
+        } else {
+            $query->doesntHave('laundry')->whereNotIn('status', ['cancelled']);
+        }
+
         if ($request->filled('status') && $request->status !== 'all')
             $query->where('status', $request->status);
         if ($request->filled('branch_id'))
@@ -45,9 +54,13 @@ class PickupRequestController extends Controller
                   ->orWhereHas('customer',fn($q2)=>$q2->where('name','like',"%{$search}%"));
             });
         }
-        $pickups  = $query->paginate(20);
-        $branches = Branch::where('is_active', true)->get();
-        return view('admin.pickups.index', compact('pickups','branches'));
+
+        $pickups          = $query->paginate(20)->withQueryString();
+        $branches         = Branch::where('is_active', true)->get();
+        $activeCount      = PickupRequest::doesntHave('laundry')->whereNotIn('status',['cancelled'])->count();
+        $laundryCount     = PickupRequest::has('laundry')->count();
+
+        return view('admin.pickups.index', compact('pickups','branches','tab','activeCount','laundryCount'));
     }
 
     public function create()

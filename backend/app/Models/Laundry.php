@@ -41,6 +41,8 @@ class Laundry extends Model
         'received_at',
         'processing_at',
         'ready_at',
+        'out_for_delivery_at',
+        'delivered_at',
         'paid_at',
         'completed_at',
         'cancelled_at',
@@ -71,6 +73,8 @@ class Laundry extends Model
         'received_at' => 'datetime',
         'processing_at' => 'datetime',
         'ready_at' => 'datetime',
+        'out_for_delivery_at' => 'datetime',
+        'delivered_at' => 'datetime',
         'paid_at' => 'datetime',
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',
@@ -226,11 +230,6 @@ class Laundry extends Model
     // ========================================================================
     // ACCESSORS
     // ========================================================================
-
-    public function getStatusLabelAttribute(): string
-    {
-        return ucfirst($this->status);
-    }
 
     public function getFormattedWeightAttribute(): string
     {
@@ -431,14 +430,53 @@ class Laundry extends Model
         return $this->total_amount + $this->calculated_storage_fee;
     }
 
+    public function isDeliveryOrder(): bool
+    {
+        if (!$this->pickup_request_id) return false;
+        $serviceType = $this->pickupRequest?->service_type;
+        return in_array($serviceType, ['delivery_only', 'both']);
+    }
+
+    public function getFlowTypeAttribute(): string
+    {
+        return $this->isDeliveryOrder() ? 'delivery' : 'walkin';
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match($this->status) {
+            'received'         => 'Received',
+            'processing'       => 'Processing',
+            'ready'            => $this->isDeliveryOrder() ? 'Ready for Delivery' : 'Ready for Pickup',
+            'out_for_delivery' => 'Out for Delivery',
+            'delivered'        => 'Delivered',
+            'paid'             => 'Paid',
+            'completed'        => 'Completed',
+            'cancelled'        => 'Cancelled',
+            default            => ucfirst($this->status),
+        };
+    }
+
     public function getTimeline(): array
     {
+        if ($this->isDeliveryOrder()) {
+            return [
+                'received'         => $this->received_at,
+                'processing'       => $this->processing_at,
+                'ready'            => $this->ready_at,
+                'out_for_delivery' => $this->out_for_delivery_at,
+                'delivered'        => $this->delivered_at,
+                'paid'             => $this->paid_at,
+                'completed'        => $this->completed_at,
+            ];
+        }
+
         return [
-            'received' => $this->received_at,
+            'received'   => $this->received_at,
             'processing' => $this->processing_at,
-            'ready' => $this->ready_at,
-            'paid' => $this->paid_at,
-            'completed' => $this->completed_at,
+            'ready'      => $this->ready_at,
+            'paid'       => $this->paid_at,
+            'completed'  => $this->completed_at,
         ];
     }
     

@@ -16,13 +16,11 @@ import {
   Animated,
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { API_BASE_URL } from '../../constants/config';
 import { LinearGradient } from 'expo-linear-gradient';
 import { registerForPushNotifications } from '../../utils/notification';
-import TermsModal from '../../components/TermsModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -33,8 +31,6 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [showTermsModal, setShowTermsModal] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(true);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [attemptsLeft, setAttemptsLeft] = useState(null);
   const lockoutTimer = useRef(null);
@@ -61,16 +57,6 @@ export default function LoginScreen() {
   }, [lockoutSeconds]);
 
   useEffect(() => {
-    // Check if terms were previously accepted
-    const checkTermsAcceptance = async () => {
-      const accepted = await AsyncStorage.getItem('@washbox:terms_accepted');
-      if (!accepted) {
-        setShowTermsModal(true);
-        setTermsAccepted(false);
-      }
-    };
-    checkTermsAcceptance();
-
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -158,7 +144,6 @@ export default function LoginScreen() {
 
       if (response.ok && data.success) {
         setAttemptsLeft(null);
-        RateLimiter: null; // reset UI
         await login(data.data.token, data.data.customer);
         registerForPushNotifications(data.data.token).catch(() => {});
       } else {
@@ -177,18 +162,6 @@ export default function LoginScreen() {
   return (
     <>
       <StatusBar style="light" />
-      
-      {/* Terms Modal - Show first */}
-      <TermsModal
-        visible={showTermsModal}
-        onClose={() => router.back()}
-        onAccept={async () => {
-          await AsyncStorage.setItem('@washbox:terms_accepted', 'true');
-          setTermsAccepted(true);
-          setShowTermsModal(false);
-        }}
-        showAcceptButton={true}
-      />
 
       {/* Login Form */}
       <LinearGradient

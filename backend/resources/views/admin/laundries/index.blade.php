@@ -115,6 +115,25 @@
         </div>
     </div>
 
+    {{-- Tabs --}}
+    <div class="d-flex gap-2 mb-3">
+        <a href="{{ route('admin.laundries.index', array_merge(request()->except('tab','page'), ['tab'=>'all'])) }}"
+           class="btn {{ $tab === 'all' ? 'btn-primary' : 'btn-outline-secondary' }}">
+            <i class="bi bi-list-ul me-1"></i>All Laundries
+            <span class="badge {{ $tab === 'all' ? 'bg-white text-primary' : 'bg-primary' }} ms-1">{{ $tabCounts['all'] }}</span>
+        </a>
+        <a href="{{ route('admin.laundries.index', array_merge(request()->except('tab','page'), ['tab'=>'walkin'])) }}"
+           class="btn {{ $tab === 'walkin' ? 'btn-secondary' : 'btn-outline-secondary' }}">
+            <i class="bi bi-person-walking me-1"></i>Walk-in / Drop-off
+            <span class="badge {{ $tab === 'walkin' ? 'bg-white text-dark' : 'bg-secondary' }} ms-1">{{ $tabCounts['walkin'] }}</span>
+        </a>
+        <a href="{{ route('admin.laundries.index', array_merge(request()->except('tab','page'), ['tab'=>'delivery'])) }}"
+           class="btn {{ $tab === 'delivery' ? 'btn-success' : 'btn-outline-secondary' }}">
+            <i class="bi bi-truck me-1"></i>Pickup &amp; Delivery
+            <span class="badge {{ $tab === 'delivery' ? 'bg-white text-success' : 'bg-success' }} ms-1">{{ $tabCounts['delivery'] }}</span>
+        </a>
+    </div>
+
     {{-- Filters --}}
     <div class="card border-0 shadow-sm rounded-4 mb-4" style="background-color: #2d3748;">
         <div class="card-body p-3">
@@ -165,13 +184,14 @@
         @endif
             @php
                 $statusColors = [
-                    'completed'  => 'success',
-                    'ready'      => 'info',
-                    'processing' => 'warning',
-                    'paid'       => 'primary',
-                    'cancelled'  => 'danger',
-                    'received'   => 'secondary',
-                    'pending'    => 'warning',
+                    'received'         => 'secondary',
+                    'processing'       => 'warning',
+                    'ready'            => 'info',
+                    'out_for_delivery' => 'primary',
+                    'delivered'        => 'success',
+                    'paid'             => 'primary',
+                    'completed'        => 'success',
+                    'cancelled'        => 'danger',
                 ];
                 $color = $statusColors[$laundry->status] ?? 'secondary';
             @endphp
@@ -184,10 +204,16 @@
                                     {{ $laundry->tracking_number }}
                                 </a>
                                 @if($laundry->pickupRequest)
-                                    <br><small class="text-white-50"><i class="bi bi-truck me-1"></i>Pickup #{{ $laundry->pickupRequest->id }}</small>
+                                    <br><small class="text-white-50"><i class="bi bi-truck me-1"></i>Pickup #{{ $laundry->pickupRequest->id }}
+                                        @if(in_array($laundry->pickupRequest->service_type, ['both','delivery_only']))
+                                            <span class="badge bg-success ms-1" style="font-size:0.6rem;">Delivery</span>
+                                        @else
+                                            <span class="badge bg-light text-dark ms-1" style="font-size:0.6rem;">Walk-in</span>
+                                        @endif
+                                    </small>
                                 @endif
                             </div>
-                            <span class="badge bg-{{ $color }}">{{ ucfirst($laundry->status) }}</span>
+                            <span class="badge bg-{{ $color }}">{{ $laundry->status_label }}</span>
                         </div>
                         <div class="mb-3">
                             <div class="d-flex align-items-center mb-2">

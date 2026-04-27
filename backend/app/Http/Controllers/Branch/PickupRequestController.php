@@ -22,11 +22,19 @@ class PickupRequestController extends Controller
         if (!$branch)
             return redirect()->route('branch.dashboard')->with('error','Please login to access this page.');
 
+        $tab = $request->input('tab', 'active');
+
         $query = PickupRequest::with(['customer','service','assignedStaff','laundry'])
             ->where('branch_id',$branch->id)
-            ->orderBy('id','asc');
+            ->orderBy('created_at','asc');
 
-        if ($request->filled('status')&&$request->status!=='all')
+        if ($tab === 'laundry') {
+            $query->has('laundry');
+        } else {
+            $query->doesntHave('laundry')->whereNotIn('status', ['cancelled']);
+        }
+
+        if ($request->filled('status') && $request->status !== 'all')
             $query->where('status',$request->status);
         if ($request->filled('date'))
             $query->whereDate('preferred_date',$request->date);
@@ -38,10 +46,13 @@ class PickupRequestController extends Controller
         if ($request->filled('my_assigned'))
             $query->where('assigned_to',$branch->id);
 
-        $pickups  = $query->paginate(20);
-        $stats    = $this->getBranchStats($branch);
-        $branches = Branch::where('is_active',true)->get();
-        return view('branch.pickups.index', compact('pickups','stats','branches'));
+        $pickups      = $query->paginate(20)->withQueryString();
+        $stats        = $this->getBranchStats($branch);
+        $branches     = Branch::where('is_active',true)->get();
+        $activeCount  = PickupRequest::where('branch_id',$branch->id)->doesntHave('laundry')->whereNotIn('status',['cancelled'])->count();
+        $laundryCount = PickupRequest::where('branch_id',$branch->id)->has('laundry')->count();
+
+        return view('branch.pickups.index', compact('pickups','stats','branches','tab','activeCount','laundryCount'));
     }
 
     private function getBranchStats($branch): array

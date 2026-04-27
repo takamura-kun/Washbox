@@ -306,15 +306,15 @@
                             <div class="col-md-6" id="weightContainer">
                                 <label class="form-label fw-semibold">Weight (kg) <span class="text-danger">*</span></label>
                                 <div class="input-group">
-                                    <input type="number" name="weight" step="0.1" min="0"
+                                    <input type="number" name="weight" step="0.1" min="0.1" required
                                         class="form-control @error('weight') is-invalid @enderror"
                                         value="{{ old('weight') }}"
-                                        placeholder="0.0"
+                                        placeholder="e.g. 2.5"
                                         id="weightInput">
                                     <span class="input-group-text">kg</span>
                                 </div>
                                 @error('weight')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                <small class="text-muted" id="weightHelp">Enter laundry weight</small>
+                                <small class="text-muted" id="weightHelp">Select a service to see weight requirements</small>
                             </div>
 
                             {{-- Loads Input --}}

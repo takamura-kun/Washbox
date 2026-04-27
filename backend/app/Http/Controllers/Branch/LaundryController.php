@@ -36,8 +36,16 @@ class LaundryController extends Controller
 
         $branchId = $branch->id;
 
+        $tab = $request->input('tab', 'all');
+
         $query = Laundry::with(['customer', 'service', 'branch'])
             ->where('branch_id', $branchId);
+
+        if ($tab === 'walkin') {
+            $query->whereNull('pickup_request_id');
+        } elseif ($tab === 'delivery') {
+            $query->whereHas('pickupRequest', fn($q) => $q->whereIn('service_type', ['both', 'delivery_only']));
+        }
 
         if ($request->filled('search'))     $query->search($request->search);
         if ($request->filled('status'))     $query->byStatus($request->status);
@@ -45,7 +53,14 @@ class LaundryController extends Controller
         if ($request->filled('date_from'))  $query->whereDate('created_at', '>=', $request->date_from);
         if ($request->filled('date_to'))    $query->whereDate('created_at', '<=', $request->date_to);
 
-        $laundries = $query->latest()->paginate(20);
+        $laundries = $query->latest()->paginate(20)->withQueryString();
+
+        $base = Laundry::where('branch_id', $branchId);
+        $tabCounts = [
+            'all'      => (clone $base)->count(),
+            'walkin'   => (clone $base)->whereNull('pickup_request_id')->count(),
+            'delivery' => (clone $base)->whereHas('pickupRequest', fn($q) => $q->whereIn('service_type', ['both', 'delivery_only']))->count(),
+        ];
 
         $stats = [
             'total'           => Laundry::where('branch_id', $branchId)->count(),
@@ -62,7 +77,7 @@ class LaundryController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('branch.laundries.index', compact('laundries', 'stats', 'services'));
+        return view('branch.laundries.index', compact('laundries', 'stats', 'services', 'tab', 'tabCounts'));
     }
 
     /**
@@ -142,7 +157,7 @@ class LaundryController extends Controller
         $validated = $request->validate([
             'customer_id'       => 'required|exists:customers,id',
             'service_id'        => 'nullable|exists:services,id',
-            'weight'            => 'nullable|numeric|min:0|max:1000',
+            'weight'            => 'required|numeric|min:0.1|max:1000',
             'number_of_loads'   => 'required|integer|min:1',
             'pickup_date'       => 'nullable|date|after_or_equal:today',
             'delivery_date'     => 'nullable|date|after_or_equal:today',
@@ -659,17 +674,33 @@ class LaundryController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:received,processing,ready,completed',
+            'status' => 'required|in:received,processing,ready,out_for_delivery,delivered,completed,cancelled',
             'notes'  => 'nullable|string|max:500',
         ]);
 
         $oldStatus = $laundry->status;
         $newStatus = $validated['status'];
+
+        // Enforce correct flow
+        $isDelivery = $laundry->isDeliveryOrder();
+        $allowedTransitions = $isDelivery
+            ? ['received' => 'processing', 'processing' => 'ready', 'ready' => 'out_for_delivery', 'out_for_delivery' => 'delivered', 'delivered' => 'completed']
+            : ['received' => 'processing', 'processing' => 'ready', 'ready' => 'completed'];
+
         $laundry->update(['status' => $newStatus]);
 
-        if ($newStatus === 'processing' && !$laundry->processing_at) $laundry->update(['processing_at' => now()]);
-        elseif ($newStatus === 'ready'   && !$laundry->ready_at)      $laundry->update(['ready_at'      => now()]);
-        elseif ($newStatus === 'completed' && !$laundry->completed_at) $laundry->update(['completed_at' => now()]);
+        $timestampMap = [
+            'processing'       => 'processing_at',
+            'ready'            => 'ready_at',
+            'out_for_delivery' => 'out_for_delivery_at',
+            'delivered'        => 'delivered_at',
+            'completed'        => 'completed_at',
+            'cancelled'        => 'cancelled_at',
+        ];
+
+        if (isset($timestampMap[$newStatus]) && !$laundry->{$timestampMap[$newStatus]}) {
+            $laundry->update([$timestampMap[$newStatus] => now()]);
+        }
 
         $laundry->statusHistories()->create([
             'status'     => $newStatus,
@@ -712,15 +743,28 @@ class LaundryController extends Controller
         // Update payment status
         $laundry->update([
             'payment_status' => 'paid',
-            'paid_at' => now(),
+            'paid_at'        => now(),
         ]);
 
-        // Create status history
         $laundry->statusHistories()->create([
-            'status' => $laundry->status,
+            'status'     => 'paid',
             'changed_by' => $branch->id,
-            'notes' => 'Payment recorded',
+            'notes'      => 'Payment recorded',
         ]);
+
+        // Delivery orders: auto-complete since payment is collected at the door
+        // Walk-in orders: customer still needs to physically pick up — staff marks completed manually
+        if ($laundry->isDeliveryOrder()) {
+            $laundry->update(['status' => 'completed', 'completed_at' => now()]);
+            $laundry->statusHistories()->create([
+                'status'     => 'completed',
+                'changed_by' => $branch->id,
+                'notes'      => 'Auto-completed after delivery payment',
+            ]);
+            if ($laundry->customer_id) {
+                app(\App\Services\LaundryNotificationService::class)->onStatusChange($laundry, 'completed');
+            }
+        }
 
         return redirect()->route('branch.laundries.show', $laundry)
             ->with('success', 'Payment recorded successfully!');

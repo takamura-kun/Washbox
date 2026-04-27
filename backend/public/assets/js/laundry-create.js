@@ -748,14 +748,19 @@ initAddonQuantityControls() {
                 this.loadsInput.required = true;
             }
 
-            // Weight is optional for per-load — restore attributes that were stripped for per-piece
+            // Weight is required for per-load — enforce min_weight from service
             if (this.weightInput) {
-                this.weightInput.setAttribute('min', '0');  // restore min (0 = optional recording)
-                this.weightInput.required = false;
-                this.weightInput.removeAttribute('required');
+                const effectiveMin = minWeight > 0 ? minWeight : 0.1;
+                this.weightInput.setAttribute('min', effectiveMin);
+                this.weightInput.required = true;
+                this.weightInput.setAttribute('required', 'required');
             }
             const weightHelp = document.getElementById('weightHelp');
-            if (weightHelp) weightHelp.textContent = 'Record actual weight for reference';
+            if (weightHelp) {
+                weightHelp.textContent = minWeight > 0
+                    ? 'Minimum ' + minWeight + ' kg required for this service'
+                    : 'Enter actual weight in kg';
+            }
         }
 
         this.updatePrice();
