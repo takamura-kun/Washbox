@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, Platform, Linking,
@@ -100,7 +100,7 @@ export default function FAQScreen() {
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState({});
 
-  const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggle = useCallback((key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] })), []);
 
   const filtered = FAQS.map(cat => ({
     ...cat,

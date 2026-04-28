@@ -1,6 +1,6 @@
 export const MAP_CONFIG = {
   // Use a reliable tile server
-  tileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  tileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   
   tileServers: [
     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -16,10 +16,10 @@ export const MAP_CONFIG = {
   
   // Map defaults
   defaultRegion: {
-    latitude: 14.5995,  // Manila
-    longitude: 120.9842,
-    latitudeDelta: 0.1,
-    longitudeDelta: 0.1,
+    latitude: 9.3068,   // Dumaguete City
+    longitude: 123.3054,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
   },
   
   // Delivery settings

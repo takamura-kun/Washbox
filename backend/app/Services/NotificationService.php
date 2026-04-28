@@ -174,17 +174,44 @@ class NotificationService
         ?int $pickupRequestId = null,
         array $data = []
     ): Notification {
-        return Notification::create([
-            'customer_id' => $customerId,
-            'user_id' => null,
-            'type' => $type,
-            'title' => $title,
-            'body' => $body,
-            'laundries_id' => $laundryId,
-            'pickup_request_id' => $pickupRequestId,
-            'data' => $data,
-            'is_read' => false,
+        $notification = Notification::create([
+            'customer_id'        => $customerId,
+            'user_id'            => null,
+            'type'               => $type,
+            'title'              => $title,
+            'body'               => $body,
+            'laundries_id'       => $laundryId,
+            'pickup_request_id'  => $pickupRequestId,
+            'data'               => $data,
+            'is_read'            => false,
         ]);
+
+        // Send FCM push notification if customer has a token
+        try {
+            $customer = Customer::find($customerId);
+            if ($customer && $customer->fcm_token) {
+                $fcmData = array_merge(
+                    array_map('strval', $data), // FCM requires all data values to be strings
+                    [
+                        'type'            => (string) $type,
+                        'laundry_id'      => (string) ($laundryId ?? ''),
+                        'laundries_id'    => (string) ($laundryId ?? ''),
+                        'pickup_id'       => (string) ($pickupRequestId ?? ''),
+                        'notification_id' => (string) $notification->id,
+                    ]
+                );
+                app(\App\Services\FCMService::class)->sendToDevice(
+                    $customer->fcm_token,
+                    $title,
+                    $body,
+                    $fcmData
+                );
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('[FCM] Push failed for customer ' . $customerId . ': ' . $e->getMessage());
+        }
+
+        return $notification;
     }
 
     // ========================================================================

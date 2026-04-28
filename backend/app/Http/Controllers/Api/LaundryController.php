@@ -36,6 +36,7 @@ class LaundryController extends Controller
                     'branch_name' => $laundry->branch->name ?? 'Branch',
                     'weight' => (float) $laundry->weight,
                     'total_amount' => (float) $laundry->total_amount,
+                    'pickup_request_id' => $laundry->pickup_request_id,
                     'estimated_completion' => $laundry->delivery_date
                         ? $laundry->delivery_date
                         : $laundry->created_at->addDays(2)->toIso8601String(),

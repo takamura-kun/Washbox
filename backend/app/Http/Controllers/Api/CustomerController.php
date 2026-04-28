@@ -238,23 +238,71 @@ public function updateFcmToken(Request $request)
 }
 
 /**
+ * Clear FCM token on logout
+ *
+ * DELETE /api/v1/customer/fcm-token
+ */
+public function clearFcmToken(Request $request)
+{
+    $customer = $request->user();
+    $customer->update(['fcm_token' => null]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'FCM token cleared',
+    ]);
+}
+
+/**
+ * Get notification preferences
+ *
+ * GET /api/v1/customer/notification-preferences
+ */
+public function getNotificationPreferences(Request $request)
+{
+    $customer = $request->user();
+    $prefs = $customer->notification_preferences
+        ? (is_array($customer->notification_preferences)
+            ? $customer->notification_preferences
+            : json_decode($customer->notification_preferences, true))
+        : [];
+
+    // Default all to true if not set
+    $defaults = [
+        'laundry_received'   => true, 'laundry_ready'      => true,
+        'laundry_completed'  => true, 'laundry_cancelled'  => true,
+        'pickup_accepted'    => true, 'pickup_en_route'    => true,
+        'pickup_completed'   => true, 'delivery_en_route'  => true,
+        'payment_approved'   => true, 'payment_rejected'   => true,
+        'promotion'          => true,
+    ];
+
+    return response()->json([
+        'success' => true,
+        'data'    => ['preferences' => array_merge($defaults, $prefs)],
+    ]);
+}
+
+/**
  * Update notification preferences
  *
- * PUT /api/v1/profile/notifications
+ * PUT /api/v1/customer/notification-preferences
  */
 public function updateNotificationPreferences(Request $request)
 {
     $request->validate([
-        'notification_enabled' => 'required|boolean',
+        'preferences' => 'required|array',
     ]);
 
     $customer = $request->user();
-    $customer->update(['notification_enabled' => $request->notification_enabled]);
+    $customer->update([
+        'notification_preferences' => json_encode($request->preferences),
+    ]);
 
     return response()->json([
         'success' => true,
         'message' => 'Notification preferences updated',
-        'notification_enabled' => $customer->notification_enabled,
+        'data'    => ['preferences' => $request->preferences],
     ]);
 }
 }

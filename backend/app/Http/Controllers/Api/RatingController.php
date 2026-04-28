@@ -1,7 +1,7 @@
 <?php
 // app/Http/Controllers/Api/Customer/RatingController.php
 
-namespace App\Http\Controllers\Api\Customer;
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CustomerRating;

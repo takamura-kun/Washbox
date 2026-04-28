@@ -27,15 +27,53 @@ if (Platform.OS === 'web') {
   const Device = require('expo-device');
   const Constants = require('expo-constants');
   
-  const isExpoGo = Constants.default.appOwnership === 'expo';
+  // Detect Expo Go using executionEnvironment (works in SDK 49+)
+  // 'storeClient' = Expo Go, 'bare' = dev build / production
+  const executionEnv = Constants.default?.executionEnvironment ||
+    Constants.executionEnvironment || '';
+  const appOwnership = Constants.default?.appOwnership ||
+    Constants.appOwnership || '';
+  const isExpoGo = executionEnv === 'storeClient' || appOwnership === 'expo';
   
   let Notifications = null;
+  let TaskManager = null;
   
   if (!isExpoGo) {
     try {
       Notifications = require('expo-notifications');
     } catch (e) {
       console.warn('[FCM] Failed to load expo-notifications:', e);
+    }
+    try {
+      TaskManager = require('expo-task-manager');
+    } catch (e) {
+      console.warn('[FCM] Failed to load expo-task-manager:', e);
+    }
+  }
+
+  const BACKGROUND_NOTIFICATION_TASK = 'WASHBOX_BACKGROUND_NOTIFICATION';
+
+  // Register background notification task
+  if (TaskManager && Notifications && !isExpoGo) {
+    try {
+      TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, ({ data, error }) => {
+        if (error) {
+          console.error('[FCM] Background task error:', error);
+          return;
+        }
+        if (data) {
+          const { notification } = data;
+          console.log('[FCM] Background notification received:', notification?.request?.content?.data?.type);
+          // OS handles showing the notification — we just log here
+        }
+      });
+
+      // Register the task with expo-notifications
+      Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK).catch(e => {
+        console.warn('[FCM] Background task registration failed:', e);
+      });
+    } catch (e) {
+      console.warn('[FCM] Background task setup failed:', e);
     }
   }
 
@@ -223,8 +261,8 @@ if (Platform.OS === 'web') {
           case 'delivery_failed':
           case 'unclaimed_reminder':
             if (pickup_id) {
-              console.log(`[FCM] Navigating to pickup tracking: /pickup-tracking?pickup_id=${pickup_id}`);
-              router.push(`/pickup-tracking?pickup_id=${pickup_id}`);
+              console.log(`[FCM] Navigating to pickup tracking: /pickup-tracking?id=${pickup_id}`);
+              router.push(`/pickup-tracking?id=${pickup_id}`);
             } else if (actualLaundryId) {
               console.log(`[FCM] No pickup_id, navigating to laundry: /laundries/${actualLaundryId}`);
               router.push(`/laundries/${actualLaundryId}`);

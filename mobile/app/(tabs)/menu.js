@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { API_BASE_URL, STORAGE_KEYS, ENDPOINTS } from '../../constants/config';
 import { useAuth } from '../../context/AuthContext';
 import TermsModal from '../../components/TermsModal';
+import { clearFcmTokenOnLogout } from '../../utils/notification';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -347,6 +348,9 @@ export default function MenuScreen() {
       const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
 
       if (token) {
+        // Clear FCM token from backend before logout
+        await clearFcmTokenOnLogout(token);
+
         await fetch(`${API_BASE_URL}/v1/logout`, {
           method: 'POST',
           headers: {

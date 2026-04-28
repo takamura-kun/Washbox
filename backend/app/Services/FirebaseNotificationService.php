@@ -5,6 +5,8 @@ namespace App\Services;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
+use Kreait\Firebase\Messaging\AndroidConfig;
+use Kreait\Firebase\Messaging\ApnsConfig;
 use Kreait\Firebase\Exception\MessagingException;
 use Illuminate\Support\Facades\Log;
 use App\Models\SystemSetting;
@@ -35,7 +37,7 @@ class FirebaseNotificationService
                 ->withData($data);
             
             if ($sound) {
-                $message = $message->withAndroidConfig([
+                $message = $message->withAndroidConfig(AndroidConfig::fromArray([
                     'priority' => 'high',
                     'notification' => [
                         'sound' => $sound,
@@ -43,9 +45,9 @@ class FirebaseNotificationService
                         'default_vibrate_timings' => true,
                         'default_light_settings' => true,
                     ]
-                ]);
+                ]));
                 
-                $message = $message->withApnsConfig([
+                $message = $message->withApnsConfig(ApnsConfig::fromArray([
                     'headers' => ['apns-priority' => '10'],
                     'payload' => [
                         'aps' => [
@@ -54,7 +56,7 @@ class FirebaseNotificationService
                             'alert' => ['title' => $title, 'body' => $body],
                         ],
                     ],
-                ]);
+                ]));
             }
 
             $this->messaging->send($message);
@@ -84,7 +86,7 @@ class FirebaseNotificationService
                 ->withData($data);
             
             if ($sound) {
-                $message = $message->withAndroidConfig([
+                $message = $message->withAndroidConfig(AndroidConfig::fromArray([
                     'priority' => 'high',
                     'notification' => [
                         'sound' => $sound,
@@ -92,9 +94,9 @@ class FirebaseNotificationService
                         'default_vibrate_timings' => true,
                         'default_light_settings' => true,
                     ]
-                ]);
+                ]));
                 
-                $message = $message->withApnsConfig([
+                $message = $message->withApnsConfig(ApnsConfig::fromArray([
                     'headers' => ['apns-priority' => '10'],
                     'payload' => [
                         'aps' => [
@@ -103,7 +105,7 @@ class FirebaseNotificationService
                             'alert' => ['title' => $title, 'body' => $body],
                         ],
                     ],
-                ]);
+                ]));
             }
 
             $this->messaging->sendMulticast($message, $deviceTokens);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Switch, ActivityIndicator, Alert, Platform,
@@ -76,7 +76,7 @@ export default function NotificationSettingsScreen() {
         // Try API
         const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
         if (token) {
-          const res = await fetch(`${API_BASE_URL}/v1/notification-preferences`, {
+          const res = await fetch(`${API_BASE_URL}/v1/customer/notification-preferences`, {
             headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
           });
           if (res.ok) {
@@ -98,17 +98,22 @@ export default function NotificationSettingsScreen() {
     }
   };
 
-  const toggle = (key) => {
+  const toggleItem = useCallback((key) => {
     setSettings(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+  }, []);
 
-  const toggleGroup = (group) => {
+  const toggleGroupByKey = useCallback((group) => {
     const keys = group.items.map(i => i.key);
-    const allOn = keys.every(k => settings[k]);
-    const update = {};
-    keys.forEach(k => { update[k] = !allOn; });
-    setSettings(prev => ({ ...prev, ...update }));
-  };
+    setSettings(prev => {
+      const allOn = keys.every(k => prev[k]);
+      const update = {};
+      keys.forEach(k => { update[k] = !allOn; });
+      return { ...prev, ...update };
+    });
+  }, []);
+
+  const toggle = toggleItem;
+  const toggleGroup = toggleGroupByKey;
 
   const save = async () => {
     setSaving(true);
@@ -116,7 +121,7 @@ export default function NotificationSettingsScreen() {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
       const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
       if (token) {
-        await fetch(`${API_BASE_URL}/v1/notification-preferences`, {
+        await fetch(`${API_BASE_URL}/v1/customer/notification-preferences`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

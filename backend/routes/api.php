@@ -116,6 +116,8 @@ Route::prefix('v1')->group(function () {
 
             // Push Notification Token & Preferences
             Route::post('/fcm-token', [CustomerController::class, 'updateFcmToken']);
+            Route::delete('/fcm-token', [CustomerController::class, 'clearFcmToken']);
+            Route::get('/notification-preferences', [CustomerController::class, 'getNotificationPreferences']);
             Route::put('/notification-preferences', [CustomerController::class, 'updateNotificationPreferences']);
 
             // Payment Proofs (GCash)

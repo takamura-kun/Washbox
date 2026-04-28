@@ -64,19 +64,23 @@ const OSMMap = ({
         style={styles.map}
         initialRegion={initialRegion}
         onRegionChangeComplete={onRegionChange}
-        onPress={onMapPress} // NEW: Tap to pin
+        onRegionChange={onRegionChange}
+        onPress={onMapPress}
         zoomEnabled={zoomEnabled}
         scrollEnabled={scrollEnabled}
         showsUserLocation={true}
         showsMyLocationButton={true}
         showsCompass={true}
         showsScale={true}
+        mapType="none"
       >
         {/* OSM Tile Layer */}
         <UrlTile
           urlTemplate={MAP_CONFIG.tileUrl}
           maximumZ={19}
           flipY={false}
+          shouldReplaceMapContent={true}
+          zIndex={-1}
         />
         
         {/* Polylines for routes */}

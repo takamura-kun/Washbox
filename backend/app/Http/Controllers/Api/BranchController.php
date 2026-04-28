@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class BranchController extends Controller
@@ -100,48 +101,52 @@ class BranchController extends Controller
     public function index()
     {
         try {
-            $branches = Branch::where('is_active', true)
-                ->withCount(['ratings as ratings_count'])
-                ->withAvg('ratings as average_rating', 'rating')
-                ->orderBy('name')
-                ->get()
-                ->map(function ($branch) {
-                    return [
-                        'id' => $branch->id,
-                        'name' => $branch->name,
-                        'code' => $branch->code,
-                        'city' => $branch->city,
-                        'province' => $branch->province,
-                        'address' => $branch->address,
-                        'phone' => $branch->phone,
-                        'email' => $branch->email,
-                        'latitude' => $branch->latitude,
-                        'longitude' => $branch->longitude,
-                        'operating_hours' => $branch->operating_hours,
-                        'is_open' => $branch->isOpen(),
-                        'today_hours' => $branch->getTodayHoursFormatted(),
-                        'is_active' => $branch->is_active,
-                        'average_rating' => $branch->average_rating ? round($branch->average_rating, 1) : null,
-                        'ratings_count' => $branch->ratings_count ?? 0,
-                        'created_at' => $branch->created_at->toIso8601String(),
-                        'updated_at' => $branch->updated_at->toIso8601String(),
-                    ];
-                });
+            $data = Cache::remember('api.branches.all', 300, function () {
+                $branches = Branch::where('is_active', true)
+                    ->withCount(['ratings as ratings_count'])
+                    ->withAvg('ratings as average_rating', 'rating')
+                    ->orderBy('name')
+                    ->get()
+                    ->map(function ($branch) {
+                        return [
+                            'id' => $branch->id,
+                            'name' => $branch->name,
+                            'code' => $branch->code,
+                            'city' => $branch->city,
+                            'province' => $branch->province,
+                            'address' => $branch->address,
+                            'phone' => $branch->phone,
+                            'email' => $branch->email,
+                            'latitude' => $branch->latitude,
+                            'longitude' => $branch->longitude,
+                            'operating_hours' => $branch->operating_hours,
+                            'is_open' => $branch->isOpen(),
+                            'today_hours' => $branch->getTodayHoursFormatted(),
+                            'is_active' => $branch->is_active,
+                            'average_rating' => $branch->average_rating ? round($branch->average_rating, 1) : null,
+                            'ratings_count' => $branch->ratings_count ?? 0,
+                            'created_at' => $branch->created_at->toIso8601String(),
+                            'updated_at' => $branch->updated_at->toIso8601String(),
+                        ];
+                    });
+
+                return [
+                    'branches' => $branches,
+                    'count'    => $branches->count(),
+                ];
+            });
 
             return response()->json([
                 'success' => true,
                 'message' => 'Branches retrieved successfully',
-                'data' => [
-                    'branches' => $branches,
-                    'count' => $branches->count()
-                ]
+                'data'    => $data,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve branches',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }

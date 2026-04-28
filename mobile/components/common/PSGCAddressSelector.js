@@ -222,9 +222,41 @@ export default function PSGCAddressSelector({ onChange, initialValues }) {
   useEffect(() => {
     setLoadingCities(true);
     fetch(`${PSGC}/provinces/${NEGROS_ORIENTAL_CODE}/cities-municipalities.json`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('PSGC fetch failed');
+        return r.json();
+      })
       .then(data => setCities(data.sort((a, b) => a.name.localeCompare(b.name))))
-      .catch(() => setCities([]))
+      .catch(() => {
+        // Fallback: hardcoded Negros Oriental cities so the form still works offline
+        setCities([
+          { code: '074610000', name: 'City of Dumaguete' },
+          { code: '074620000', name: 'Sibulan' },
+          { code: '074604000', name: 'City of Bais' },
+          { code: '074606000', name: 'City of Bayawan' },
+          { code: '074608000', name: 'City of Canlaon' },
+          { code: '074611000', name: 'City of Guihulngan' },
+          { code: '074621000', name: 'City of Tanjay' },
+          { code: '074601000', name: 'Amlan' },
+          { code: '074602000', name: 'Ayungon' },
+          { code: '074603000', name: 'Bacong' },
+          { code: '074605000', name: 'Basay' },
+          { code: '074607000', name: 'Bindoy' },
+          { code: '074609000', name: 'Dauin' },
+          { code: '074612000', name: 'Jimalalud' },
+          { code: '074613000', name: 'La Libertad' },
+          { code: '074614000', name: 'Mabinay' },
+          { code: '074615000', name: 'Manjuyod' },
+          { code: '074616000', name: 'Pamplona' },
+          { code: '074617000', name: 'San Jose' },
+          { code: '074618000', name: 'Santa Catalina' },
+          { code: '074619000', name: 'Siaton' },
+          { code: '074622000', name: 'Tayasan' },
+          { code: '074623000', name: 'Valencia' },
+          { code: '074624000', name: 'Vallehermoso' },
+          { code: '074625000', name: 'Zamboanguita' },
+        ].sort((a, b) => a.name.localeCompare(b.name)));
+      })
       .finally(() => setLoadingCities(false));
   }, []);
 

@@ -812,8 +812,6 @@ const LaundryCard = ({ laundry }) => {
   const statusColor = getStatusColor(laundry.status);
   const isActive = !['completed', 'cancelled'].includes(laundry.status?.toLowerCase());
   const hasPickup = !!laundry.pickup_request_id;
-  const isEnRoute = laundry.status?.toLowerCase() === 'en_route' ||
-    (hasPickup && ['accepted', 'en_route'].includes(laundry.pickup_status?.toLowerCase()));
 
   return (
     <TouchableOpacity
@@ -853,10 +851,10 @@ const LaundryCard = ({ laundry }) => {
               ₱{Number(laundry.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </Text>
           )}
-          {isActive && hasPickup && laundry.pickup_id && (
+          {isActive && hasPickup && (
             <TouchableOpacity
               style={styles.trackChip}
-              onPress={(e) => { e.stopPropagation(); router.push(`/pickup-tracking?id=${laundry.pickup_id}`); }}
+              onPress={(e) => { e.stopPropagation(); router.push(`/pickup-tracking?id=${laundry.pickup_request_id}`); }}
               activeOpacity={0.7}
             >
               <Ionicons name="navigate" size={12} color={COLORS.success} />

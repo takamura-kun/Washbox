@@ -15,11 +15,10 @@ class DatabaseSeeder extends Seeder
 
         // Seed in order
         $this->call(AdminUserSeeder::class);
+        $this->call(BranchSeeder::class);
         $this->call(StaffSeeder::class);
         $this->call(SystemSettingsSeeder::class);
-        $this->call(UnclaimedLaundrySeeder::class);
         $this->call(ServiceTypeSeeder::class);
-        $this->call(BranchSeeder::class);
         $this->call(CustomerSeeder::class);
         // Inventory data should be created by the owner
         // $this->call(InventoryCategorySeeder::class);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, RefreshControl, Linking, Platform,
@@ -111,6 +111,9 @@ export default function BranchLocatorScreen() {
 
   const callBranch = (phone) => Linking.openURL(`tel:${phone}`);
 
+  const handleOpenMaps = useCallback((branch) => openMaps(branch), []);
+  const handleCall = useCallback((phone) => callBranch(phone), []);
+
   const branchesWithDistance = branches.map(b => ({
     ...b,
     distance: (userLocation && b.latitude && b.longitude)
@@ -213,12 +216,12 @@ export default function BranchLocatorScreen() {
 
             {/* Actions */}
             <View style={styles.actions}>
-              <TouchableOpacity style={styles.actionBtn} onPress={() => openMaps(branch)} activeOpacity={0.7}>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => handleOpenMaps(branch)} activeOpacity={0.7}>
                 <Ionicons name="navigate-outline" size={16} color={COLORS.primary} />
                 <Text style={styles.actionBtnText}>Directions</Text>
               </TouchableOpacity>
               {branch.phone && (
-                <TouchableOpacity style={[styles.actionBtn, styles.actionBtnGreen]} onPress={() => callBranch(branch.phone)} activeOpacity={0.7}>
+                <TouchableOpacity style={[styles.actionBtn, styles.actionBtnGreen]} onPress={() => handleCall(branch.phone)} activeOpacity={0.7}>
                   <Ionicons name="call-outline" size={16} color={COLORS.success} />
                   <Text style={[styles.actionBtnText, { color: COLORS.success }]}>Call</Text>
                 </TouchableOpacity>
