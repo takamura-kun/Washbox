@@ -145,7 +145,12 @@ export default function LoginScreen() {
       if (response.ok && data.success) {
         setAttemptsLeft(null);
         await login(data.data.token, data.data.customer);
-        registerForPushNotifications(data.data.token).catch(() => {});
+        registerForPushNotifications(data.data.token)
+          .then(token => {
+            if (token) console.log('[Login] FCM token registered:', token.substring(0, 20) + '...');
+            else console.warn('[Login] FCM token registration returned null');
+          })
+          .catch(err => console.error('[Login] FCM registration error:', err));
       } else {
         if (data.attempts_left !== undefined) {
           setAttemptsLeft(data.attempts_left);

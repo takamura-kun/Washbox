@@ -44,8 +44,17 @@ export default function PickupTrackingScreen() {
 
   useEffect(() => {
     fetchPickupDetails();
-    const interval = setInterval(fetchPickupDetails, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchPickupDetails, 30000);
+
+    // Auto-refresh when FCM notification arrives for this pickup
+    global.__onFCMNotification = (data) => {
+      if (data?.type?.includes('pickup_')) fetchPickupDetails();
+    };
+
+    return () => {
+      clearInterval(interval);
+      global.__onFCMNotification = null;
+    };
   }, [id]);
 
   const fetchPickupDetails = async () => {

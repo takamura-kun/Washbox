@@ -45,6 +45,17 @@ export default function LaundriesScreen() {
   useEffect(() => {
     fetchLaundries();     
     
+    // Auto-refresh when FCM notification arrives
+    global.__onFCMNotification = (data) => {
+      if (data?.type && (
+        data.type.includes('laundry_') ||
+        data.type.includes('payment_') ||
+        data.type.includes('delivery_')
+      )) {
+        fetchLaundries();
+      }
+    };
+
     // Set up notification listener for real-time updates (only in development builds)
     let notificationSubscription;
     if (Platform.OS !== 'web') {

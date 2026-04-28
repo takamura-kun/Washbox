@@ -131,7 +131,7 @@ if (Platform.OS === 'web') {
 
         await Notifications.setNotificationChannelAsync('washbox-promo', {
           name: 'Promotions',
-          importance: Notifications.AndroidImportance.DEFAULT,
+          importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 200, 100, 200],
           lightColor: '#EC4899',
           sound: 'promo_chime',
@@ -164,9 +164,10 @@ if (Platform.OS === 'web') {
     try {
       const tokenData = await Notifications.getDevicePushTokenAsync();
       fcmToken = tokenData.data;
-      console.log('[FCM] Token obtained:', fcmToken?.substring(0, 20) + '...');
+      console.log('[FCM] Native FCM token obtained:', fcmToken?.substring(0, 20) + '...');
     } catch (err) {
-      console.error('[FCM] Failed to get device token:', err);
+      console.error('[FCM] Failed to get native FCM token:', err.message);
+      console.log('[FCM] Make sure you are running a proper APK build, not Expo Go.');
       return null;
     }
 
@@ -351,6 +352,10 @@ if (Platform.OS === 'web') {
     const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
       const data = notification.request.content.data;
       console.log('[FCM] Notification received in foreground, type:', data?.type);
+      // Dispatch a global event so any screen can react (e.g. refresh notification list)
+      if (typeof global.__onFCMNotification === 'function') {
+        global.__onFCMNotification(data);
+      }
     });
 
     return () => {

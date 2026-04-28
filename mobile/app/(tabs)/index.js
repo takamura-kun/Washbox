@@ -164,6 +164,13 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchAllData();
+
+    // Auto-refresh when FCM notification arrives
+    global.__onFCMNotification = (data) => {
+      if (data?.type) fetchAllData();
+    };
+
+    return () => { global.__onFCMNotification = null; };
   }, []);
 
 
@@ -508,7 +515,7 @@ export default function HomeScreen() {
               <ServiceCard
                 icon="shirt-outline"
                 title="Laundry"
-                subtitle="Track orders"
+                subtitle="Track Laundries"
                 color={COLORS.secondary}
                 onPress={() => router.push('/(tabs)/laundry')}
               />
