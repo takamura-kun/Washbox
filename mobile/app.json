@@ -47,6 +47,8 @@
     "plugins": [
       "expo-router",
       "expo-task-manager",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       [
         "expo-splash-screen",
         {
