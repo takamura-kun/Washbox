@@ -49,6 +49,7 @@
       "expo-task-manager",
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
+      "./plugins/withFirebaseMessagingFix",
       [
         "expo-splash-screen",
         {
