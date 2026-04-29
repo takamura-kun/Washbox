@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -43,8 +42,8 @@ export default function LaundriesScreen() {
   const [filteredLaundries, setFilteredLaundries] = useState([]);
 
   useEffect(() => {
-    fetchLaundries();     
-    
+    fetchLaundries();
+
     // Auto-refresh when FCM notification arrives
     global.__onFCMNotification = (data) => {
       if (data?.type && (
@@ -56,40 +55,7 @@ export default function LaundriesScreen() {
       }
     };
 
-    // Set up notification listener for real-time updates (only in development builds)
-    let notificationSubscription;
-    if (Platform.OS !== 'web') {
-      try {
-        // Dynamically import expo-notifications only if available
-        const NotificationsModule = require('expo-notifications');
-        if (NotificationsModule) {
-          notificationSubscription = NotificationsModule.addNotificationReceivedListener(notification => {
-            const data = notification.request.content.data;
-            console.log('[Laundry] Notification received:', data?.type);
-            
-            // Auto-refresh when laundry status changes
-            if (data?.type && (
-              data.type.includes('laundry_') || 
-              data.type.includes('payment_') ||
-              data.type.includes('pickup_') ||
-              data.type.includes('delivery_')
-            )) {
-              console.log('[Laundry] Status update detected, refreshing...');
-              fetchLaundries();
-            }
-          });
-        }
-      } catch (e) {
-        // Notifications not available (Expo Go SDK 53+), silently continue
-        console.log('[Laundry] Push notifications not available in Expo Go');
-      }
-    }
-    
-    return () => {
-      if (notificationSubscription) {
-        notificationSubscription.remove();
-      }
-    };
+    return () => { global.__onFCMNotification = null; };
   }, []);
 
   // Filter laundries when tab or search changes
