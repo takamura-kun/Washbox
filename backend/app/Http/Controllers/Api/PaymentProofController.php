@@ -6,9 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Laundry;
 use App\Models\PaymentProof;
 use App\Services\SecureFileUploadService;
-use App\Services\NotificationService;
+use App\Services\NotificationManager;
+use App\Services\TransactionService;
+use App\Exceptions\UnauthorizedException;
+use App\Exceptions\ResourceNotFoundException;
+use App\Exceptions\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PaymentProofController extends Controller
@@ -21,121 +26,174 @@ class PaymentProofController extends Controller
             ->firstOrFail();
     }
 
-    public function store(Request $request, $laundryId)
+    public function store(Request $request, $laundryId, TransactionService $transactionService)
     {
-        $customer = $request->user();
+        try {
+            $customer = $request->user();
 
-        $validator = Validator::make($request->all(), [
-            'amount' => 'required|numeric|min:0',
-            'reference_number' => 'nullable|string|max:255',
-            'proof_image' => 'required|image|mimes:jpeg,png,jpg|max:5120', // 5MB max
-        ]);
+            // Validate input
+            $validated = $request->validate([
+                'reference_number' => 'nullable|string|max:255',
+                'proof_image' => 'required|image|mimes:jpeg,png,jpg|max:5120', // 5MB max
+                'notes' => 'nullable|string|max:500',
+            ]);
 
-        if ($validator->fails()) {
+            // Find laundry
+            $laundry = Laundry::where(function ($query) use ($laundryId) {
+                $query->where('tracking_number', $laundryId)
+                      ->orWhere('id', $laundryId);
+            })->first();
+
+            if (!$laundry) {
+                throw new ResourceNotFoundException('Laundry', $laundryId);
+            }
+
+            // Verify ownership
+            if ($laundry->customer_id !== $customer->id) {
+                throw new UnauthorizedException('You do not have access to this laundry');
+            }
+
+            // Check if payment is already approved
+            if ($laundry->payment_status === 'approved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment already approved for this laundry',
+                    'code' => 'PAYMENT_ALREADY_APPROVED'
+                ], 400);
+            }
+
+            // Upload proof image securely
+            try {
+                $uploadResult = SecureFileUploadService::uploadImage(
+                    $request->file('proof_image'),
+                    'payment-proofs'
+                );
+                $validated['screenshot_path'] = $uploadResult['filename'];
+            } catch (\Exception $e) {
+                Log::error("Payment proof upload failed: {$e->getMessage()}", [
+                    'laundry_id' => $laundry->id,
+                    'customer_id' => $customer->id,
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File upload failed. Please try again.',
+                    'code' => 'FILE_UPLOAD_FAILED'
+                ], 400);
+            }
+
+            // Process payment with atomic transaction and idempotency
+            $result = $transactionService->processPaymentProof($laundry, [
+                'payment_method' => 'gcash',
+                'transaction_id' => $validated['reference_number'] ?? null,
+                'reference_number' => $validated['reference_number'] ?? null,
+                'screenshot_path' => $validated['screenshot_path'],
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            // Send notification to customer
+            $notificationManager = new NotificationManager();
+            $notificationManager->sendPaymentStatusChanged($laundry, $laundry->payment_status, 'pending');
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'],
+                'code' => 'PAYMENT_SUBMITTED',
+                'data' => [
+                    'payment_proof_id' => $result['payment_proof_id'],
+                    'status' => 'pending',
+                    'submitted_at' => now()->toIso8601String(),
+                    'idempotent' => $result['idempotent'] ?? false,
+                ]
+            ], 201);
+
+        } catch (ResourceNotFoundException $e) {
+            return $e->render();
+        } catch (UnauthorizedException $e) {
+            return $e->render();
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors()
             ], 422);
-        }
-
-        $laundry = $this->resolveLaundryOrFail((string) $laundryId);
-
-        // Check if laundry belongs to authenticated customer
-        if (!$customer || $laundry->customer_id !== $customer->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access to this laundry'
-            ], 403);
-        }
-
-        // Check if payment is already completed
-        if ($laundry->payment_status === 'paid') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment already completed for this laundry'
-            ], 400);
-        }
-
-        // Store the proof image securely
-        try {
-            $uploadResult = SecureFileUploadService::uploadImage(
-                $request->file('proof_image'),
-                'payment-proofs'
-            );
-            $filename = $uploadResult['filename'];
         } catch (\Exception $e) {
+            Log::error("Payment proof submission failed: {$e->getMessage()}", [
+                'laundry_id' => $laundryId,
+                'customer_id' => $customer->id ?? null,
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'File upload failed: ' . $e->getMessage(),
-            ], 400);
+                'message' => 'Failed to submit payment proof. Please try again later.',
+                'code' => 'PAYMENT_SUBMISSION_FAILED'
+            ], 500);
         }
-
-        // Create payment proof record
-        $paymentProof = PaymentProof::create([
-            'laundry_id' => $laundry->id,
-            'payment_method' => 'gcash',
-            'amount' => $request->amount,
-            'reference_number' => $request->reference_number,
-            'proof_image' => $filename,
-            'status' => 'pending'
-        ]);
-
-        // Update laundry payment status to pending verification
-        $laundry->update(['payment_status' => 'pending_verification']);
-
-        // Notify branch staff about new payment proof
-        NotificationService::notifyPaymentProofSubmitted(
-            $laundry,
-            $request->amount,
-            $request->reference_number
-        );
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Payment proof submitted successfully. Please wait for admin verification.',
-            'data' => [
-                'payment_proof_id' => $paymentProof->id,
-                'status' => $paymentProof->status,
-                'submitted_at' => $paymentProof->created_at
-            ]
-        ]);
     }
 
     public function show(Request $request, $laundryId)
     {
-        $customer = $request->user();
-        $laundry = $this->resolveLaundryOrFail((string) $laundryId);
+        try {
+            $customer = $request->user();
+            
+            // Find laundry
+            $laundry = Laundry::where(function ($query) use ($laundryId) {
+                $query->where('tracking_number', $laundryId)
+                      ->orWhere('id', $laundryId);
+            })->first();
 
-        // Check if laundry belongs to authenticated customer
-        if (!$customer || $laundry->customer_id !== $customer->id) {
+            if (!$laundry) {
+                throw new ResourceNotFoundException('Laundry', $laundryId);
+            }
+
+            // Verify ownership
+            if ($laundry->customer_id !== $customer->id) {
+                throw new UnauthorizedException('You do not have access to this laundry');
+            }
+
+            // Get latest payment proof
+            $paymentProof = PaymentProof::where('laundry_id', $laundry->id)
+                ->latest('created_at')
+                ->first();
+
+            if (!$paymentProof) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No payment proof found for this laundry',
+                    'code' => 'NO_PAYMENT_PROOF'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $paymentProof->id,
+                    'laundry_id' => $paymentProof->laundry_id,
+                    'amount' => (float) $paymentProof->amount,
+                    'reference_number' => $paymentProof->reference_number,
+                    'payment_method' => $paymentProof->payment_method,
+                    'status' => $paymentProof->status,
+                    'notes' => $paymentProof->notes,
+                    'submitted_at' => $paymentProof->created_at->toIso8601String(),
+                    'approved_at' => $paymentProof->approved_at?->toIso8601String(),
+                    'rejected_at' => $paymentProof->rejected_at?->toIso8601String(),
+                ]
+            ]);
+
+        } catch (ResourceNotFoundException $e) {
+            return $e->render();
+        } catch (UnauthorizedException $e) {
+            return $e->render();
+        } catch (\Exception $e) {
+            Log::error("Failed to fetch payment proof: {$e->getMessage()}", [
+                'laundry_id' => $laundryId,
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized access to this laundry'
-            ], 403);
+                'message' => 'Failed to fetch payment proof',
+                'code' => 'FETCH_FAILED'
+            ], 500);
         }
-
-        $paymentProof = $laundry->latestPaymentProof;
-
-        if (!$paymentProof) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No payment proof found for this laundry'
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $paymentProof->id,
-                'amount' => $paymentProof->amount,
-                'reference_number' => $paymentProof->reference_number,
-                'status' => $paymentProof->status,
-                'admin_notes' => $paymentProof->admin_notes,
-                'submitted_at' => $paymentProof->created_at,
-                'verified_at' => $paymentProof->verified_at
-            ]
-        ]);
     }
 
     public function getGCashQR($branchId = null)
