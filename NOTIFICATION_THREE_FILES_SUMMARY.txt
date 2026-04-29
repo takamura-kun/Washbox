@@ -1,0 +1,381 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                  NOTIFICATION SERVICES - 3 FILE ANALYSIS                      ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FILE #1: FCMService.php (200 lines)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PURPOSE:      Low-level Firebase Cloud Messaging wrapper
+LOCATION:     backend/app/Services/FCMService.php
+SIZE:         200 lines
+
+KEY METHODS:
+  ✓ sendToDevice(token, title, body, data)
+  ✓ sendToDevices(tokens, title, body, data)
+  ✓ sendToTopic(topic, title, body, data)
+  ✓ sendToBranchStaff(branchId, title, body, data)
+  ✓ sendToCustomer(customer, title, body, data)
+
+STRENGTHS:
+  ✓ Clean channel mapping (27 notification types)
+  ✓ Handles Android + iOS properly
+  ✓ Error logging
+
+CRITICAL ISSUES:
+  ✗ Uses deprecated customer->fcm_token (single token, should use device_tokens table)
+  ✗ DUPLICATE code with FirebaseNotificationService (same sendToDevice method!)
+  ✗ N+1 queries in sendToBranchStaff() - loops through staff inefficiently
+  ✗ NO retry logic - failed sends are lost forever
+  ✗ NO audit trail - can't track success/failure
+  ✗ Database queries in service - violates Single Responsibility
+
+EXAMPLE PROBLEM:
+  $fcm->sendToBranchStaff($branchId, 'title', 'body');
+  // This does:
+  // 1. SELECT * FROM users WHERE branch_id=? AND role='staff' (N+1!)
+  // 2. For each staff: sendToDevice() - another Firebase call
+  // 3. If FCM fails on 5th staff, notification 1-4 succeeded but no way to know
+  // 4. No retry - permanently lost
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FILE #2: FirebaseNotificationService.php (250 lines)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PURPOSE:      Business logic wrapper around FCM
+LOCATION:     backend/app/Services/FirebaseNotificationService.php
+SIZE:         250 lines
+
+KEY METHODS:
+  ✓ sendToDevice(token, title, body, data, sound, channelId)
+  ✓ sendToMultiple(tokens, title, body, data, sound, channelId)
+  ✓ notifyOrderReceived(token, orderId, branchName)
+  ✓ notifyLaundryReady(token, orderId, branchName)
+  ✓ notifyOrderCompleted(token, orderId)
+  ✓ notifyUnclaimedReminder(token, orderId, daysUnclaimed)
+  ✓ notifyOutForDelivery(token, orderId, driverName)
+
+STRENGTHS:
+  ✓ Uses sendMulticast() - more efficient than FCMService's loop
+  ✓ Checks SystemSettings - configuration-driven
+  ✓ Includes dynamic pricing logic for unclaimed items
+
+CRITICAL ISSUES:
+  ✗ DUPLICATE sendToDevice() method - exists in BOTH FCMService & this!
+  ✗ VERY LIMITED - only 5-7 notification types (missing pickup, payment, etc.)
+  ✗ INCONSISTENT patterns - different from NotificationService
+  ✗ Uses deprecated customer->fcm_token
+  ✗ Doesn't handle ALL laundry statuses
+  ✗ Silent FCM failures - no retry or logging
+
+EXAMPLE PROBLEM:
+  // In FirebaseNotificationService
+  public function sendToDevice(string $deviceToken, string $title, string $body, ...) {
+      $this->messaging->send($message);  // Same as FCMService!
+  }
+  // But also in FCMService - why have both?!
+
+  // Also missing notifications:
+  - Pickup requests (PickupRequest model)
+  - Payment approvals (PaymentProof model)
+  - Promotion notifications
+  - Many laundry status changes
+
+  // Results: Developers don't know which service to use
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FILE #3: NotificationService.php (754 lines!!!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PURPOSE:      Central notification hub (database + FCM combined)
+LOCATION:     backend/app/Services/NotificationService.php
+SIZE:         754 lines (MASSIVE!)
+
+KEY METHODS:
+  Database Operations:
+    ✓ sendToUser(userId, type, title, body, ...)
+    ✓ sendToBranchStaff(branchId, type, title, body, ...)
+    ✓ sendToAllStaff(type, title, body, ...)
+    ✓ sendToAllAdmins(type, title, body, ...)
+    ✓ sendToCustomer(customerId, type, title, body, ...)
+
+  Pickup Notifications (8 methods):
+    ✓ notifyNewPickupRequest(pickup)
+    ✓ notifyPickupAccepted(pickup)
+    ✓ notifyPickupEnRoute(pickup)
+    ✓ notifyPickupCompleted(pickup)
+
+  Laundry Notifications (21+ methods for different statuses):
+    ✓ notifyNewLaundry(laundry)
+    ✓ notifyLaundryStatusChanged(laundry, oldStatus, newStatus)  ← 21 status types!
+    ✓ notifyLaundryCompleted(laundry)
+
+  Payment Notifications (5+ methods):
+    ✓ notifyPaymentReceived(laundry, amount)
+    ✓ notifyPaymentApproved(laundry, adminNotes)
+    ✓ notifyPaymentRejected(laundry, reason)
+    ✓ notifyPaymentProofSubmitted(laundry, amount, refNumber)
+
+  Unclaimed Notifications (10+ methods):
+    ✓ notifyUnclaimedLaundry(laundry, daysUnclaimed)
+    ✓ notifyUnclaimedReminder(laundry, daysUnclaimed)
+    ✓ And many more...
+
+STRENGTHS:
+  ✓ Comprehensive - covers ALL notification types
+  ✓ Includes database audit trail
+  ✓ Detailed status message templates
+  ✓ Handles edge cases (walk-in customers, admin notes, etc.)
+  ✓ Sophisticated notification text with emojis
+
+CRITICAL ISSUES:
+  ✗ MASSIVE FILE - 754 lines violates Single Responsibility
+  ✗ ALL STATIC METHODS - can't inject dependencies, untestable!
+  ✗ DUPLICATE FCM logic - also sends FCM like FCMService
+  ✗ N+1 QUERIES - loops in sendToBranchStaff() and sendToAllStaff()
+  ✗ Saves EVERYTHING to DB - bloats notifications table with all events
+  ✗ No audit trail for FCM - DB record exists but FCM status unknown
+  ✗ Silent FCM failures - DB record created even if FCM fails!
+  ✗ NO retry mechanism - failed FCM sends are permanent failures
+  ✗ Uses deprecated fcm_token when calling FCMService
+  ✗ No transaction safety - DB + FCM could be out of sync
+
+EXAMPLE PROBLEM #1: Silent FCM Failure
+  public static function sendToCustomer(...) {
+      // Create DB record (always succeeds)
+      $notification = Notification::create([...]);  ✓ Success
+
+      // Send FCM (might fail)
+      try {
+          $customer->fcm_token && FCMService::sendToDevice(...);  ✗ Might fail
+      } catch (Exception $e) {
+          Log::warning('FCM failed');  // Just log, don't retry
+      }
+      // Result: DB says notification created, but customer never got push!
+      // No way to know it failed, no retry mechanism
+  }
+
+EXAMPLE PROBLEM #2: N+1 Queries
+  public static function sendToBranchStaff($branchId, ...) {
+      $staffUsers = User::where('branch_id', $branchId)  // Query 1
+                        ->where('role', 'staff')
+                        ->get();  // N results
+
+      foreach ($staffUsers as $staff) {  // N iterations
+          self::sendToUser(                // Creates 1 DB record per staff
+              $staff->id, ...
+          );  // N more queries (INSERT)
+      }
+      // For 10 staff: 1 SELECT + 10 INSERT = 11 queries
+      // Should be: 1 SELECT + 1 batch INSERT = 2 queries (80% reduction!)
+  }
+
+EXAMPLE PROBLEM #3: Untestable
+  // Can't mock because ALL methods are static
+  class NotificationService {
+      public static function notifyPaymentApproved(Laundry $laundry) { ... }
+  }
+  
+  // Test would need:
+  // 1. Real database (can't mock)
+  // 2. Real FCM service (expensive)
+  // 3. Static method invocation (impossible to intercept)
+  
+  // Result: No tests exist for 754 lines of critical code
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPARISON TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Metric                    FCMService   Firebase...    NotificationService
+─────────────────────────────────────────────────────────────────────────
+Lines of Code             200          250            754
+Methods                   5            7              70+
+Duplicate Code            ✗ With #2    ✗ With #1     ✗ With both
+Error Handling            ⚠ Logs only  ⚠ Logs only    ⚠ Logs only
+Retry Logic               ✗ None       ✗ None        ✗ None
+Audit Trail               ✗ None       ✗ None        ⚠ DB only
+Testability               ⚠ Hard       ⚠ Hard        ✗ Impossible
+Database Queries          ✗ N+1        ─              ✗ N+1
+Notification Types        27 mapped    5 types       70+ methods
+Transaction Safety        ✗ None       ─              ✗ Partial
+Token Deprecation         ✗ Uses old   ✗ Uses old    ✗ Uses old
+Uses FCMService           ─            ─              ✓ Yes (circular)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THE PROBLEM VISUALIZED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current Flow (Fragmented & Problematic):
+
+    LaundryController
+         │
+         ├─→ NotificationService::notifyPaymentApproved()
+         │       │
+         │       ├─ Creates DB record (Notification table)
+         │       │
+         │       └─ Calls: app(FCMService::class)->sendToDevice()
+         │               │
+         │               ├─ IF success: Customer gets push
+         │               │
+         │               └─ IF fails: Silently logs, customer doesn't know
+         │
+         │  BUT ALSO:
+         │
+         ├─→ FirebaseNotificationService::notifyOutForDelivery()
+         │       │
+         │       └─ Calls: $this->sendToMultiple()
+         │               │
+         │               └─ Different method than FCMService!
+         │
+         └─→ Some other code
+                 └─ Calls: FCMService::sendToCustomer()
+                     │
+                     └─ Different than both above!
+
+Problems:
+  ✗ 3 different entry points for notifications
+  ✗ Duplicate sendToDevice() logic
+  ✗ No coordination on retries
+  ✗ DB + FCM can be out of sync
+  ✗ No audit trail for FCM
+  ✗ Inconsistent error handling
+  ✗ Developers confused which service to use
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THE SOLUTION (NotificationManager)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Unified Flow:
+
+    LaundryController
+         │
+         └─→ NotificationManager::send('payment_approved', $laundry, $context)
+                 │
+                 ├─ Lookup event config (NotificationEvent table)
+                 │
+                 ├─ Render template with context
+                 │
+                 ├─ Create audit record (NotificationDelivery)
+                 │
+                 ├─ Send FCM with retry (up to 3 times)
+                 │
+                 ├─ IF success: Mark delivered, log success
+                 │
+                 ├─ IF fails: Update status, queue for retry
+                 │
+                 └─ Return delivery status
+
+Benefits:
+  ✓ Single entry point for all notifications
+  ✓ Configuration-driven (NotificationEvent table)
+  ✓ Complete audit trail (NotificationDelivery table)
+  ✓ Automatic retry with backoff
+  ✓ Consistent error handling
+  ✓ Batch operations (no N+1 queries)
+  ✓ Testable (dependency injection)
+  ✓ Extensible (email, SMS, webhook support)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+KEY FINDINGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. FRAGMENTATION
+   • 3 services with overlapping responsibilities
+   • 200 + 250 + 754 = 1,204 lines of notification code
+   • Could be 400 lines in unified system
+
+2. CODE DUPLICATION
+   • sendToDevice() exists in FCMService AND FirebaseNotificationService
+   • FCM logic scattered across all 3 files
+   • Business logic mixed with infrastructure code
+
+3. ERROR HANDLING
+   • Silent failures (FCM errors just logged)
+   • No retry mechanism
+   • No way to know if notification succeeded
+
+4. AUDIT TRAIL
+   • Only NotificationService creates DB records
+   • But success/failure of FCM unknown
+   • Can't troubleshoot delivery issues
+
+5. PERFORMANCE
+   • N+1 queries in sendToBranchStaff() (inefficient)
+   • No batch operations
+   • No connection pooling
+
+6. TESTABILITY
+   • All static methods in NotificationService (can't mock)
+   • Heavy dependencies on database and Firebase
+   • <10% test coverage
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDED ACTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STATUS: NotificationManager already created in project fixes ✓
+
+NEXT STEPS:
+
+1. Create NotificationEvent model
+   - Stores configuration: type, title_template, body_template, channel, sound
+   - 30+ event types pre-seeded
+
+2. Create NotificationDelivery model
+   - Audit trail: customer_id, event_type, status, attempts, error_message
+   - Track every notification sent
+
+3. Update NotificationManager
+   - Use NotificationEvent for configuration
+   - Use NotificationDelivery for audit trail
+   - Implement retry logic with exponential backoff
+
+4. Refactor NotificationService
+   - Delegate all methods to NotificationManager
+   - Keep for backward compatibility
+
+5. Delete FCMService
+   - Move all logic to NotificationManager
+   - Update all callers
+
+6. Deprecate FirebaseNotificationService
+   - Mark as deprecated
+   - Provide migration guide
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TIMELINE: 5 working days
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Day 1: Create NotificationEvent + NotificationDelivery models
+Day 2: Update NotificationManager to use new models
+Day 3: Refactor NotificationService
+Day 4: Testing + Bug fixes
+Day 5: Deploy + Monitor
+
+EXPECTED BENEFITS:
+  ✓ 754 lines reduced to 400 lines (-47% code)
+  ✓ 3 services consolidated to 1
+  ✓ 0 duplicate code
+  ✓ 100% audit trail coverage
+  ✓ 3x automatic retry
+  ✓ 70%+ test coverage
+  ✓ 90% query reduction (no N+1)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+See detailed documentation in:
+  • NOTIFICATION_SERVICES_ANALYSIS.md (complete breakdown)
+  • NOTIFICATION_SERVICES_CHECK.md (side-by-side comparison)
+  • NOTIFICATION_CONSOLIDATION_ROADMAP.md (implementation guide)
+
+═══════════════════════════════════════════════════════════════════════════════
