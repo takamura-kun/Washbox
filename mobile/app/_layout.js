@@ -69,10 +69,23 @@ function RootLayoutNav() {
     console.log('[FCM] Setting up notification listeners');
     const cleanup = setupNotificationListeners(router);
 
-    // Register FCM token with backend
-    AsyncStorage.getItem(STORAGE_KEYS.TOKEN).then(authToken => {
-      if (authToken) registerForPushNotifications(authToken);
-    });
+    // Register FCM token with backend — retry up to 3 times with delay
+    // OPPO/Xiaomi devices need extra time for Google Play Services to initialize
+    const registerWithRetry = async (attempt = 1) => {
+      const authToken = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
+      if (!authToken) return;
+
+      console.log(`[FCM] Registration attempt ${attempt}`);
+      const token = await registerForPushNotifications(authToken);
+
+      if (!token && attempt < 3) {
+        console.log(`[FCM] Attempt ${attempt} failed, retrying in ${attempt * 3}s...`);
+        setTimeout(() => registerWithRetry(attempt + 1), attempt * 3000);
+      }
+    };
+
+    // Delay first attempt by 2s to let Google Play Services initialize
+    setTimeout(() => registerWithRetry(1), 2000);
 
     // Handle notification that cold-launched the app (app was fully killed)
     handleInitialNotification(router);
