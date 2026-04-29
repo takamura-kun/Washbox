@@ -16,6 +16,11 @@
     "android": {
       "package": "com.washbox.app",
       "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAJEDRs7Etc-GWa7RItV8nIpreoGGjc7oo"
+        }
+      },
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -81,18 +86,18 @@
     },
     "extra": {
       "eas": {
-        "projectId": "6f99a983-06e5-4ced-979b-886b761aaeef"
+        "projectId": "91ed4476-5281-453a-9212-765467aad086"
       },
       "router": {
         "origin": false
       }
     },
-    "owner": "nelcan",
+    "owner": "nelchan",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/6f99a983-06e5-4ced-979b-886b761aaeef"
+      "url": ""
     }
   }
 }
