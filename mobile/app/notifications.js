@@ -35,29 +35,48 @@ export default function NotificationsScreen() {
   useEffect(() => {
     fetchNotifications();
     
-    // Listen for real-time notifications from FCM
-    const unsubscribe = () => {};
-    if (global.__onFCMNotification) {
-      const originalCallback = global.__onFCMNotification;
+    // Create a unique handler for this component instance
+    const handleFCMNotification = (data) => {
+      console.log('[Notifications] Received new notification in real-time:', data);
+      // Immediately refresh notifications list
+      fetchNotifications(true);
+    };
+    
+    // Store the handler on the global object if it doesn't exist
+    if (!global.__fcmNotificationHandlers) {
+      global.__fcmNotificationHandlers = [];
+    }
+    global.__fcmNotificationHandlers.push(handleFCMNotification);
+    
+    // Set up the FCM listener callback (only once)
+    if (!global.__onFCMNotification || typeof global.__onFCMNotification !== 'function') {
       global.__onFCMNotification = (data) => {
-        console.log('[Notifications] Received new notification in real-time:', data);
-        // Immediately refresh notifications list
-        fetchNotifications(true);
-        // Call original if exists
-        if (typeof originalCallback === 'function') {
-          originalCallback(data);
+        // Call all registered handlers
+        if (global.__fcmNotificationHandlers && Array.isArray(global.__fcmNotificationHandlers)) {
+          global.__fcmNotificationHandlers.forEach(handler => {
+            try {
+              handler(data);
+            } catch (e) {
+              console.error('[Notifications] Handler error:', e);
+            }
+          });
         }
       };
     }
     
     const interval = setInterval(() => fetchNotifications(true), 30000);
+    
     return () => {
       clearInterval(interval);
-      if (global.__onFCMNotification) {
-        global.__onFCMNotification = () => {};
+      // Remove this handler from the list
+      if (global.__fcmNotificationHandlers) {
+        const index = global.__fcmNotificationHandlers.indexOf(handleFCMNotification);
+        if (index > -1) {
+          global.__fcmNotificationHandlers.splice(index, 1);
+        }
       }
     };
-  }, [filter]);
+  }, []);
 
   const fetchNotifications = async (isRefresh = false) => {
     try {
