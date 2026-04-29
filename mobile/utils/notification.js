@@ -169,17 +169,8 @@ if (Platform.OS === 'web') {
     } catch (err) {
       console.error('[FCM] Failed to get native FCM token:', err.message);
       console.error('[FCM] Full error:', JSON.stringify(err));
-      console.log('[FCM] Make sure you are running a proper APK build, not Expo Go.');
-      // Last resort fallback — try Expo token so at least something gets saved
-      try {
-        const expoToken = await Notifications.getExpoPushTokenAsync({
-          projectId: '91ed4476-5281-453a-9212-765467aad086',
-        });
-        console.warn('[FCM] Fell back to Expo token:', expoToken.data?.substring(0, 30));
-        // Don't save Expo token — backend will reject it
-      } catch (e2) {
-        console.error('[FCM] Expo token also failed:', e2.message);
-      }
+      // Show visible alert so we can see the error on device
+      Alert.alert('FCM Debug', `Token error: ${err.message}\n\nCode: ${err.code || 'none'}`);
       return null;
     }
 
