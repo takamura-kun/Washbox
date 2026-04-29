@@ -34,8 +34,29 @@ export default function NotificationsScreen() {
 
   useEffect(() => {
     fetchNotifications();
+    
+    // Listen for real-time notifications from FCM
+    const unsubscribe = () => {};
+    if (global.__onFCMNotification) {
+      const originalCallback = global.__onFCMNotification;
+      global.__onFCMNotification = (data) => {
+        console.log('[Notifications] Received new notification in real-time:', data);
+        // Immediately refresh notifications list
+        fetchNotifications(true);
+        // Call original if exists
+        if (typeof originalCallback === 'function') {
+          originalCallback(data);
+        }
+      };
+    }
+    
     const interval = setInterval(() => fetchNotifications(true), 30000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (global.__onFCMNotification) {
+        global.__onFCMNotification = () => {};
+      }
+    };
   }, [filter]);
 
   const fetchNotifications = async (isRefresh = false) => {

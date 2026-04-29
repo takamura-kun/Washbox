@@ -127,7 +127,7 @@ class FirebaseNotificationService
         if (!SystemSetting::get('notify_laundry_received', true)) return false;
         return $this->sendToDevice($token, '📦 Order Received!',
             "Your laundry (Order #$orderId) has been received at $branchName.",
-            ['order_id' => $orderId, 'type' => 'laundry_received'], 'order_update', 'washbox-orders'
+            ['order_id' => $orderId, 'type' => 'laundry_received', 'laundries_id' => $orderId], 'default', 'washbox-orders'
         );
     }
 
@@ -136,7 +136,7 @@ class FirebaseNotificationService
         if (!SystemSetting::get('notify_laundry_ready', true)) return false;
         return $this->sendToDevice($token, '✅ Laundry Ready!',
             "Your laundry (Order #$orderId) is clean and ready for pickup at $branchName.",
-            ['order_id' => $orderId, 'type' => 'laundry_ready'], 'order_update', 'washbox-orders'
+            ['order_id' => $orderId, 'type' => 'laundry_ready', 'laundries_id' => $orderId], 'default', 'washbox-orders'
         );
     }
 
@@ -145,7 +145,7 @@ class FirebaseNotificationService
         if (!SystemSetting::get('notify_laundry_completed', true)) return false;
         return $this->sendToDevice($token, '🎉 Order Completed!',
             "Order #$orderId has been completed. Thank you for choosing WashBox!",
-            ['order_id' => $orderId, 'type' => 'laundry_completed'], 'order_update', 'washbox-orders'
+            ['order_id' => $orderId, 'type' => 'laundry_completed', 'laundries_id' => $orderId], 'default', 'washbox-orders'
         );
     }
 
@@ -156,8 +156,8 @@ class FirebaseNotificationService
         $fee = SystemSetting::get('storage_fee_per_day', 5) * $daysUnclaimed;
         return $this->sendToDevice($token, '⚠️ Unclaimed Laundry Reminder',
             "Order #$orderId has been unclaimed for $daysUnclaimed day(s). Storage fee: ₱$fee. Please pick up soon.",
-            ['order_id' => $orderId, 'type' => 'unclaimed_reminder', 'days' => (string) $daysUnclaimed],
-            'order_update', 'washbox-orders'
+            ['order_id' => $orderId, 'type' => 'unclaimed_reminder', 'days' => (string) $daysUnclaimed, 'laundries_id' => $orderId],
+            'default', 'washbox-orders'
         );
     }
 
@@ -165,7 +165,7 @@ class FirebaseNotificationService
     {
         return $this->sendToDevice($token, '🚚 Out for Delivery!',
             "Your laundry (Order #$orderId) is on its way! Driver: $driverName.",
-            ['order_id' => $orderId, 'type' => 'delivery_en_route'], 'pickup_alert', 'washbox-pickup'
+            ['order_id' => $orderId, 'type' => 'delivery_en_route', 'laundries_id' => $orderId], 'default', 'washbox-pickup'
         );
     }
 }

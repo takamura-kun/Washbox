@@ -111,22 +111,31 @@ if (Platform.OS === 'web') {
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#0EA5E9',
           sound: 'default',
+          bypassDnd: true,
+          enableVibrate: true,
+          enableLights: true,
         });
 
         await Notifications.setNotificationChannelAsync('washbox-orders', {
           name: 'Order Updates',
-          importance: Notifications.AndroidImportance.HIGH,
+          importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 300, 200, 300],
           lightColor: '#10B981',
-          sound: 'order_update',
+          sound: 'default',
+          bypassDnd: true,
+          enableVibrate: true,
+          enableLights: true,
         });
 
         await Notifications.setNotificationChannelAsync('washbox-pickup', {
           name: 'Pickup Notifications',
-          importance: Notifications.AndroidImportance.HIGH,
+          importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 500, 100, 500],
           lightColor: '#F59E0B',
-          sound: 'pickup_alert',
+          sound: 'default',
+          bypassDnd: true,
+          enableVibrate: true,
+          enableLights: true,
         });
 
         await Notifications.setNotificationChannelAsync('washbox-promo', {
@@ -134,8 +143,12 @@ if (Platform.OS === 'web') {
           importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 200, 100, 200],
           lightColor: '#EC4899',
-          sound: 'promo_chime',
+          sound: 'default',
+          enableVibrate: true,
+          enableLights: true,
         });
+        
+        console.log('[FCM] Android notification channels configured with default system sounds');
       } catch (channelError) {
         console.warn('[FCM] Failed to set notification channel:', channelError);
       }
@@ -381,9 +394,15 @@ if (Platform.OS === 'web') {
     const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
       const data = notification.request.content.data;
       console.log('[FCM] Notification received in foreground, type:', data?.type);
+      
       // Dispatch a global event so any screen can react (e.g. refresh notification list)
       if (typeof global.__onFCMNotification === 'function') {
         global.__onFCMNotification(data);
+      }
+      
+      // Also emit a custom event for real-time updates across the app
+      if (typeof global.notificationEventBus === 'object' && global.notificationEventBus.emit) {
+        global.notificationEventBus.emit('notification-received', data);
       }
     });
 
