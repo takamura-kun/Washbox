@@ -163,7 +163,6 @@ if (Platform.OS === 'web') {
     let fcmToken = null;
     try {
       // Use @react-native-firebase/messaging for reliable FCM token on all Android devices
-      // including OPPO, Xiaomi, Vivo which have issues with expo-notifications getDevicePushTokenAsync
       const messaging = require('@react-native-firebase/messaging').default;
 
       // Request permission via Firebase
@@ -172,23 +171,31 @@ if (Platform.OS === 'web') {
         authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
         authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
+      console.log('[FCM] Auth status:', authStatus, 'enabled:', enabled);
+
       if (!enabled) {
         console.log('[FCM] Firebase permission denied');
         return null;
       }
 
-      fcmToken = await messaging().getToken();
+      // Add timeout to prevent silent hang on OPPO devices
+      const tokenPromise = messaging().getToken();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('getToken timeout after 10s')), 10000)
+      );
+
+      fcmToken = await Promise.race([tokenPromise, timeoutPromise]);
       console.log('[FCM] Firebase token obtained:', fcmToken?.substring(0, 20) + '...');
     } catch (err) {
       console.error('[FCM] Firebase messaging failed:', err.message);
       // Fallback to expo-notifications
       try {
+        console.log('[FCM] Trying expo-notifications fallback...');
         const tokenData = await Notifications.getDevicePushTokenAsync();
         fcmToken = tokenData.data;
-        console.log('[FCM] Expo fallback token obtained:', fcmToken?.substring(0, 20) + '...');
+        console.log('[FCM] Expo fallback token:', fcmToken?.substring(0, 20) + '...');
       } catch (err2) {
         console.error('[FCM] Both methods failed:', err2.message);
-        Alert.alert('FCM Debug', `Error: ${err.message}`);
         return null;
       }
     }
