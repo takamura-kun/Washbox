@@ -14,94 +14,151 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
+/* Responsive Pickup Details Page */
 .pk-detail-page {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-}
-
-.pk-hero,
-.pk-panel {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    padding: 0 0.75rem;
 }
 
 .pk-hero {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
     padding: 1.5rem;
+    position: relative;
+}
+
+.pk-header-top {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.pk-header-left {
+    flex: 1;
 }
 
 .pk-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.pk-back-link:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
 }
 
 .pk-title {
-    margin: 0;
+    margin: 0 0 0.5rem 0;
     color: var(--text-primary);
-    font-size: 1.85rem;
-    font-weight: 800;
+    font-size: clamp(1.5rem, 5vw, 2rem);
+    font-weight: 700;
+    line-height: 1.2;
 }
 
 .pk-subtitle {
-    margin: 0.4rem 0 0;
+    margin: 0;
     color: var(--text-secondary);
+    font-size: 0.9rem;
 }
 
 .pk-status-chip {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    padding: 0.7rem 1rem;
-    border-radius: 999px;
-    font-size: 0.92rem;
-    font-weight: 800;
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .pk-status-chip.pending {
-    background: var(--pk-badge-pending-bg);
-    color: var(--pk-badge-pending-text);
+    background: rgba(251, 146, 60, 0.15);
+    color: #ea580c;
 }
 
 .pk-status-chip.accepted {
-    background: var(--pk-badge-accepted-bg);
-    color: var(--pk-badge-accepted-text);
+    background: rgba(59, 130, 246, 0.15);
+    color: #1d4ed8;
 }
 
 .pk-status-chip.en_route {
-    background: var(--pk-badge-enroute-bg);
-    color: var(--pk-badge-enroute-text);
+    background: rgba(34, 197, 94, 0.15);
+    color: #166534;
 }
 
 .pk-status-chip.picked_up {
-    background: var(--pk-badge-pickup-bg);
-    color: var(--pk-badge-pickup-text);
+    background: rgba(34, 197, 94, 0.15);
+    color: #166534;
 }
 
 .pk-status-chip.cancelled {
-    background: var(--pk-badge-cancel-bg);
-    color: var(--pk-badge-cancel-text);
+    background: rgba(239, 68, 68, 0.15);
+    color: #b91c1c;
 }
 
+/* Summary Grid - Responsive */
 .pk-summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 1rem;
-    margin-top: 1.25rem;
+    margin-top: 1.5rem;
+}
+
+@media (min-width: 576px) {
+    .pk-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 992px) {
+    .pk-summary-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .pk-header-top {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+    }
 }
 
 .pk-summary-card {
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 1rem 1.1rem;
-    background: linear-gradient(180deg, rgba(61, 59, 107, 0.08), rgba(61, 59, 107, 0.02));
+    border-radius: 12px;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(34, 197, 94, 0.05));
+    transition: all 0.2s ease;
+}
+
+.pk-summary-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
 
 .pk-summary-label {
-    margin-bottom: 0.4rem;
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--text-secondary);
 }
@@ -110,38 +167,45 @@
     font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
+    word-break: break-word;
 }
 
+/* Panel Styles */
 .pk-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
     overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 .pk-panel-header {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    padding: 1.1rem 1.35rem;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--border-color);
-    color: var(--text-primary);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(34, 197, 94, 0.05));
 }
 
 .pk-panel-header i {
-    font-size: 1.05rem;
+    font-size: 1.25rem;
     color: var(--primary-color);
 }
 
-.pk-panel-header h5,
-.pk-panel-header h6 {
+.pk-panel-header h5 {
     margin: 0;
     font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary);
 }
 
 .pk-panel-body {
-    padding: 1.35rem;
+    padding: 1.25rem;
 }
 
 .pk-field {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .pk-field:last-child {
@@ -150,68 +214,41 @@
 
 .pk-field-label {
     display: block;
-    margin-bottom: 0.25rem;
-    font-size: 0.74rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
+    margin-bottom: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--text-secondary);
 }
 
 .pk-field-value {
     color: var(--text-primary);
-    font-weight: 600;
-    line-height: 1.65;
+    font-weight: 500;
+    line-height: 1.6;
+    word-break: break-word;
 }
 
-.pk-note-box {
-    border: 1px dashed var(--border-color);
-    border-radius: 14px;
-    padding: 1rem;
-    background: rgba(148, 163, 184, 0.08);
-}
-
-.pk-map-actions,
-.pk-action-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.pk-map-actions-inline {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-}
-
-.pk-map-actions-inline .btn,
-.pk-action-stack .btn {
-    border-radius: 12px;
-}
-
+/* Proof Image Styles */
 .pk-proof-image {
     width: 100%;
-    max-height: 200px;
+    max-height: 300px;
     object-fit: cover;
-    border-radius: 16px;
-    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
-    cursor: pointer;
+    border-radius: 12px;
     transition: transform 0.2s ease, filter 0.2s ease;
 }
 
 .pk-proof-image:hover {
     transform: scale(1.02);
-    filter: brightness(1.1);
+    filter: brightness(1.05);
 }
 
 .pk-proof-image-wrapper {
     position: relative;
-    display: inline-block;
     width: 100%;
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(16, 185, 129, 0.1));
-    padding: 2px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(34, 197, 94, 0.1));
 }
 
 .pk-proof-overlay {
@@ -221,7 +258,6 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -241,50 +277,71 @@
 }
 
 .pk-proof-section {
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(16, 185, 129, 0.05));
-    border-radius: 16px;
-    padding: 1.5rem;
-    border: 1px solid rgba(14, 165, 233, 0.2);
-}
-
-.pk-proof-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid rgba(14, 165, 233, 0.15);
-}
-
-.pk-proof-header i {
-    font-size: 1.25rem;
-    color: var(--primary-color);
-}
-
-.pk-proof-header h5 {
-    margin: 0;
-    font-weight: 700;
-    color: var(--text-primary);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(34, 197, 94, 0.05));
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .pk-proof-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(14, 165, 233, 0.2));
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(59, 130, 246, 0.2));
     color: var(--text-primary);
     padding: 0.5rem 1rem;
-    border-radius: 12px;
+    border-radius: 8px;
     font-size: 0.85rem;
     font-weight: 600;
     margin-bottom: 1rem;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .pk-proof-badge i {
-    color: #10B981;
+    color: #16a34a;
 }
 
+/* Note Box */
+.pk-note-box {
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    background: rgba(100, 116, 139, 0.05);
+}
+
+/* Map and Actions */
+.pk-map-actions-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.pk-map-actions-inline .btn,
+.pk-action-stack .btn {
+    border-radius: 8px;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    flex: 1;
+    min-width: 140px;
+}
+
+@media (max-width: 576px) {
+    .pk-map-actions-inline .btn {
+        min-width: auto;
+        flex: 1 1 calc(50% - 0.375rem);
+    }
+}
+
+#pickup-map {
+    height: 260px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+/* Timeline */
 .pk-timeline {
     list-style: none;
     margin: 0;
@@ -293,27 +350,29 @@
 
 .pk-timeline-item {
     position: relative;
-    margin-left: 0.8rem;
-    padding: 0 0 1.25rem 2rem;
+    margin-left: 0;
+    padding: 0 0 1.25rem 2.5rem;
     border-left: 2px solid var(--border-color);
+    margin-left: 0.5rem;
 }
 
 .pk-timeline-item:last-child {
     padding-bottom: 0;
+    border-left: none;
 }
 
 .pk-timeline-dot {
     position: absolute;
-    top: 0.15rem;
-    left: -0.72rem;
-    width: 22px;
-    height: 22px;
-    border-radius: 999px;
+    top: 0;
+    left: -0.6rem;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
     background: var(--card-bg);
-    display: inline-flex;
+    border: 2px solid var(--primary-color);
+    display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
 }
 
 .pk-timeline-meta {
@@ -321,31 +380,24 @@
     font-size: 0.85rem;
 }
 
-.pk-side-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.pk-side-stack hr {
-    border-color: var(--border-color);
-}
-
+/* Alerts */
 .pk-alert-inline {
-    border-radius: 14px;
-    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
 }
 
+/* Modal */
 .pk-modal-close-btn {
     position: absolute;
     top: 1rem;
     right: 1rem;
     z-index: 1050;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     border: none;
     color: white;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -358,20 +410,59 @@
     background: rgba(0, 0, 0, 0.8);
 }
 
-@media (max-width: 991px) {
-    .pk-summary-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+/* Responsive Grid Layout */
+.pk-content-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 992px) {
+    .pk-content-grid {
+        grid-template-columns: 2fr 1fr;
+    }
+    
+    .pk-detail-page {
+        padding: 0;
     }
 }
 
+/* Mobile First Adjustments */
 @media (max-width: 576px) {
-    .pk-hero,
+    .pk-detail-page {
+        padding: 0;
+        gap: 1rem;
+    }
+    
+    .pk-hero {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+    
+    .pk-title {
+        font-size: 1.3rem;
+    }
+    
     .pk-panel-body {
         padding: 1rem;
     }
+    
+    .pk-summary-card {
+        padding: 0.875rem;
+    }
+    
+    .pk-status-chip {
+        padding: 0.625rem 1rem;
+        font-size: 0.8rem;
+    }
+}
 
-    .pk-summary-grid {
-        grid-template-columns: 1fr;
+/* Print Styles */
+@media print {
+    .pk-back-link,
+    .pk-action-stack,
+    .pk-map-actions-inline {
+        display: none;
     }
 }
 </style>
@@ -397,14 +488,15 @@
 @endphp
 
 <div class="pk-detail-page">
+    <!-- Hero Section -->
     <div class="pk-hero">
-        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
-            <div>
-                <a href="{{ route('admin.pickups.index') }}" class="btn btn-outline-secondary btn-sm pk-back-link">
-                    <i class="bi bi-arrow-left"></i> Back to Pickup Requests
+        <div class="pk-header-top">
+            <div class="pk-header-left">
+                <a href="{{ route('admin.pickups.index') }}" class="pk-back-link">
+                    <i class="bi bi-arrow-left"></i> Back
                 </a>
                 <h1 class="pk-title">Pickup Request #{{ $pickup->id }}</h1>
-                <p class="pk-subtitle">This detail view now matches the newer pickup module design used across the admin dashboard.</p>
+                <p class="pk-subtitle">View and manage pickup request details</p>
             </div>
             <div>
                 <span class="pk-status-chip {{ $pickup->status }}">
@@ -414,22 +506,23 @@
             </div>
         </div>
 
+        <!-- Summary Grid -->
         <div class="pk-summary-grid">
             <div class="pk-summary-card">
-                <div class="pk-summary-label">Customer</div>
+                <span class="pk-summary-label"><i class="bi bi-person me-1"></i>Customer</span>
                 <div class="pk-summary-value">{{ $pickup->customer->name }}</div>
             </div>
             <div class="pk-summary-card">
-                <div class="pk-summary-label">Preferred Date</div>
+                <span class="pk-summary-label"><i class="bi bi-calendar me-1"></i>Preferred Date</span>
                 <div class="pk-summary-value">{{ $pickup->preferred_date->format('M d, Y') }}</div>
             </div>
             <div class="pk-summary-card">
-                <div class="pk-summary-label">Branch</div>
+                <span class="pk-summary-label"><i class="bi bi-shop me-1"></i>Branch</span>
                 <div class="pk-summary-value">{{ $pickup->branch->name }}</div>
             </div>
             <div class="pk-summary-card">
-                <div class="pk-summary-label">Total Fee</div>
-                <div class="pk-summary-value">Php {{ number_format($pickup->total_fee ?? 0, 2) }}</div>
+                <span class="pk-summary-label"><i class="bi bi-cash me-1"></i>Total Fee</span>
+                <div class="pk-summary-value">₱{{ number_format($pickup->total_fee ?? 0, 2) }}</div>
             </div>
         </div>
     </div>

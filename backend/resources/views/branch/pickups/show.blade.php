@@ -6,72 +6,189 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-.container-fluid {
+/* Responsive Branch Pickups Show Page */
+:root {
+    --primary-color: #3b82f6;
+    --success-color: #22c55e;
+    --warning-color: #f97316;
+    --danger-color: #ef4444;
+    --info-color: #06b6d4;
+    --bg-color: #f8fafc;
+    --card-bg: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+}
+
+body {
     background: var(--bg-color);
     color: var(--text-primary);
 }
 
+.container-fluid {
+    padding: 1rem;
+    max-width: 100%;
+}
+
+/* Header Responsive */
+.pk-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    align-items: start;
+}
+
+@media (max-width: 640px) {
+    .pk-header {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pk-header-left a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.pk-header-left a:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.pk-header-left h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 5vw, 2rem);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.pk-status-badge {
+    display: inline-block;
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.pk-status-badge.pending {
+    background: rgba(251, 146, 60, 0.15);
+    color: #ea580c;
+}
+
+.pk-status-badge.accepted {
+    background: rgba(59, 130, 246, 0.15);
+    color: #1d4ed8;
+}
+
+.pk-status-badge.en_route {
+    background: rgba(34, 197, 94, 0.15);
+    color: #166534;
+}
+
+.pk-status-badge.picked_up {
+    background: rgba(34, 197, 94, 0.15);
+    color: #166534;
+}
+
+.pk-status-badge.cancelled {
+    background: rgba(239, 68, 68, 0.15);
+    color: #b91c1c;
+}
+
+/* Cards */
 .card {
     background: var(--card-bg);
     border-color: var(--border-color);
     color: var(--text-primary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
 }
 
 .card-header {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(34, 197, 94, 0.05));
     border-bottom-color: var(--border-color);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-header h5 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.card-header i {
+    font-size: 1.1rem;
+    color: var(--primary-color);
+}
+
+.card-body {
+    padding: 1.25rem;
 }
 
 .text-muted {
     color: var(--text-secondary) !important;
 }
 
-.modal-content {
-    background: var(--card-bg);
-    color: var(--text-primary);
-}
-
-.modal-header {
-    border-bottom-color: var(--border-color);
-}
-
-.modal-footer {
-    border-top-color: var(--border-color);
-}
-
-.form-control {
+/* Form Controls */
+.form-control,
+.form-select {
     background: var(--bg-color);
     border-color: var(--border-color);
     color: var(--text-primary);
+    border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
-.form-control:focus {
-    background: var(--bg-color);
+.form-control:focus,
+.form-select:focus {
+    background: var(--card-bg);
     border-color: var(--primary-color);
     color: var(--text-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+/* Proof Images */
 .proof-image {
-    max-height: 200px;
+    max-height: 300px;
     width: 100%;
     object-fit: cover;
-    border-radius: 16px;
+    border-radius: 12px;
     cursor: pointer;
     transition: transform 0.2s ease, filter 0.2s ease;
 }
 
 .proof-image:hover {
     transform: scale(1.02);
-    filter: brightness(1.1);
+    filter: brightness(1.05);
 }
 
 .proof-image-wrapper {
     position: relative;
-    display: inline-block;
     width: 100%;
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(16, 185, 129, 0.1));
-    padding: 2px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(34, 197, 94, 0.1));
+    margin-bottom: 1rem;
 }
 
 .proof-overlay {
@@ -81,7 +198,6 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -96,37 +212,61 @@
 
 .proof-overlay i {
     color: white;
-    font-size: 2rem;
+    font-size: 2.5rem;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .proof-section {
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(16, 185, 129, 0.05));
-    border-radius: 16px;
-    padding: 1.5rem;
-    border: 1px solid rgba(14, 165, 233, 0.2);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(34, 197, 94, 0.05));
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .proof-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(14, 165, 233, 0.2));
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(59, 130, 246, 0.2));
     color: var(--text-primary);
     padding: 0.5rem 1rem;
-    border-radius: 12px;
+    border-radius: 8px;
     font-size: 0.85rem;
     font-weight: 600;
     margin-bottom: 1rem;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .proof-badge i {
-    color: #10B981;
+    color: #16a34a;
 }
 
+/* Alerts */
+.alert {
+    border-radius: 12px;
+    border: 1px solid transparent;
+    margin-bottom: 1.5rem;
+}
+
+/* Modal */
 .modal-backdrop-dark {
     background: rgba(0, 0, 0, 0.95) !important;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border-radius: 12px;
+    border-color: var(--border-color);
+}
+
+.modal-header {
+    border-bottom-color: var(--border-color);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(34, 197, 94, 0.05));
+}
+
+.modal-footer {
+    border-top-color: var(--border-color);
 }
 
 .modal-body-fullscreen {
@@ -142,31 +282,123 @@
     max-height: 90vh;
     object-fit: contain;
 }
+
+/* Responsive Grid */
+.pk-content-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 992px) {
+    .pk-content-grid {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+#pickup-map {
+    height: 260px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 8px;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+/* Timeline */
+.pk-timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.pk-timeline li {
+    margin-bottom: 1.25rem;
+    padding-left: 2.5rem;
+    position: relative;
+}
+
+.pk-timeline i {
+    position: absolute;
+    left: 0;
+    top: 0.2rem;
+    font-size: 1.1rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+    .container-fluid {
+        padding: 0.75rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .card-header h5 {
+        font-size: 0.95rem;
+    }
+    
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .btn,
+    .form-control,
+    .card-header .btn,
+    [onclick] {
+        display: none;
+    }
+}
 </style>
 @endpush
 
 @section('content')
 <div class="container-fluid">
     {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <a href="{{ route('branch.pickups.index') }}" class="btn btn-outline-secondary btn-sm mb-2">
-                <i class="bi bi-arrow-left"></i> Back to List
+    <div class="pk-header">
+        <div class="pk-header-left">
+            <a href="{{ route('branch.pickups.index') }}" class="btn-back">
+                <i class="bi bi-arrow-left"></i> Back to Pickups
             </a>
-            <h1 class="h3 mb-0">Pickup Request #{{ $pickup->id }}</h1>
+            <h1>Pickup Request #{{ $pickup->id }}</h1>
         </div>
         <div>
-            @if($pickup->status == 'pending')
-                <span class="badge bg-warning fs-6">Pending</span>
-            @elseif($pickup->status == 'accepted')
-                <span class="badge bg-info fs-6">Accepted</span>
-            @elseif($pickup->status == 'en_route')
-                <span class="badge bg-primary fs-6">En Route</span>
-            @elseif($pickup->status == 'picked_up')
-                <span class="badge bg-success fs-6">Picked Up</span>
-            @elseif($pickup->status == 'cancelled')
-                <span class="badge bg-danger fs-6">Cancelled</span>
-            @endif
+            <span class="pk-status-badge {{ $pickup->status }}">
+                @if($pickup->status == 'pending')
+                    <i class="bi bi-clock me-2"></i>Pending
+                @elseif($pickup->status == 'accepted')
+                    <i class="bi bi-check-circle me-2"></i>Accepted
+                @elseif($pickup->status == 'en_route')
+                    <i class="bi bi-truck me-2"></i>En Route
+                @elseif($pickup->status == 'picked_up')
+                    <i class="bi bi-box-seam me-2"></i>Picked Up
+                @elseif($pickup->status == 'cancelled')
+                    <i class="bi bi-x-circle me-2"></i>Cancelled
+                @endif
+            </span>
         </div>
     </div>
 
