@@ -90,7 +90,18 @@ const WALKIN_STAGES = [
   { key: 'completed',  label: 'Done',       icon: 'checkmark-done-circle-outline' },
 ];
 
-// Delivery timeline stages
+// Pickup-originated delivery timeline stages
+const PICKUP_DELIVERY_STAGES = [
+  { key: 'pickup',         label: 'Picked Up',   icon: 'car-outline' },
+  { key: 'received',       label: 'Received',    icon: 'receipt-outline' },
+  { key: 'processing',     label: 'Processing',  icon: 'sync-outline' },
+  { key: 'ready',          label: 'Ready',       icon: 'bag-check-outline' },
+  { key: 'out_for_delivery', label: 'Delivery',  icon: 'bicycle-outline' },
+  { key: 'delivered',      label: 'Delivered',   icon: 'home-outline' },
+  { key: 'completed',      label: 'Done',        icon: 'checkmark-done-circle-outline' },
+];
+
+// Walk-in delivery timeline stages (no pickup stage)
 const DELIVERY_STAGES = [
   { key: 'received',         label: 'Received',     icon: 'receipt-outline' },
   { key: 'processing',       label: 'Processing',   icon: 'sync-outline' },
@@ -103,16 +114,29 @@ const DELIVERY_STAGES = [
 const WALKIN_ORDER    = ['received','processing','washing','drying','ironing','folding','ready','ready_for_pickup','paid','completed'];
 const DELIVERY_ORDER  = ['received','processing','washing','drying','ironing','folding','ready','ready_for_pickup','out_for_delivery','delivered','completed'];
 
-const getStageIndex = (status, isDelivery) => {
+const getStageIndex = (status, isDelivery, isPickupOrigin) => {
   const s = status?.toLowerCase();
+  if (isPickupOrigin) {
+    // pickup stage = index 0 (always done since laundry exists)
+    // received=1, processing=2, washing/drying/ironing/folding=2, ready=3, out_for_delivery=4, delivered=5, completed=6
+    const idx = DELIVERY_ORDER.indexOf(s);
+    if (s === 'received')         return 1;
+    if (idx === 1)                return 2; // processing
+    if (idx >= 2 && idx <= 5)     return 2; // washing/drying/ironing/folding → Processing
+    if (idx >= 6 && idx <= 7)     return 3; // ready/ready_for_pickup
+    if (idx === 8)                return 4; // out_for_delivery
+    if (idx === 9)                return 5; // delivered
+    if (idx === 10)               return 6; // completed
+    return 1;
+  }
   if (isDelivery) {
     const idx = DELIVERY_ORDER.indexOf(s);
-    if (idx <= 1) return idx;        // received=0, processing=1
-    if (idx <= 5) return 1;          // washing/drying/ironing/folding → still Processing
-    if (idx <= 7) return 2;          // ready/ready_for_pickup
-    if (idx === 8) return 3;         // out_for_delivery
-    if (idx === 9) return 4;         // delivered
-    if (idx === 10) return 5;        // completed
+    if (idx <= 1) return idx;
+    if (idx <= 5) return 1;
+    if (idx <= 7) return 2;
+    if (idx === 8) return 3;
+    if (idx === 9) return 4;
+    if (idx === 10) return 5;
     return 0;
   }
   const idx = WALKIN_ORDER.indexOf(s);
@@ -124,16 +148,17 @@ const getStageIndex = (status, isDelivery) => {
   return 0;
 };
 
-const HorizontalTimeline = ({ currentStatus, isDelivery }) => {
-  const stages     = isDelivery ? DELIVERY_STAGES : WALKIN_STAGES;
-  const activeIdx  = getStageIndex(currentStatus, isDelivery);
+const HorizontalTimeline = ({ currentStatus, isDelivery, isPickupOrigin }) => {
+  const stages = isPickupOrigin ? PICKUP_DELIVERY_STAGES : isDelivery ? DELIVERY_STAGES : WALKIN_STAGES;
+  const activeIdx  = getStageIndex(currentStatus, isDelivery, isPickupOrigin);
   const isCancelled = currentStatus?.toLowerCase() === 'cancelled';
 
   return (
     <View style={tlStyles.container}>
       {stages.map((stage, index) => {
-        const isCompleted = !isCancelled && index < activeIdx;
-        const isCurrent   = !isCancelled && index === activeIdx;
+        // For pickup-origin: index 0 (Picked Up) is always completed
+        const isCompleted = !isCancelled && (index < activeIdx || (isPickupOrigin && index === 0));
+        const isCurrent   = !isCancelled && index === activeIdx && !(isPickupOrigin && index === 0);
         const isLast      = index === stages.length - 1;
 
         return (
@@ -248,6 +273,25 @@ export default function LaundryDetailsScreen() {
   useEffect(() => { 
     fetchLaundryDetails();
     fetchPaymentProof();
+
+    const interval = setInterval(fetchLaundryDetails, 30000);
+
+    global.__onFCMNotification = (data) => {
+      const notifLaundryId = data?.laundry_id || data?.laundries_id || data?.id;
+      if (
+        data?.type?.startsWith('laundry_') ||
+        data?.type?.startsWith('payment_') ||
+        data?.type?.startsWith('delivery_') ||
+        String(notifLaundryId) === String(id)
+      ) {
+        fetchLaundryDetails();
+      }
+    };
+
+    return () => {
+      clearInterval(interval);
+      global.__onFCMNotification = null;
+    };
   }, [id]);
 
   // Show rating modal when laundry is completed
@@ -347,11 +391,10 @@ export default function LaundryDetailsScreen() {
       });
 
       console.log('GCash QR response status:', response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('GCash QR data received:', data);
-        
         if (data.success) {
           console.log('QR Code URL:', data.data.qr_code_url);
           console.log('Has custom QR:', data.data.has_custom_qr);
@@ -564,7 +607,7 @@ export default function LaundryDetailsScreen() {
       const responseText = await response.text();
       console.log('Response status:', response.status);
       console.log('Response text:', responseText);
-      
+
       let data;
       try {
         data = JSON.parse(responseText);
@@ -624,7 +667,8 @@ export default function LaundryDetailsScreen() {
     );
   }
 
-  const isDelivery     = !!laundry.pickup_request_id && ['both','delivery_only'].includes(laundry.service_type);
+  const isDelivery     = ['both','delivery_only'].includes(laundry.service_type);
+  const isPickupOrigin = !!laundry.pickup_request_id;
   const statusCfg      = getStatusConfig(laundry.status, isDelivery);
   const isCancelled    = laundry.status?.toLowerCase() === 'cancelled';
   const isCompleted    = laundry.status?.toLowerCase() === 'completed';
@@ -640,28 +684,7 @@ export default function LaundryDetailsScreen() {
   const hasDiscount    = parseFloat(laundry.discount_amount) > 0;
   const showCallButton = ['ready','ready_for_pickup','paid'].includes(laundry.status?.toLowerCase()) && laundry.branch_phone;
 
-  // Debug logging
-  console.log('Laundry Debug:', {
-    status: laundry.status,
-    payment_status: laundry.payment_status,
-    payment_method: laundry.payment_method,
-    isReady,
-    canPay,
-    isPaid,
-    isCompleted,
-    isPendingVerification,
-    isCancelled
-  });
-  
-  // Show debug alert
-  console.log('PAYMENT BUTTON DEBUG:', {
-    'Should show payment button (canPay)': canPay,
-    'Status is ready': isReady,
-    'Is paid': isPaid,
-    'Is pending verification': isPendingVerification,
-    'Is cancelled': isCancelled,
-    'Is completed': isCompleted
-  });
+  // Debug logging removed
 
   return (
     <View style={styles.container}>
@@ -719,7 +742,7 @@ export default function LaundryDetailsScreen() {
                   </View>
                 )}
               </View>
-              <HorizontalTimeline currentStatus={laundry.status} isDelivery={isDelivery} />
+              <HorizontalTimeline currentStatus={laundry.status} isDelivery={isDelivery} isPickupOrigin={isPickupOrigin} />
             </View>
           )}
 

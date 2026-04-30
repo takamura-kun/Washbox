@@ -4,7 +4,6 @@ use App\Models\Branch;
 use App\Models\Service;
 use App\Models\Customer;
 use App\Models\DeliveryFee;
-use App\Models\Notification;
 use Illuminate\Http\Request;
 use App\Models\PickupRequest;
 use App\Http\Controllers\Controller;
@@ -108,6 +107,7 @@ class PickupRequestController extends Controller
         $pickup = PickupRequest::findOrFail($id);
         if (!$pickup->canBeAccepted()) return back()->with('error','Cannot accept pickup in current status');
         $pickup->accept(Auth::id());
+        \App\Services\NotificationService::notifyPickupAccepted($pickup);
         return back()->with('success','Pickup request accepted!');
     }
 
@@ -116,6 +116,7 @@ class PickupRequestController extends Controller
         $pickup = PickupRequest::findOrFail($id);
         if (!$pickup->canMarkEnRoute()) return back()->with('error','Cannot mark en route in current status');
         $pickup->markEnRoute();
+        \App\Services\NotificationService::notifyPickupEnRoute($pickup);
         return back()->with('success','Pickup marked as en route!');
     }
 
@@ -145,14 +146,14 @@ class PickupRequestController extends Controller
     {
         $pickup = PickupRequest::findOrFail($id);
         if (!$pickup->canMarkPickedUp()) return back()->with('error','Cannot mark as picked up in current status');
-        
+
         if (!$pickup->pickup_proof_photo) {
             return back()->with('error', 'Please upload proof photo before marking as picked up.');
         }
-        
+
         $pickup->markPickedUp();
-        Notification::createPickupProofUploaded($pickup);
-        
+        \App\Services\NotificationService::notifyPickupCompleted($pickup);
+
         return redirect()->route('admin.laundries.create',['pickup_id'=>$pickup->id])
             ->with('success','Laundry picked up! Customer has been notified. Now create the laundry order.');
     }
@@ -163,6 +164,7 @@ class PickupRequestController extends Controller
         $pickup = PickupRequest::findOrFail($id);
         if (!$pickup->canBeCancelled()) return back()->with('error','Cannot cancel in current status');
         $pickup->cancel($request->reason, Auth::id());
+        \App\Services\NotificationService::notifyPickupCancelled($pickup, $request->reason);
         return back()->with('success','Pickup request cancelled.');
     }
 

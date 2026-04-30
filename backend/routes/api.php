@@ -146,44 +146,44 @@ Route::prefix('v1')->group(function () {
         // Payment Methods
         Route::prefix('payment-methods')->group(function () {
             Route::get('/', [PaymentMethodController::class, 'index']);
-            Route::post('/', [PaymentMethodController::class, 'store']);
-            Route::put('/{id}', [PaymentMethodController::class, 'update']);
-            Route::delete('/{id}', [PaymentMethodController::class, 'destroy']);
-            Route::post('/{id}/set-default', [PaymentMethodController::class, 'setDefault']);
-        });
-
-        // Saved Addresses
-        Route::prefix('addresses')->group(function () {
-            Route::get('/', [AddressController::class, 'index']);
-            Route::post('/', [AddressController::class, 'store']);
-            Route::put('/{id}', [AddressController::class, 'update']);
-            Route::delete('/{id}', [AddressController::class, 'destroy']);
-            Route::post('/{id}/set-default', [AddressController::class, 'setDefault']);
+            Route::post('/', [PaymentMethodController::class, 'store'])->middleware('throttle:10,60'); // 10 payment methods per hour
+            Route::put('/{id}', [PaymentMethodController::class, 'update'])->middleware('throttle:20,60');
+            Route::delete('/{id}', [PaymentMethodController::class, 'destroy'])->middleware('throttle:10,60');
+            Route::post('/{id}/set-default', [PaymentMethodController::class, 'setDefault'])->middleware('throttle:30,60');
         });
 
         // Laundries
         Route::prefix('laundries')->group(function () {
             Route::get('/', [LaundryController::class, 'index']);
-            Route::post('/', [LaundryController::class, 'store']);
+            Route::post('/', [LaundryController::class, 'store'])->middleware('throttle:10,60'); // 10 laundries per hour
             Route::get('/{id}', [LaundryController::class, 'show']);
             Route::get('/{id}/receipt', [LaundryController::class, 'receipt']);
-            Route::put('/{id}/cancel', [LaundryController::class, 'cancel']);
+            Route::put('/{id}/cancel', [LaundryController::class, 'cancel'])->middleware('throttle:10,60'); // 10 cancellations per hour
             Route::post('/{id}/payment-method', [LaundryController::class, 'setPaymentMethod']);
         });
 
         // Pickup Requests (Customer)
         Route::prefix('pickups')->group(function () {
             Route::get('/', [PickupController::class, 'index']);
-            Route::post('/', [PickupController::class, 'store'])->middleware('throttle:10,1'); // 10 pickups per minute
+            Route::post('/', [PickupController::class, 'store'])->middleware('throttle:10,60'); // 10 pickups per hour
             Route::get('/{id}', [PickupController::class, 'show']);
-            Route::put('/{id}/cancel', [PickupController::class, 'cancel']);
+            Route::put('/{id}/cancel', [PickupController::class, 'cancel'])->middleware('throttle:10,60'); // 10 cancellations per hour
+        });
+
+        // Saved Addresses
+        Route::prefix('addresses')->group(function () {
+            Route::get('/', [AddressController::class, 'index']);
+            Route::post('/', [AddressController::class, 'store'])->middleware('throttle:20,60'); // 20 addresses per hour
+            Route::put('/{id}', [AddressController::class, 'update'])->middleware('throttle:30,60'); // 30 updates per hour
+            Route::delete('/{id}', [AddressController::class, 'destroy'])->middleware('throttle:10,60'); // 10 deletions per hour
+            Route::post('/{id}/set-default', [AddressController::class, 'setDefault'])->middleware('throttle:30,60');
         });
 
         // Location Tracking
         Route::prefix('location-tracking')->group(function () {
-            Route::post('/start', [LocationTrackingController::class, 'startTracking']);
-            Route::post('/update', [LocationTrackingController::class, 'updateLocation']);
-            Route::post('/stop', [LocationTrackingController::class, 'stopTracking']);
+            Route::post('/start', [LocationTrackingController::class, 'startTracking'])->middleware('throttle:10,60');
+            Route::post('/update', [LocationTrackingController::class, 'updateLocation'])->middleware('throttle:100,60'); // Frequent updates allowed
+            Route::post('/stop', [LocationTrackingController::class, 'stopTracking'])->middleware('throttle:10,60');
             Route::get('/pickup/{pickupRequestId}', [LocationTrackingController::class, 'getLocations']);
             Route::get('/history/{pickupRequestId}', [LocationTrackingController::class, 'getTrackingHistory']);
         });

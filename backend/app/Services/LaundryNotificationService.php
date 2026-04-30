@@ -8,12 +8,6 @@ use Illuminate\Support\Facades\Log;
 
 class LaundryNotificationService
 {
-    protected FirebaseNotificationService $fcm;
-
-    public function __construct(FirebaseNotificationService $fcm)
-    {
-        $this->fcm = $fcm;
-    }
 
     /**
      * Call this whenever a laundry's status changes.
@@ -29,67 +23,69 @@ class LaundryNotificationService
     {
         if (!SystemSetting::get('enable_push_notifications', true)) return;
 
-        // Skip if no customer
         if (!$laundry->customer_id) {
             Log::info("No customer for Laundry #{$laundry->id}, skipping notification");
             return;
         }
 
-        $tracking = $laundry->tracking_number ?? "#{$laundry->id}";
-        $branch   = optional($laundry->branch)->name ?? 'our branch';
+        $laundry->loadMissing(['customer', 'branch', 'pickupRequest']);
+        $tracking       = $laundry->tracking_number ?? "#{$laundry->id}";
+        $branch         = optional($laundry->branch)->name ?? 'our branch';
+        $isPickupOrigin = (bool) $laundry->pickup_request_id;
 
-        // Send FCM push notification
-        $token = optional($laundry->customer)->fcm_token;
-        if (!empty($token)) {
-            match ($newStatus) {
-                'received'   => $this->fcm->notifyOrderReceived($token, $tracking, $branch),
-                'ready'      => $this->fcm->notifyLaundryReady($token, $tracking, $branch),
-                'paid'       => $this->notifyPaymentReceived($token, $tracking),
-                'completed'  => $this->fcm->notifyOrderCompleted($token, $tracking),
-                'cancelled'  => $this->notifyCancelled($token, $tracking),
-                default      => null, // 'processing' — no notification needed
-            };
-        }
-
-        // Create database notification record for mobile app notifications screen
-        $this->createDatabaseNotification($laundry, $newStatus, $tracking, $branch);
+        // sendToCustomer handles both DB record + FCM push in one call
+        $this->createDatabaseNotification($laundry, $newStatus, $tracking, $branch, $isPickupOrigin);
     }
 
     /**
      * Create database notification record
      */
-    private function createDatabaseNotification(Laundry $laundry, string $status, string $tracking, string $branch): void
+    private function createDatabaseNotification(Laundry $laundry, string $status, string $tracking, string $branch, bool $isPickupOrigin = false): void
     {
         $notificationData = match ($status) {
             'received' => [
-                'type' => 'laundry_received',
-                'title' => 'Laundry Received',
-                'body' => "Your laundry #{$tracking} has been received at {$branch} and is being processed.",
+                'type'  => 'laundry_received',
+                'title' => '📦 Laundry Received',
+                'body'  => $isPickupOrigin
+                    ? "Your laundry #{$tracking} has arrived at {$branch} and is being prepared."
+                    : "Your laundry #{$tracking} has been received at {$branch} and is being processed.",
             ],
             'processing' => [
-                'type' => 'laundry_processing',
-                'title' => 'Laundry Being Processed',
-                'body' => "Your laundry #{$tracking} is now being processed.",
+                'type'  => 'laundry_processing',
+                'title' => '⚙️ Laundry Being Processed',
+                'body'  => "Your laundry #{$tracking} is now being washed and cared for.",
             ],
             'ready' => [
-                'type' => 'laundry_ready',
-                'title' => '✅ Laundry Ready!',
-                'body' => "Your laundry #{$tracking} is clean and ready for pickup at {$branch}.",
+                'type'  => 'laundry_ready',
+                'title' => $isPickupOrigin ? '🚚 Ready for Delivery!' : '✅ Laundry Ready!',
+                'body'  => $isPickupOrigin
+                    ? "Your laundry #{$tracking} is clean and will be delivered back to you soon."
+                    : "Your laundry #{$tracking} is clean and ready for pickup at {$branch}.",
+            ],
+            'out_for_delivery' => [
+                'type'  => 'delivery_en_route',
+                'title' => '🚚 Out for Delivery!',
+                'body'  => "Your laundry #{$tracking} is on its way back to you!",
+            ],
+            'delivered' => [
+                'type'  => 'delivery_completed',
+                'title' => '🏠 Laundry Delivered!',
+                'body'  => "Your laundry #{$tracking} has been delivered. Please check and confirm receipt.",
             ],
             'paid' => [
-                'type' => 'payment_received',
+                'type'  => 'payment_received',
                 'title' => '💳 Payment Confirmed!',
-                'body' => "Payment for Laundry #{$tracking} has been received. Thank you!",
+                'body'  => "Payment for Laundry #{$tracking} has been received. Thank you!",
             ],
             'completed' => [
-                'type' => 'laundry_completed',
-                'title' => '🎉 Order Completed!',
-                'body' => "Order #{$tracking} has been completed. Thank you for choosing WashBox!",
+                'type'  => 'laundry_completed',
+                'title' => '🎉 Laundry Completed!',
+                'body'  => "Laundry #{$tracking} has been completed. Thank you for choosing WashBox!",
             ],
             'cancelled' => [
-                'type' => 'laundry_cancelled',
-                'title' => '❌ Order Cancelled',
-                'body' => "Laundry #{$tracking} has been cancelled. Please contact us if this was a mistake.",
+                'type'  => 'laundry_cancelled',
+                'title' => '❌ Laundry Cancelled',
+                'body'  => "Laundry #{$tracking} has been cancelled. Please contact us if this was a mistake.",
             ],
             default => null,
         };
@@ -101,40 +97,14 @@ class LaundryNotificationService
                 $notificationData['title'],
                 $notificationData['body'],
                 $laundry->id,
-                null,
+                $laundry->pickup_request_id,
                 [
-                    'laundry_id' => $laundry->id,
+                    'laundry_id'      => $laundry->id,
                     'tracking_number' => $tracking,
-                    'status' => $status,
+                    'status'          => $status,
                 ]
             );
         }
-    }
-
-    /**
-     * Payment confirmed notification
-     */
-    private function notifyPaymentReceived(string $token, string $tracking): bool
-    {
-        return $this->fcm->sendToDevice(
-            $token,
-            '💳 Payment Confirmed!',
-            "Payment for Laundry $tracking has been received. Thank you!",
-            ['tracking' => $tracking, 'type' => 'payment_received']
-        );
-    }
-
-    /**
-     * Cancellation notification
-     */
-    private function notifyCancelled(string $token, string $tracking): bool
-    {
-        return $this->fcm->sendToDevice(
-            $token,
-            '❌ Order Cancelled',
-            "Laundry $tracking has been cancelled. Please contact us if this was a mistake.",
-            ['tracking' => $tracking, 'type' => 'cancelled']
-        );
     }
 
     /**
@@ -157,16 +127,27 @@ class LaundryNotificationService
             ->with('customer')
             ->get()
             ->each(function (Laundry $laundry) use ($reminderDays) {
-                $daysUnclaimed = now()->diffInDays($laundry->ready_at);
-                $token = optional($laundry->customer)->fcm_token;
+                if (!$laundry->customer_id) return;
 
-                if (!$token) return;
+                $daysUnclaimed = now()->diffInDays($laundry->ready_at);
 
                 if ($reminderDays->contains($daysUnclaimed)) {
-                    $this->fcm->notifyUnclaimedReminder(
-                        $token,
-                        $laundry->tracking_number ?? $laundry->id,
-                        $daysUnclaimed
+                    $tracking = $laundry->tracking_number ?? "#{$laundry->id}";
+                    $fee = SystemSetting::get('storage_fee_per_day', 5) * $daysUnclaimed;
+
+                    NotificationService::sendToCustomer(
+                        $laundry->customer_id,
+                        'unclaimed_reminder',
+                        '⚠️ Unclaimed Laundry Reminder',
+                        "Your laundry #{$tracking} has been unclaimed for {$daysUnclaimed} day(s). Storage fee: ₱{$fee}. Please pick up soon.",
+                        $laundry->id,
+                        null,
+                        [
+                            'laundry_id'    => $laundry->id,
+                            'tracking'      => $tracking,
+                            'days_unclaimed'=> $daysUnclaimed,
+                            'storage_fee'   => $fee,
+                        ]
                     );
                 }
             });

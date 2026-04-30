@@ -849,6 +849,26 @@ Route::post('/profile/password', [BranchSettingsController::class, 'updatePasswo
     })->name('search');
 });
 
+// Temporary FCM test route - remove after testing
+Route::get('/test-fcm/{customerId}', function ($customerId) {
+    $customer = \App\Models\Customer::find($customerId);
+    if (!$customer) return response()->json(['error' => 'Customer not found']);
+    if (!$customer->fcm_token) return response()->json(['error' => 'No FCM token for this customer', 'customer' => $customer->name]);
+
+    $result = app(\App\Services\FCMService::class)->sendToDevice(
+        $customer->fcm_token,
+        'Test Notification 🔔',
+        'FCM is working correctly! Hello ' . $customer->name,
+        ['type' => 'welcome']
+    );
+
+    return response()->json([
+        'success' => $result,
+        'customer' => $customer->name,
+        'token_prefix' => substr($customer->fcm_token, 0, 20) . '...'
+    ]);
+});
+
 // Test route for chart debugging - ADMIN AUTH REQUIRED
 Route::middleware(['auth', 'admin'])->get('/admin/test-chart', function() {
     $controller = new \App\Http\Controllers\Admin\DashboardController();

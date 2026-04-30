@@ -1,0 +1,42 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('inventory_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('category_id')->constrained('inventory_categories')->onDelete('cascade');
+            $table->string('name');
+            $table->string('brand')->nullable();
+            $table->text('description')->nullable();
+            $table->string('sku')->unique()->nullable();
+            
+            // Units
+            $table->string('purchase_unit')->default('case'); // case, box, sack (for purchasing)
+            $table->string('bulk_unit')->default('case'); // case, box, sack
+            $table->string('distribution_unit')->default('piece'); // piece, sachet, bottle, kg
+            $table->integer('units_per_bulk')->default(1); // e.g., 12 pieces per dozen
+            $table->integer('units_per_purchase')->default(1); // e.g., 12 pieces per case
+            
+            // Pricing
+            $table->decimal('bulk_cost_price', 10, 2)->default(0);
+            $table->decimal('unit_cost_price', 10, 2)->default(0);
+            
+            // Supply type
+            $table->enum('supply_type', ['bulk', 'direct'])->default('bulk');
+            
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('inventory_items');
+    }
+};

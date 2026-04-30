@@ -460,7 +460,122 @@
     color: #f1f5f9 !important;
 }
 
-/* ── Pagination ────────────────────────────────────────────────────── */
+/* ── Pickup Card Component ─────────────────────────────────────────── */
+.pk-pickup-card {
+    background: var(--pk-card-bg);
+    border: 1px solid var(--pk-card-border);
+    border-radius: 14px;
+    box-shadow: var(--pk-card-shadow);
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow .2s, transform .2s;
+    overflow: hidden;
+}
+.pk-pickup-card:hover {
+    box-shadow: var(--pk-card-shadow-hover);
+    transform: translateY(-3px);
+}
+.pk-pickup-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--pk-card-border);
+    gap: .5rem;
+}
+.pk-pickup-card-body {
+    padding: .85rem 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+}
+.pk-pickup-card-footer {
+    padding: .75rem 1rem;
+    border-top: 1px solid var(--pk-card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+/* Info rows inside card body */
+.pk-info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+}
+.pk-info-icon {
+    color: var(--pk-text-muted);
+    font-size: .95rem;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+.pk-date  { font-weight: 600; font-size: .82rem; color: var(--pk-text); }
+.pk-time  { font-size: .78rem; color: var(--pk-text-muted); }
+
+/* Promo tag & map link */
+.pk-promo-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: .7rem; font-weight: 600;
+    background: rgba(99,102,241,0.1); color: #6366f1;
+    padding: 2px 8px; border-radius: 20px;
+}
+[data-theme="dark"] .pk-promo-tag { background: rgba(139,92,246,0.15); color: #a78bfa; }
+.pk-map-link {
+    font-size: .75rem; font-weight: 600;
+    color: var(--pk-primary); text-decoration: none;
+    display: inline-flex; align-items: center; gap: 3px;
+}
+.pk-map-link:hover { text-decoration: underline; }
+
+/* Assignment section */
+.pk-assignment { font-size: .78rem; }
+.pk-assigned-label { color: var(--pk-text-muted); margin-bottom: 1px; }
+.pk-assigned-name  { font-weight: 700; color: var(--pk-text); }
+
+/* ── Tab Buttons ───────────────────────────────────────────────────── */
+.pk-tab-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .5rem 1.1rem;
+    border-radius: 10px;
+    font-size: .85rem; font-weight: 600;
+    border: 1.5px solid var(--pk-card-border);
+    background: var(--pk-card-bg);
+    color: var(--pk-text-muted);
+    text-decoration: none;
+    transition: all .2s;
+}
+.pk-tab-btn:hover {
+    background: var(--pk-table-row-hover);
+    color: var(--pk-text);
+    text-decoration: none;
+}
+.pk-tab-btn.active {
+    background: linear-gradient(135deg, #3D3B6B 0%, #7C78C8 100%);
+    color: #fff;
+    border-color: #3D3B6B;
+}
+.pk-tab-btn.active.success {
+    background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
+    border-color: #15803d;
+}
+.pk-tab-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: .72rem; font-weight: 700;
+    background: rgba(255,255,255,0.25);
+    color: inherit;
+}
+.pk-tab-btn:not(.active) .pk-tab-count {
+    background: rgba(99,102,241,0.12);
+    color: var(--pk-primary);
+}
+
+
 [data-theme="dark"] .page-link {
     background: #1e293b;
     border-color: #334155;

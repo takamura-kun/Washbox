@@ -1043,18 +1043,16 @@ export default function PickupRequestScreen() {
         setNotes('');
         setProofPhoto(null);
         setCurrentStep(0);
-        
+
+        const pickupId = data.data?.pickup?.id || data.data?.id;
         Alert.alert(
           '🎉 Pickup Scheduled!',
           "We'll confirm your request shortly and deliver your laundry back to the same address.",
           [{
-            text: 'View My Laundries',
-            onPress: () => router.push('/(tabs)/laundry'),
-          },
-          {
-            text: 'Done',
-            style: 'cancel',
-            onPress: () => router.push('/(tabs)/'),
+            text: 'View Pickup',
+            onPress: () => pickupId
+              ? router.replace(`/pickups/${pickupId}`)
+              : router.replace('/pickups'),
           }]
         );
       } else {

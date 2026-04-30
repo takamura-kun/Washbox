@@ -39,6 +39,7 @@ const COLORS = {
 const STATUS_COLORS = {
   pending: '#F59E0B',
   accepted: '#0EA5E9',
+  confirmed: '#0EA5E9',
   en_route: '#10B981',
   picked_up: '#8B5CF6',
   cancelled: '#EF4444',
@@ -47,6 +48,7 @@ const STATUS_COLORS = {
 const STATUS_LABELS = {
   pending: 'Pending',
   accepted: 'Accepted',
+  confirmed: 'Confirmed',
   en_route: 'En Route',
   picked_up: 'Picked Up',
   cancelled: 'Cancelled',
@@ -106,7 +108,7 @@ export default function PickupsHistoryScreen() {
   };
 
   // Explicit status lists — safer than exclusion-based filtering
-  const ACTIVE_STATUSES = ['pending', 'accepted', 'en_route'];
+  const ACTIVE_STATUSES = ['pending', 'accepted', 'confirmed', 'en_route'];
   const COMPLETED_STATUSES = ['picked_up', 'cancelled'];
 
   const filteredPickups = useMemo(() => {
@@ -141,7 +143,7 @@ export default function PickupsHistoryScreen() {
   const renderPickupItem = ({ item }) => {
     const statusColor = STATUS_COLORS[item.status] || COLORS.textMuted;
     const statusLabel = STATUS_LABELS[item.status] || item.status;
-    const isActive = ['pending', 'accepted', 'confirmed', 'en_route'].includes(item.status);
+    const isActive = ACTIVE_STATUSES.includes(item.status);
     const pickup = item; // For easier access in nested functions
 
     // Card is now clickable — navigate to details
@@ -325,7 +327,7 @@ export default function PickupsHistoryScreen() {
 
   const counts = {
     all: pickups.length,
-    active: pickups.filter(p => ['pending', 'accepted', 'confirmed', 'en_route'].includes(p.status)).length,
+    active: pickups.filter(p => ACTIVE_STATUSES.includes(p.status)).length,
     completed: pickups.filter(p => ['picked_up', 'cancelled'].includes(p.status)).length,
   };
 

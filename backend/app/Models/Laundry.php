@@ -460,8 +460,14 @@ class Laundry extends Model
 
     public function getTimeline(): array
     {
+        // For pickup-origin orders, always prepend the picked_up timestamp from the pickup request
+        $pickedUpAt = $this->pickup_request_id
+            ? ($this->pickupRequest?->picked_up_at ?? null)
+            : null;
+
         if ($this->isDeliveryOrder()) {
             return [
+                'picked_up'        => $pickedUpAt,
                 'received'         => $this->received_at,
                 'processing'       => $this->processing_at,
                 'ready'            => $this->ready_at,
@@ -469,6 +475,18 @@ class Laundry extends Model
                 'delivered'        => $this->delivered_at,
                 'paid'             => $this->paid_at,
                 'completed'        => $this->completed_at,
+            ];
+        }
+
+        if ($this->pickup_request_id) {
+            // Pickup-origin but walk-in/pickup_only service type
+            return [
+                'picked_up'  => $pickedUpAt,
+                'received'   => $this->received_at,
+                'processing' => $this->processing_at,
+                'ready'      => $this->ready_at,
+                'paid'       => $this->paid_at,
+                'completed'  => $this->completed_at,
             ];
         }
 

@@ -364,7 +364,7 @@ export default function PrivacySecurityScreen() {
   const notificationItems = [
     {
       key: 'orderUpdates',
-      title: 'Order Updates',
+      title: 'Laundry Updates',
       subtitle: 'Notifications about your laundry status',
     },
     {
@@ -640,7 +640,7 @@ export default function PrivacySecurityScreen() {
               <Text style={styles.warningText}>
                 Deleting your account will permanently remove:
                 {"\n"}• All your personal information
-                {"\n"}• Order history and receipts
+                {"\n"}• Laundry history and receipts
                 {"\n"}• Saved addresses and payment methods
                 {"\n"}• Ratings and reviews
                 {"\n"}• All app preferences

@@ -8,7 +8,7 @@ use App\Models\Customer;
 use Illuminate\Http\Request;
 use App\Models\PickupRequest;
 use App\Http\Controllers\Controller;
-use App\Models\Order;  // ✅ Added Order model import
+use App\Models\Order;
 
 class CustomerController extends Controller
 {
@@ -72,7 +72,7 @@ class CustomerController extends Controller
     }
 
     /**
-     * Get active  laundries for authenticated customer
+     * Get active laundries for authenticated customer
      *
      * GET /api/v1/customer/active-laundries
      */
@@ -156,26 +156,20 @@ class CustomerController extends Controller
         try {
             $customer = $request->user();
 
-            // Get total laundries
             $totalLaundries = Laundry::where('customer_id', $customer->id)->count();
 
-            // Get total spent (only from paid/completed laundries)
             $totalSpent = Laundry::where('customer_id', $customer->id)
                 ->whereIn('status', ['paid', 'completed'])
                 ->sum('total_amount');
 
-            // Get pending laundries (in progress)
             $pendingLaundries = Laundry::where('customer_id', $customer->id)
                 ->whereIn('status', ['received', 'processing', 'ready'])
                 ->count();
 
-            // Get active pickups
             $activePickups = PickupRequest::where('customer_id', $customer->id)
                 ->whereIn('status', ['pending', 'accepted', 'en_route'])
                 ->count();
 
-            // Calculate average rating (if you have reviews system)
-            // For now, use a default rating
             $rating = 5.0;
 
             return response()->json([
@@ -216,93 +210,124 @@ class CustomerController extends Controller
         return response()->json($branches);
     }
 
+    /**
+     * Update FCM token for push notifications
+     *
+     * POST /api/v1/customer/fcm-token
+     */
+    public function updateFcmToken(Request $request)
+    {
+        $request->validate([
+            'fcm_token' => 'required|string',
+            'device_type' => 'nullable|in:android,ios',
+            'device_name' => 'nullable|string',
+        ]);
+
+        $customer = $request->user();
+
+        // Store token in device_tokens table
+        \App\Models\DeviceToken::updateOrCreate(
+            [
+                'customer_id' => $customer->id,
+                'token' => $request->fcm_token,
+            ],
+            [
+                'device_type' => $request->device_type ?? 'android',
+                'device_name' => $request->device_name,
+                'is_active' => true,
+                'last_used_at' => now(),
+            ]
+        );
+
+        // Also update customers table for FCMService compatibility
+        $customer->update(['fcm_token' => $request->fcm_token]);
+
+        \Illuminate\Support\Facades\Log::info('FCM token updated', [
+            'customer_id' => $customer->id,
+            'token_prefix' => substr($request->fcm_token, 0, 20) . '...',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'FCM token updated successfully',
+        ]);
+    }
 
     /**
- * Update FCM token for push notifications
- *
- * POST /api/v1/profile/fcm-token
- */
-public function updateFcmToken(Request $request)
-{
-    $request->validate([
-        'fcm_token' => 'required|string',
-    ]);
+     * Clear FCM token on logout
+     *
+     * DELETE /api/v1/customer/fcm-token
+     */
+    public function clearFcmToken(Request $request)
+    {
+        $customer = $request->user();
 
-    $customer = $request->user();
-    $customer->update(['fcm_token' => $request->fcm_token]);
+        // Deactivate all device tokens for this customer
+        \App\Models\DeviceToken::where('customer_id', $customer->id)
+            ->update(['is_active' => false]);
 
-    return response()->json([
-        'success' => true,
-        'message' => 'FCM token updated successfully',
-    ]);
-}
+        // Also clear from customers table
+        $customer->update(['fcm_token' => null]);
 
-/**
- * Clear FCM token on logout
- *
- * DELETE /api/v1/customer/fcm-token
- */
-public function clearFcmToken(Request $request)
-{
-    $customer = $request->user();
-    $customer->update(['fcm_token' => null]);
+        \Illuminate\Support\Facades\Log::info('FCM token cleared', [
+            'customer_id' => $customer->id,
+        ]);
 
-    return response()->json([
-        'success' => true,
-        'message' => 'FCM token cleared',
-    ]);
-}
+        return response()->json([
+            'success' => true,
+            'message' => 'FCM tokens cleared',
+        ]);
+    }
 
-/**
- * Get notification preferences
- *
- * GET /api/v1/customer/notification-preferences
- */
-public function getNotificationPreferences(Request $request)
-{
-    $customer = $request->user();
-    $prefs = $customer->notification_preferences
-        ? (is_array($customer->notification_preferences)
-            ? $customer->notification_preferences
-            : json_decode($customer->notification_preferences, true))
-        : [];
+    /**
+     * Get notification preferences
+     *
+     * GET /api/v1/customer/notification-preferences
+     */
+    public function getNotificationPreferences(Request $request)
+    {
+        $customer = $request->user();
+        $prefs = $customer->notification_preferences
+            ? (is_array($customer->notification_preferences)
+                ? $customer->notification_preferences
+                : json_decode($customer->notification_preferences, true))
+            : [];
 
-    // Default all to true if not set
-    $defaults = [
-        'laundry_received'   => true, 'laundry_ready'      => true,
-        'laundry_completed'  => true, 'laundry_cancelled'  => true,
-        'pickup_accepted'    => true, 'pickup_en_route'    => true,
-        'pickup_completed'   => true, 'delivery_en_route'  => true,
-        'payment_approved'   => true, 'payment_rejected'   => true,
-        'promotion'          => true,
-    ];
+        $defaults = [
+            'laundry_received'   => true, 'laundry_ready'      => true,
+            'laundry_completed'  => true, 'laundry_cancelled'  => true,
+            'pickup_accepted'    => true, 'pickup_en_route'    => true,
+            'pickup_completed'   => true, 'delivery_en_route'  => true,
+            'payment_approved'   => true, 'payment_rejected'   => true,
+            'promotion'          => true,
+        ];
 
-    return response()->json([
-        'success' => true,
-        'data'    => ['preferences' => array_merge($defaults, $prefs)],
-    ]);
-}
+        return response()->json([
+            'success' => true,
+            'data'    => ['preferences' => array_merge($defaults, $prefs)],
+        ]);
+    }
 
-/**
- * Update notification preferences
- *
- * PUT /api/v1/customer/notification-preferences
- */
-public function updateNotificationPreferences(Request $request)
-{
-    $request->validate([
-        'preferences' => 'required|array',
-    ]);
+    /**
+     * Update notification preferences
+     *
+     * PUT /api/v1/customer/notification-preferences
+     */
+    public function updateNotificationPreferences(Request $request)
+    {
+        $request->validate([
+            'preferences' => 'required|array',
+        ]);
 
-    $customer = $request->user();
-    $customer->update([
-        'notification_preferences' => json_encode($request->preferences),
-    ]);
+        $customer = $request->user();
+        $customer->update([
+            'notification_preferences' => json_encode($request->preferences),
+        ]);
 
-    return response()->json([
-        'success' => true,
-        'message' => 'Notification preferences updated',
-        'data'    => ['preferences' => $request->preferences],
-    ]);
-}
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification preferences updated',
+            'data'    => ['preferences' => $request->preferences],
+        ]);
+    }
 }

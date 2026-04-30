@@ -95,7 +95,13 @@ class InventoryAdjustment extends Model
             ->first();
 
         if ($branchStock) {
-            $branchStock->current_stock += $this->quantity;
+            // Deduction types reduce stock; addition types increase stock
+            $deductionTypes = ['damaged', 'expired', 'lost', 'theft', 'spoilage'];
+            $delta = in_array($this->type, $deductionTypes)
+                ? -abs($this->quantity)
+                : abs($this->quantity);
+
+            $branchStock->current_stock += $delta;
             $branchStock->last_updated_at = now();
             $branchStock->save();
         }

@@ -31,11 +31,11 @@ class FirebaseNotificationService
     {
         try {
             $notification = Notification::create($title, $body);
-            
+
             $message = CloudMessage::withTarget('token', $deviceToken)
                 ->withNotification($notification)
                 ->withData($data);
-            
+
             if ($sound) {
                 $message = $message->withAndroidConfig(AndroidConfig::fromArray([
                     'priority' => 'high',
@@ -46,7 +46,7 @@ class FirebaseNotificationService
                         'default_light_settings' => true,
                     ]
                 ]));
-                
+
                 $message = $message->withApnsConfig(ApnsConfig::fromArray([
                     'headers' => ['apns-priority' => '10'],
                     'payload' => [
@@ -80,11 +80,11 @@ class FirebaseNotificationService
 
         try {
             $notification = Notification::create($title, $body);
-            
+
             $message = CloudMessage::new()
                 ->withNotification($notification)
                 ->withData($data);
-            
+
             if ($sound) {
                 $message = $message->withAndroidConfig(AndroidConfig::fromArray([
                     'priority' => 'high',
@@ -95,7 +95,7 @@ class FirebaseNotificationService
                         'default_light_settings' => true,
                     ]
                 ]));
-                
+
                 $message = $message->withApnsConfig(ApnsConfig::fromArray([
                     'headers' => ['apns-priority' => '10'],
                     'payload' => [
@@ -125,8 +125,8 @@ class FirebaseNotificationService
     public function notifyOrderReceived(string $token, string $orderId, string $branchName): bool
     {
         if (!SystemSetting::get('notify_laundry_received', true)) return false;
-        return $this->sendToDevice($token, '📦 Order Received!',
-            "Your laundry (Order #$orderId) has been received at $branchName.",
+        return $this->sendToDevice($token, '📦 Laundry Received!',
+            "Your laundry (Laundry #$orderId) has been received at $branchName.",
             ['order_id' => $orderId, 'type' => 'laundry_received'], 'order_update', 'washbox-orders'
         );
     }
@@ -135,7 +135,7 @@ class FirebaseNotificationService
     {
         if (!SystemSetting::get('notify_laundry_ready', true)) return false;
         return $this->sendToDevice($token, '✅ Laundry Ready!',
-            "Your laundry (Order #$orderId) is clean and ready for pickup at $branchName.",
+            "Your laundry (Laundry #$orderId) is clean and ready for pickup at $branchName.",
             ['order_id' => $orderId, 'type' => 'laundry_ready'], 'order_update', 'washbox-orders'
         );
     }
@@ -143,8 +143,8 @@ class FirebaseNotificationService
     public function notifyOrderCompleted(string $token, string $orderId): bool
     {
         if (!SystemSetting::get('notify_laundry_completed', true)) return false;
-        return $this->sendToDevice($token, '🎉 Order Completed!',
-            "Order #$orderId has been completed. Thank you for choosing WashBox!",
+        return $this->sendToDevice($token, '🎉 Laundry Completed!',
+            "Laundry #$orderId has been completed. Thank you for choosing WashBox!",
             ['order_id' => $orderId, 'type' => 'laundry_completed'], 'order_update', 'washbox-orders'
         );
     }
@@ -155,7 +155,7 @@ class FirebaseNotificationService
         if (!SystemSetting::get("reminder_day_$daysUnclaimed", false)) return false;
         $fee = SystemSetting::get('storage_fee_per_day', 5) * $daysUnclaimed;
         return $this->sendToDevice($token, '⚠️ Unclaimed Laundry Reminder',
-            "Order #$orderId has been unclaimed for $daysUnclaimed day(s). Storage fee: ₱$fee. Please pick up soon.",
+            "Laundry #$orderId has been unclaimed for $daysUnclaimed day(s). Storage fee: ₱$fee. Please pick up soon.",
             ['order_id' => $orderId, 'type' => 'unclaimed_reminder', 'days' => (string) $daysUnclaimed],
             'order_update', 'washbox-orders'
         );
@@ -164,8 +164,58 @@ class FirebaseNotificationService
     public function notifyOutForDelivery(string $token, string $orderId, string $driverName): bool
     {
         return $this->sendToDevice($token, '🚚 Out for Delivery!',
-            "Your laundry (Order #$orderId) is on its way! Driver: $driverName.",
+            "Your laundry (Laundry #$orderId) is on its way! Driver: $driverName.",
             ['order_id' => $orderId, 'type' => 'delivery_en_route'], 'pickup_alert', 'washbox-pickup'
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Pickup Request Notification Helpers
+    // -------------------------------------------------------------------------
+
+    public function notifyPickupSubmitted(string $token, int $pickupId, string $address): bool
+    {
+        return $this->sendToDevice($token, '📨 Pickup Request Received!',
+            "Your pickup request at {$address} has been submitted and is awaiting confirmation.",
+            ['pickup_id' => (string) $pickupId, 'type' => 'pickup_submitted'], 'order_update', 'washbox-orders'
+        );
+    }
+
+    public function notifyPickupAccepted(string $token, int $pickupId, string $branchName, string $schedule): bool
+    {
+        return $this->sendToDevice($token, '✅ Pickup Accepted!',
+            "Your pickup has been accepted by {$branchName}. Staff will arrive on {$schedule}.",
+            ['pickup_id' => (string) $pickupId, 'type' => 'pickup_accepted'], 'order_update', 'washbox-orders'
+        );
+    }
+
+    public function notifyPickupEnRoute(string $token, int $pickupId, string $staffName): bool
+    {
+        return $this->sendToDevice($token, '🚗 Staff On the Way!',
+            "{$staffName} is heading to your location to pick up your laundry.",
+            ['pickup_id' => (string) $pickupId, 'type' => 'pickup_en_route'], 'pickup_alert', 'washbox-pickup'
+        );
+    }
+
+    public function notifyPickupCompleted(string $token, int $pickupId, ?string $trackingNumber = null): bool
+    {
+        $body = 'Your laundry has been picked up and is now at our branch.';
+        if ($trackingNumber) {
+            $body .= " Tracking #: {$trackingNumber}";
+        }
+        return $this->sendToDevice($token, '📦 Laundry Picked Up!',
+            $body,
+            ['pickup_id' => (string) $pickupId, 'type' => 'pickup_completed'], 'order_update', 'washbox-orders'
+        );
+    }
+
+    public function notifyPickupCancelled(string $token, int $pickupId, ?string $reason = null): bool
+    {
+        $body = 'Your pickup request has been cancelled.';
+        if ($reason) $body .= " Reason: {$reason}";
+        return $this->sendToDevice($token, '❌ Pickup Cancelled',
+            $body,
+            ['pickup_id' => (string) $pickupId, 'type' => 'pickup_cancelled'], 'order_update', 'washbox-orders'
         );
     }
 }

@@ -44,11 +44,12 @@ const COLORS = {
 };
 
 const STATUS_CONFIG = {
-  pending:              { color: '#F59E0B', glow: 'rgba(245,158,11,0.15)',   icon: 'time-outline',           label: 'Pending' },
-  accepted:             { color: '#0EA5E9', glow: 'rgba(14,165,233,0.15)',   icon: 'checkmark-circle-outline',label: 'Accepted' },
-  en_route:             { color: '#10B981', glow: 'rgba(16,185,129,0.15)',   icon: 'navigate-outline',        label: 'En Route' },
-  picked_up:            { color: '#8B5CF6', glow: 'rgba(139,92,246,0.15)',   icon: 'bag-handle-outline',      label: 'Picked Up' },
-  cancelled:            { color: '#EF4444', glow: 'rgba(239,68,68,0.15)',    icon: 'close-circle-outline',    label: 'Cancelled' },
+  pending:              { color: '#F59E0B', glow: 'rgba(245,158,11,0.15)',   icon: 'time-outline',            label: 'Pending' },
+  accepted:             { color: '#0EA5E9', glow: 'rgba(14,165,233,0.15)',   icon: 'checkmark-circle-outline', label: 'Accepted' },
+  confirmed:            { color: '#0EA5E9', glow: 'rgba(14,165,233,0.15)',   icon: 'checkmark-circle-outline', label: 'Confirmed' },
+  en_route:             { color: '#10B981', glow: 'rgba(16,185,129,0.15)',   icon: 'navigate-outline',         label: 'En Route' },
+  picked_up:            { color: '#8B5CF6', glow: 'rgba(139,92,246,0.15)',   icon: 'bag-handle-outline',       label: 'Picked Up' },
+  cancelled:            { color: '#EF4444', glow: 'rgba(239,68,68,0.15)',    icon: 'close-circle-outline',     label: 'Cancelled' },
 };
 
 // ─── Status Timeline Steps (Pickup Only) ───
@@ -84,19 +85,13 @@ export default function PickupDetailScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Pickup API Response:', JSON.stringify(data, null, 2)); // Debug log
         if (data.success && data.data) {
-          // Extract pickup from nested structure
           const pickupData = data.data.pickup || data.data;
           const laundryData = data.data.laundry || null;
-          console.log('Pickup Data:', JSON.stringify(pickupData, null, 2)); // Debug log
-          console.log('Laundry Data:', JSON.stringify(laundryData, null, 2)); // Debug log
-          
-          // Combine pickup and laundry data
           setPickup({
             ...pickupData,
             laundry: laundryData,
-            service: pickupData.service || null, // Include service data
+            service: pickupData.service || null,
           });
         }
       } else if (response.status === 401) {
@@ -114,14 +109,25 @@ export default function PickupDetailScreen() {
 
   useEffect(() => {
     fetchPickup();
-    
-    // Auto-refresh every 15 seconds when viewing pickup details
-    const interval = setInterval(() => {
-      fetchPickup();
-    }, 15000);
-    
-    return () => clearInterval(interval);
-  }, [fetchPickup]);
+
+    const interval = setInterval(fetchPickup, 15000);
+
+    // Instant refresh when an FCM notification arrives for this pickup
+    global.__onFCMNotification = (data) => {
+      const notifPickupId = data?.pickup_id || data?.id;
+      if (
+        data?.type?.startsWith('pickup_') ||
+        String(notifPickupId) === String(id)
+      ) {
+        fetchPickup();
+      }
+    };
+
+    return () => {
+      clearInterval(interval);
+      global.__onFCMNotification = null;
+    };
+  }, [fetchPickup, id]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -510,11 +516,11 @@ export default function PickupDetailScreen() {
         )}
 
         {/* ─── Linked Laundry Order ─── */}
-        {pickup.laundries_id && (
+        {pickup.laundry && (
           <View style={styles.card}>
             <View style={styles.linkedHeader}>
               <Ionicons name="link" size={18} color={COLORS.primary} />
-              <Text style={styles.sectionTitle}>Linked Laundry Order</Text>
+              <Text style={styles.sectionTitle}>Linked Laundry</Text>
             </View>
             <View style={styles.linkedBanner}>
               <View style={styles.linkedIconCircle}>
@@ -522,17 +528,15 @@ export default function PickupDetailScreen() {
               </View>
               <View style={styles.linkedContent}>
                 <Text style={styles.linkedLabel}>Your laundry order has been created</Text>
-                <Text style={styles.linkedId}>Order #{pickup.laundries_id}</Text>
-                {pickup.laundry && (
-                  <Text style={styles.linkedStatus}>
-                    Status: {pickup.laundry.status.replace('_', ' ').toUpperCase()}
-                  </Text>
-                )}
+                <Text style={styles.linkedId}>Laundry #{pickup.laundry_id || pickup.laundry?.id}</Text>
+                <Text style={styles.linkedStatus}>
+                  Status: {pickup.laundry.status.replace('_', ' ').toUpperCase()}
+                </Text>
               </View>
             </View>
             <TouchableOpacity
               style={styles.viewLaundryBtn}
-              onPress={() => router.push(`/laundries/${pickup.laundries_id}`)}
+              onPress={() => router.push(`/laundries/${pickup.laundry?.tracking_number || pickup.laundry?.id}`)}
               activeOpacity={0.8}
             >
               <LinearGradient
@@ -542,7 +546,7 @@ export default function PickupDetailScreen() {
                 end={{ x: 1, y: 0 }}
               >
                 <Ionicons name="eye" size={18} color="#FFF" />
-                <Text style={styles.viewLaundryText}>View Laundry Order</Text>
+                <Text style={styles.viewLaundryText}>View Laundry Details</Text>
                 <Ionicons name="arrow-forward" size={16} color="#FFF" />
               </LinearGradient>
             </TouchableOpacity>

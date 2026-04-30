@@ -553,7 +553,7 @@ public function store(Request $request)
 
             return response()->json([
                 'success' => true,
-                'message' => 'Pickup marked as picked up. Laundry order created automatically.',
+                'message' => 'Pickup marked as picked up. Laundry created automatically.',
                 'data' => [
                     'pickup_id' => $pickup->id,
                     'laundry_id' => $laundry->id,

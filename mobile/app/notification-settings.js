@@ -23,8 +23,8 @@ const SETTINGS = [
     items: [
       { key: 'laundry_received',   label: 'Laundry Received',     desc: 'When your laundry arrives at the branch' },
       { key: 'laundry_ready',      label: 'Ready for Pickup',      desc: 'When your laundry is clean and ready' },
-      { key: 'laundry_completed',  label: 'Order Completed',       desc: 'When your order is fully completed' },
-      { key: 'laundry_cancelled',  label: 'Order Cancelled',       desc: 'When an order is cancelled' },
+      { key: 'laundry_completed',  label: 'Laundry Completed',       desc: 'When your order is fully completed' },
+      { key: 'laundry_cancelled',  label: 'Laundry Cancelled',       desc: 'When an order is cancelled' },
     ],
   },
   {

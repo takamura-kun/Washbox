@@ -84,8 +84,8 @@ function RootLayoutNav() {
       }
     };
 
-    // Delay first attempt by 2s to let Google Play Services initialize
-    setTimeout(() => registerWithRetry(1), 2000);
+    // Delay first attempt by 5s on OPPO/ColorOS — GMS needs extra time after SecurityException
+    setTimeout(() => registerWithRetry(1), 5000);
 
     // Handle notification that cold-launched the app (app was fully killed)
     handleInitialNotification(router);
@@ -168,7 +168,7 @@ function RootLayoutNav() {
       
       {/* Promotions - matches app/promotions/index.js */}
       <Stack.Screen 
-        name="promotions/index" 
+        name="promotions" 
         options={{
           presentation: 'card',
           animation: 'slide_from_right',
@@ -177,7 +177,16 @@ function RootLayoutNav() {
       
       {/* Ratings - matches app/ratings/index.js */}
       <Stack.Screen 
-        name="ratings/index" 
+        name="ratings" 
+        options={{
+          presentation: 'card',
+          animation: 'slide_from_right',
+        }}
+      />
+      
+      {/* Receipt - matches app/receipt/[id].js */}
+      <Stack.Screen 
+        name="receipt/[id]" 
         options={{
           presentation: 'card',
           animation: 'slide_from_right',

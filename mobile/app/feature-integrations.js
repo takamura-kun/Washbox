@@ -57,7 +57,7 @@ const FEATURE_INTEGRATIONS = [
   },
   {
     id: 'payment_laundry',
-    title: 'Payment Methods → Laundry Orders',
+    title: 'Payment Methods → Laundry Details',
     description: 'Select payment methods for your laundry orders',
     status: 'pending',
     features: ['payment-methods', 'laundry'],
@@ -70,7 +70,7 @@ const FEATURE_INTEGRATIONS = [
   },
   {
     id: 'promotions_orders',
-    title: 'Promotions → Order Discounts',
+    title: 'Promotions → Laundry Discounts',
     description: 'Apply promotions and discounts to your orders',
     status: 'pending',
     features: ['promotions', 'laundry'],
@@ -78,12 +78,12 @@ const FEATURE_INTEGRATIONS = [
     color: COLORS.accent,
     actions: [
       { label: 'View Promotions', route: '/promotions/index' },
-      { label: 'View Orders', route: '/(tabs)/laundry' },
+      { label: 'View Laundries', route: '/(tabs)/laundry' },
     ],
   },
   {
     id: 'ratings_completed',
-    title: 'Ratings → Completed Orders',
+    title: 'Ratings → Completed Laundry',
     description: 'Rate your completed laundry services',
     status: 'active',
     features: ['ratings', 'laundry'],
@@ -96,7 +96,7 @@ const FEATURE_INTEGRATIONS = [
   },
   {
     id: 'notifications_updates',
-    title: 'Notifications → Order Updates',
+    title: 'Notifications → Laundry Updates',
     description: 'Get notified about order status changes',
     status: 'active',
     features: ['notifications', 'laundry', 'pickup'],

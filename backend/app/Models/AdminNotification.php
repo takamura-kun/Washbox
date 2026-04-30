@@ -126,6 +126,7 @@ class AdminNotification extends Model
             'branch_performance' => 'bi-speedometer2',
             'customer_churn' => 'bi-people',
             'seasonal_trend' => 'bi-graph-up-arrow',
+            'stock_adjustment' => 'bi-box-seam',
             'system' => 'bi-gear',
         ];
 
@@ -426,6 +427,41 @@ class AdminNotification extends Model
             'icon' => $icon,
             'color' => $color,
             'data' => ['metric' => $metric, 'change' => $change, 'period' => $period],
+        ]);
+    }
+
+    /**
+     * Notify admin of a new stock adjustment from a branch
+     */
+    public static function notifyStockAdjustment($adjustment)
+    {
+        $adjustment->loadMissing(['branch', 'item']);
+
+        $typeLabels = [
+            'damaged'  => 'Damaged',
+            'expired'  => 'Expired',
+            'lost'     => 'Lost',
+            'theft'    => 'Theft',
+            'spoilage' => 'Spoilage',
+        ];
+        $typeLabel = $typeLabels[$adjustment->type] ?? ucfirst($adjustment->type);
+
+        return self::create([
+            'type'      => 'stock_adjustment',
+            'title'     => 'Stock Adjustment Pending Approval',
+            'message'   => "{$adjustment->branch->name} reported {$adjustment->quantity} {$typeLabel} — {$adjustment->item->name}. Value loss: ₱" . number_format($adjustment->value_loss, 2),
+            'icon'      => 'box-seam',
+            'color'     => 'warning',
+            'link'      => route('admin.inventory.adjustments.show', $adjustment->id),
+            'data'      => [
+                'adjustment_id' => $adjustment->id,
+                'branch_name'   => $adjustment->branch->name,
+                'item_name'     => $adjustment->item->name,
+                'type'          => $adjustment->type,
+                'quantity'      => $adjustment->quantity,
+                'value_loss'    => $adjustment->value_loss,
+            ],
+            'branch_id' => $adjustment->branch_id,
         ]);
     }
 

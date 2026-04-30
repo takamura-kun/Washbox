@@ -782,7 +782,7 @@
                             </button>
                         @endif
 
-                        @if($pickup->status == 'picked_up' && !$pickup->laundries_id)
+                        @if($pickup->status == 'picked_up' && !$pickup->laundry)
                             <hr>
                             <a href="{{ route('admin.laundries.create', ['pickup_id' => $pickup->id]) }}" class="btn btn-outline-primary w-100">
                                 <i class="bi bi-plus-circle me-1"></i>Create Laundry from Pickup
@@ -814,7 +814,7 @@
                     </div>
                 @endif
 
-                @if($pickup->laundries_id)
+                @if($pickup->laundry)
                     <div class="pk-panel">
                         <div class="pk-panel-header">
                             <i class="bi bi-basket3"></i>
@@ -822,10 +822,22 @@
                         </div>
                         <div class="pk-panel-body">
                             <div class="pk-field">
-                                <span class="pk-field-label">Laundry ID</span>
-                                <div class="pk-field-value">#{{ $pickup->laundries_id }}</div>
+                                <span class="pk-field-label">Tracking #</span>
+                                <div class="pk-field-value">{{ $pickup->laundry->tracking_number }}</div>
                             </div>
-                            <a href="{{ route('admin.laundries.show', $pickup->laundries_id) }}" class="btn btn-outline-primary btn-sm">
+                            <div class="pk-field">
+                                <span class="pk-field-label">Status</span>
+                                <div class="pk-field-value">
+                                    <span class="badge bg-{{ in_array($pickup->laundry->status, ['completed','paid']) ? 'success' : (in_array($pickup->laundry->status, ['cancelled']) ? 'danger' : 'primary') }}">
+                                        {{ $pickup->laundry->status_label }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="pk-field">
+                                <span class="pk-field-label">Total</span>
+                                <div class="pk-field-value">₱{{ number_format($pickup->laundry->total_amount, 2) }}</div>
+                            </div>
+                            <a href="{{ route('admin.laundries.show', $pickup->laundry->id) }}" class="btn btn-outline-primary btn-sm">
                                 <i class="bi bi-box-arrow-up-right me-1"></i>View Laundry
                             </a>
                         </div>

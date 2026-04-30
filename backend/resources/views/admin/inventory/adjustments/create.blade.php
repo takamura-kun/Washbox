@@ -93,11 +93,11 @@
                                 Quantity <span class="text-danger">*</span>
                             </label>
                             <input type="number" name="quantity" id="quantityInput" class="form-control @error('quantity') is-invalid @enderror" 
-                                   value="{{ old('quantity') }}" required>
+                                   value="{{ old('quantity') }}" min="1" required>
                             @error('quantity')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="text-muted">Use negative numbers for reductions (e.g., -5), positive for additions (e.g., +3)</small>
+                            <small class="text-muted">Enter a positive number. The adjustment type determines if stock is added or deducted.</small>
                             <div id="valueLossDisplay" class="mt-2 d-none">
                                 <small class="text-danger">
                                     <i class="bi bi-exclamation-triangle me-1"></i>
@@ -173,8 +173,8 @@
                     <ul class="small mb-0" style="color: var(--text-secondary);">
                         <li class="mb-2">Admin adjustments are automatically approved</li>
                         <li class="mb-2">Stock changes are applied immediately</li>
-                        <li class="mb-2">Use negative numbers to reduce stock (e.g., -5)</li>
-                        <li class="mb-2">Use positive numbers to add stock (e.g., +3)</li>
+                        <li class="mb-2"><strong>Damaged, Expired, Lost, Theft, Spoilage</strong> — deduct from stock</li>
+                        <li class="mb-2"><strong>Found, Correction</strong> — add to stock</li>
                         <li class="mb-0">All adjustments are logged for audit purposes</li>
                     </ul>
                 </div>
@@ -277,10 +277,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    const typeSelect = document.querySelector('select[name="type"]');
+    const DEDUCTION_TYPES = ['damaged', 'expired', 'lost', 'theft', 'spoilage'];
+
     function calculateValueLoss() {
         const qty = parseInt(quantityInput.value) || 0;
-        if (qty < 0) {
-            const loss = Math.abs(qty) * selectedItemCost;
+        const type = typeSelect ? typeSelect.value : '';
+        if (qty > 0 && DEDUCTION_TYPES.includes(type)) {
+            const loss = qty * selectedItemCost;
             valueLoss.textContent = loss.toFixed(2);
             valueLossDisplay.classList.remove('d-none');
         } else {

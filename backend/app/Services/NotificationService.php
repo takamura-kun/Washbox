@@ -274,59 +274,91 @@ class NotificationService
      */
     public static function notifyPickupAccepted(PickupRequest $pickup): Notification
     {
+        $pickup->loadMissing(['branch', 'customer']);
+        $branchName = $pickup->branch?->name ?? 'our branch';
+        $scheduledDate = $pickup->preferred_date?->format('M d, Y') ?? '';
+        $scheduledTime = $pickup->preferred_time ? date('g:i A', strtotime($pickup->preferred_time)) : '';
+        $schedule = trim($scheduledDate . ($scheduledTime ? ' at ' . $scheduledTime : ''));
+
         return self::sendToCustomer(
             $pickup->customer_id,
             'pickup_accepted',
-            'Pickup Request Accepted',
-            'Your pickup request has been accepted. Our staff will arrive at the scheduled time.',
+            '✅ Pickup Request Accepted',
+            "Your pickup request has been accepted by {$branchName}. Our staff will arrive on {$schedule}.",
             null,
             $pickup->id,
-            ['pickup_id' => $pickup->id]
+            ['pickup_id' => $pickup->id, 'branch_name' => $branchName]
         );
+
     }
 
     /**
      * Notify customer that staff is en route
-     * 
-     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyPickupEnRoute(PickupRequest $pickup): Notification
     {
+        $pickup->loadMissing(['assignedStaff', 'customer']);
+        $staffName = $pickup->assignedStaff?->name ?? 'Our staff';
+
         return self::sendToCustomer(
             $pickup->customer_id,
             'pickup_en_route',
-            'Staff En Route',
-            'Our staff is on the way to pick up your laundry.',
+            '🚗 Staff On the Way!',
+            "{$staffName} is on the way to pick up your laundry. Please have it ready.",
             null,
             $pickup->id,
             ['pickup_id' => $pickup->id]
         );
+
     }
 
     /**
      * Notify customer that pickup is completed
-     * 
-     * @SuppressWarnings(PHPMD.CsrfRule) Database operation only, CSRF handled by controller middleware
      */
     public static function notifyPickupCompleted(PickupRequest $pickup, ?Laundry $laundry = null): Notification
     {
-        $body = 'Your laundry has been picked up successfully.';
+        $pickup->loadMissing('customer');
+        $body = 'Your laundry has been picked up and is now at our branch.';
         if ($laundry) {
-            $body .= " Laundry #{$laundry->tracking_number} has been created.";
+            $body .= " Tracking #: {$laundry->tracking_number}. We will notify you as it progresses.";
         }
 
         return self::sendToCustomer(
             $pickup->customer_id,
             'pickup_completed',
-            'Pickup Completed',
+            '📦 Laundry Picked Up!',
             $body,
             $laundry?->id,
             $pickup->id,
             [
-                'pickup_id' => $pickup->id,
-                'laundries_id' => $laundry?->id,
+                'pickup_id'       => $pickup->id,
+                'laundries_id'    => $laundry?->id,
                 'tracking_number' => $laundry?->tracking_number,
             ]
+        );
+
+    }
+
+    /**
+     * Notify customer that pickup was cancelled
+     */
+    public static function notifyPickupCancelled(PickupRequest $pickup, ?string $reason = null): Notification
+    {
+        $pickup->loadMissing('customer');
+        $body = 'Your pickup request has been cancelled.';
+        if ($reason) {
+            $body .= " Reason: {$reason}";
+        }
+        $body .= ' Please contact us if you need assistance.';
+
+        return self::sendToCustomer(
+            $pickup->customer_id,
+            'pickup_cancelled',
+            '❌ Pickup Request Cancelled',
+            $body,
+            null,
+            $pickup->id,
+            ['pickup_id' => $pickup->id, 'reason' => $reason]
         );
     }
 
@@ -657,7 +689,7 @@ class NotificationService
 
         $customerName = $rating->customer?->name ?? 'A customer';
         $branchName   = $rating->branch?->name   ?? 'the branch';
-        $orderRef     = "Order #{$rating->laundry_id}";
+        $orderRef     = "Laundry #{$rating->laundry_id}";
         $stars        = str_repeat('★', $rating->rating) . str_repeat('☆', 5 - $rating->rating);
         $comment      = $rating->comment ? " \"{$rating->comment}\"" : '';
 

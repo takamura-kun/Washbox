@@ -353,7 +353,7 @@ export default function RatingsScreen() {
     const str = String(raw);
     return str.startsWith('#') || str.toLowerCase().startsWith('order')
       ? str
-      : `Order #${str}`;
+      : `Laundry #${str}`;
   };
 
   const getRatingLabel = (rating) => {

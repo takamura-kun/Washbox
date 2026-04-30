@@ -35,7 +35,14 @@ export default function NotificationsScreen() {
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(() => fetchNotifications(true), 30000);
-    return () => clearInterval(interval);
+
+    // Auto-refresh when a new FCM notification arrives while screen is open
+    global.__onFCMNotification = () => fetchNotifications(true);
+
+    return () => {
+      clearInterval(interval);
+      global.__onFCMNotification = null;
+    };
   }, [filter]);
 
   const fetchNotifications = async (isRefresh = false) => {
@@ -399,10 +406,12 @@ export default function NotificationsScreen() {
                 ]}
                 onPress={() => {
                   if (!notification.is_read) markAsRead(notification.id);
-                  if (notification.pickup_request_id) {
-                    router.push(`/pickups/${notification.pickup_request_id}`);
-                  } else if (notification.laundries_id) {
-                    router.push(`/laundries/${notification.laundries_id}`);
+                  const pickupId = notification.pickup_request_id || notification.data?.pickup_id;
+                  const laundryId = notification.laundries_id || notification.data?.laundry_id;
+                  if (pickupId) {
+                    router.push(`/pickups/${pickupId}`);
+                  } else if (laundryId) {
+                    router.push(`/laundries/${laundryId}`);
                   }
                 }}
                 onLongPress={() => {

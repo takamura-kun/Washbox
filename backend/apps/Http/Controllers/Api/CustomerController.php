@@ -1,0 +1,329 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use Log;
+use App\Models\Laundry;
+use App\Models\Customer;
+use Illuminate\Http\Request;
+use App\Models\PickupRequest;
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+
+class CustomerController extends Controller
+{
+    /**
+     * Get customer profile
+     *
+     * GET /api/v1/profile
+     */
+    public function getProfile(Request $request)
+    {
+        $customer = $request->user();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'customer' => [
+                    'id' => $customer->id,
+                    'name' => $customer->name,
+                    'email' => $customer->email,
+                    'phone' => $customer->phone,
+                    'address' => $customer->address,
+                    'preferred_branch_id' => $customer->preferred_branch_id,
+                    'created_at' => $customer->created_at,
+                ],
+            ]
+        ]);
+    }
+
+    /**
+     * Update customer profile
+     *
+     * PUT /api/v1/profile
+     */
+    public function updateProfile(Request $request)
+    {
+        $customer = $request->user();
+
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'phone' => 'sometimes|string|max:20|unique:customers,phone,' . $customer->id,
+            'address' => 'nullable|string|max:500',
+            'preferred_branch_id' => 'nullable|exists:branches,id',
+        ]);
+
+        $customer->update($request->only(['name', 'phone', 'address', 'preferred_branch_id']));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully',
+            'data' => [
+                'customer' => [
+                    'id' => $customer->id,
+                    'name' => $customer->name,
+                    'email' => $customer->email,
+                    'phone' => $customer->phone,
+                    'address' => $customer->address,
+                    'preferred_branch_id' => $customer->preferred_branch_id,
+                ],
+            ]
+        ]);
+    }
+
+    /**
+     * Get active laundries for authenticated customer
+     *
+     * GET /api/v1/customer/active-laundries
+     */
+    public function getActiveLaundries(Request $request)
+    {
+        $customer = $request->user();
+
+        $laundries = Laundry::where('customer_id', $customer->id)
+            ->whereIn('status', ['received', 'processing', 'ready', 'paid'])
+            ->with(['branch', 'service'])
+            ->latest()
+            ->get();
+
+        $formattedLaundries = $laundries->map(function ($laundry) {
+            return [
+                'id' => $laundry->id,
+                'tracking_number' => $laundry->tracking_number,
+                'status' => $laundry->status,
+                'service_name' => $laundry->service->name ?? 'Laundry Service',
+                'branch_name' => $laundry->branch->name ?? 'Branch',
+                'total_amount' => $laundry->total_amount,
+                'estimated_completion' => $laundry->estimated_completion
+                    ? $laundry->estimated_completion->format('M d, h:i A')
+                    : 'Processing',
+                'created_at' => $laundry->created_at->format('M d, Y'),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'laundries' => $formattedLaundries,
+            ]
+        ]);
+    }
+
+    /**
+     * Get latest pickup request for home screen
+     *
+     * GET /api/v1/customer/latest-pickup
+     */
+    public function getLatestPickup(Request $request)
+    {
+        $customer = $request->user();
+
+        $pickup = PickupRequest::where('customer_id', $customer->id)
+            ->whereIn('status', ['pending', 'confirmed', 'in_transit'])
+            ->with('branch')
+            ->latest()
+            ->first();
+
+        if (!$pickup) {
+            return response()->json([
+                'success' => true,
+                'data' => ['pickup' => null]
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'pickup' => [
+                    'id' => $pickup->id,
+                    'status' => $pickup->status,
+                    'pickup_address' => $pickup->pickup_address,
+                    'scheduled_date' => $pickup->scheduled_date->format('M d, Y'),
+                    'scheduled_time' => $pickup->scheduled_time,
+                    'branch_name' => $pickup->branch->name ?? 'Branch',
+                ],
+            ]
+        ]);
+    }
+
+    /**
+     * Get customer statistics
+     *
+     * GET /api/v1/customer/stats
+     */
+    public function getStats(Request $request)
+    {
+        try {
+            $customer = $request->user();
+
+            // Get total laundries
+            $totalLaundries = Laundry::where('customer_id', $customer->id)->count();
+
+            // Get total spent (only from paid/completed laundries)
+            $totalSpent = Laundry::where('customer_id', $customer->id)
+                ->whereIn('status', ['paid', 'completed'])
+                ->sum('total_amount');
+
+            // Get pending laundries (in progress)
+            $pendingLaundries = Laundry::where('customer_id', $customer->id)
+                ->whereIn('status', ['received', 'processing', 'ready'])
+                ->count();
+
+            // Get active pickups
+            $activePickups = PickupRequest::where('customer_id', $customer->id)
+                ->whereIn('status', ['pending', 'accepted', 'en_route'])
+                ->count();
+
+            // Calculate average rating
+            $rating = 5.0;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'stats' => [
+                        'totalLaundries' => (int) $totalLaundries,
+                        'totalSpent' => (float) ($totalSpent ?? 0),
+                        'pendingLaundries' => (int) $pendingLaundries,
+                        'activePickups' => (int) $activePickups,
+                        'rating' => (float) $rating,
+                    ],
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in getStats: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch statistics',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get branches (public endpoint)
+     *
+     * GET /api/v1/branches
+     */
+    public function getBranches()
+    {
+        $branches = \App\Models\Branch::where('is_active', true)
+            ->select('id', 'name', 'code', 'city', 'address', 'phone', 'email')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json($branches);
+    }
+
+    /**
+     * Update FCM token for push notifications
+     *
+     * POST /api/v1/customer/fcm-token
+     */
+    public function updateFcmToken(Request $request)
+    {
+        $request->validate([
+            'fcm_token' => 'required|string',
+            'device_type' => 'nullable|in:android,ios',
+            'device_name' => 'nullable|string',
+        ]);
+
+        $customer = $request->user();
+
+        // Store token in device_tokens table (proper way)
+        \App\Models\DeviceToken::updateOrCreate(
+            [
+                'customer_id' => $customer->id,
+                'token' => $request->fcm_token,
+            ],
+            [
+                'device_type' => $request->device_type ?? 'android',
+                'device_name' => $request->device_name,
+                'is_active' => true,
+                'last_used_at' => now(),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'FCM token updated successfully',
+        ]);
+    }
+
+    /**
+     * Clear FCM token on logout
+     *
+     * DELETE /api/v1/customer/fcm-token
+     */
+    public function clearFcmToken(Request $request)
+    {
+        $customer = $request->user();
+
+        // Deactivate all device tokens for this customer
+        \App\Models\DeviceToken::where('customer_id', $customer->id)
+            ->update(['is_active' => false]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'FCM tokens cleared',
+        ]);
+    }
+
+    /**
+     * Get notification preferences
+     *
+     * GET /api/v1/customer/notification-preferences
+     */
+    public function getNotificationPreferences(Request $request)
+    {
+        $customer = $request->user();
+        $prefs = $customer->notification_preferences
+            ? (is_array($customer->notification_preferences)
+                ? $customer->notification_preferences
+                : json_decode($customer->notification_preferences, true))
+            : [];
+
+        // Default all to true if not set
+        $defaults = [
+            'laundry_received'   => true,
+            'laundry_ready'      => true,
+            'laundry_completed'  => true,
+            'laundry_cancelled'  => true,
+            'pickup_accepted'    => true,
+            'pickup_en_route'    => true,
+            'pickup_completed'   => true,
+            'delivery_en_route'  => true,
+            'payment_approved'   => true,
+            'payment_rejected'   => true,
+            'promotion'          => true,
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data'    => ['preferences' => array_merge($defaults, $prefs)],
+        ]);
+    }
+
+    /**
+     * Update notification preferences
+     *
+     * PUT /api/v1/customer/notification-preferences
+     */
+    public function updateNotificationPreferences(Request $request)
+    {
+        $request->validate([
+            'preferences' => 'required|array',
+        ]);
+
+        $customer = $request->user();
+        $customer->update([
+            'notification_preferences' => json_encode($request->preferences),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification preferences updated',
+            'data'    => ['preferences' => $request->preferences],
+        ]);
+    }
+}

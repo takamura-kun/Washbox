@@ -703,7 +703,7 @@ export default function HomeScreen() {
                 </View>
                 <Text style={styles.emptyStateTitle}>No active laundries</Text>
                 <Text style={styles.emptyStateText}>
-                  Start your first laundry order today
+                  Start your first laundry  today
                 </Text>
                 <TouchableOpacity
                   style={styles.emptyStateButton}

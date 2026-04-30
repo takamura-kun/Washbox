@@ -40,14 +40,15 @@ class AdminNotificationController extends Controller
 
         // Notification types for filter
         $types = [
-            'pickup_request' => 'Pickup Requests',
-            'new_laundry' => 'New Laundries',
-            'payment' => 'Payments',
-            'laundry_completed' => 'Completed Laundries',
-            'laundry_cancelled' => 'Cancelled Laundries',
-            'unclaimed' => 'Unclaimed Laundry',
-            'new_customer' => 'New Customers',
-            'system' => 'System',
+            'pickup_request'   => 'Pickup Requests',
+            'new_laundry'      => 'New Laundries',
+            'payment'          => 'Payments',
+            'laundry_completed'=> 'Completed Laundries',
+            'laundry_cancelled'=> 'Cancelled Laundries',
+            'unclaimed'        => 'Unclaimed Laundry',
+            'new_customer'     => 'New Customers',
+            'stock_adjustment' => 'Stock Adjustments',
+            'system'           => 'System',
         ];
 
         return view('admin.notifications.index', compact('notifications', 'stats', 'types'));

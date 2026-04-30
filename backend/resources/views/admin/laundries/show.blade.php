@@ -635,17 +635,16 @@
             @php
                 $timeline = $laundry->getTimeline();
                 $stageLabels = [
-                    'received'         => ['icon' => 'inbox-fill',        'label' => 'Order Received'],
-                    'processing'       => ['icon' => 'gear-fill',          'label' => 'Processing'],
-                    'ready'            => ['icon' => 'check-circle-fill',  'label' => $laundry->isDeliveryOrder() ? 'Ready for Delivery' : 'Ready for Pickup'],
-                    'out_for_delivery' => ['icon' => 'truck',              'label' => 'Out for Delivery'],
-                    'delivered'        => ['icon' => 'house-check-fill',   'label' => 'Delivered'],
-                    'paid'             => ['icon' => 'credit-card-fill',   'label' => 'Payment Completed'],
-                    'completed'        => ['icon' => 'check-all',          'label' => 'Order Completed'],
+                    'picked_up'        => ['icon' => 'car-front-fill',        'label' => 'Picked Up from Customer'],
+                    'received'         => ['icon' => 'inbox-fill',             'label' => 'Order Received'],
+                    'processing'       => ['icon' => 'gear-fill',              'label' => 'Processing'],
+                    'ready'            => ['icon' => 'check-circle-fill',      'label' => $laundry->isDeliveryOrder() ? 'Ready for Delivery' : 'Ready for Pickup'],
+                    'out_for_delivery' => ['icon' => 'truck',                  'label' => 'Out for Delivery'],
+                    'delivered'        => ['icon' => 'house-check-fill',       'label' => 'Delivered'],
+                    'paid'             => ['icon' => 'credit-card-fill',       'label' => 'Payment Completed'],
+                    'completed'        => ['icon' => 'check-all',              'label' => 'Order Completed'],
                 ];
-                $stages = $laundry->isDeliveryOrder()
-                    ? ['received','processing','ready','out_for_delivery','delivered','paid','completed']
-                    : ['received','processing','ready','paid','completed'];
+                $stages = array_keys($timeline);
                 $currentReached = false;
             @endphp
             <div class="tl-wrap">

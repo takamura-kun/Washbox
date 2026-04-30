@@ -111,7 +111,7 @@ export default function LaundryConfirmScreen() {
               style={styles.buttonGradient}
             >
               <Ionicons name="eye-outline" size={20} color="#FFF" />
-              <Text style={styles.buttonText}>Track Order</Text>
+              <Text style={styles.buttonText}>Track Laundry</Text>
             </LinearGradient>
           </TouchableOpacity>
 

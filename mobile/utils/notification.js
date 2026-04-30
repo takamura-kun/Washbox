@@ -98,7 +98,7 @@ if (Platform.OS === 'web') {
       return null;
     }
 
-    if (!Device.default.isDevice) {
+   if (!Device.default?.isDevice && !Device.isDevice) {
       console.log('[FCM] Skipping — not a physical device (simulator/emulator)');
       return null;
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Branch;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminNotification;
 use App\Models\InventoryAdjustment;
 use App\Models\BranchStock;
 use Illuminate\Http\Request;
@@ -112,7 +113,7 @@ class StockAdjustmentController extends Controller
             }
 
             // Create adjustment (pending approval)
-            InventoryAdjustment::create([
+            $adjustment = InventoryAdjustment::create([
                 'branch_id' => $branchId,
                 'inventory_item_id' => $validated['inventory_item_id'],
                 'type' => $validated['type'],
@@ -124,6 +125,9 @@ class StockAdjustmentController extends Controller
                 'adjusted_by' => auth()->id(),
                 'status' => 'pending',
             ]);
+
+            // Notify admin
+            AdminNotification::notifyStockAdjustment($adjustment);
 
             DB::commit();
 

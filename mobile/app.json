@@ -89,13 +89,13 @@
     },
     "extra": {
       "eas": {
-        "projectId": "91ed4476-5281-453a-9212-765467aad086"
+        "projectId": "ef2dfe1f-a630-4c93-875c-4163b6bd5fc2"
       },
       "router": {
         "origin": false
       }
     },
-    "owner": "nelchan",
+    "owner": "jannel",
     "runtimeVersion": {
       "policy": "appVersion"
     },

@@ -5,10 +5,10 @@ use App\Models\Laundry;
 use App\Models\Service;
 use App\Models\Customer;
 use App\Models\DeliveryFee;
-use App\Models\Notification;
 use Illuminate\Http\Request;
 use App\Models\PickupRequest;
 use App\Services\RouteService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -130,23 +130,25 @@ class PickupRequestController extends Controller
 
     public function accept($id)
     {
-        $branch=Auth::guard('branch')->user();
-        $pickup=PickupRequest::findOrFail($id);
-        if ($pickup->branch_id!=$branch->id) abort(403);
-        if (!$pickup->canBeAccepted()) return back()->with('error','Cannot accept in current status.');
+        $branch = Auth::guard('branch')->user();
+        $pickup = PickupRequest::findOrFail($id);
+        if ($pickup->branch_id != $branch->id) abort(403);
+        if (!$pickup->canBeAccepted()) return back()->with('error', 'Cannot accept in current status.');
         $pickup->accept($branch->id);
-        return back()->with('success','Pickup accepted and assigned to you!');
+        NotificationService::notifyPickupAccepted($pickup);
+        return back()->with('success', 'Pickup accepted and assigned to you!');
     }
 
     public function markEnRoute($id)
     {
-        $branch=Auth::guard('branch')->user();
-        $pickup=PickupRequest::findOrFail($id);
-        if ($pickup->branch_id!=$branch->id) abort(403);
-        if ($pickup->assigned_to!=$branch->id) return back()->with('error','You are not assigned to this pickup.');
-        if (!$pickup->canMarkEnRoute()) return back()->with('error','Cannot mark en route in current status.');
+        $branch = Auth::guard('branch')->user();
+        $pickup = PickupRequest::findOrFail($id);
+        if ($pickup->branch_id != $branch->id) abort(403);
+        if ($pickup->assigned_to != $branch->id) return back()->with('error', 'You are not assigned to this pickup.');
+        if (!$pickup->canMarkEnRoute()) return back()->with('error', 'Cannot mark en route in current status.');
         $pickup->markEnRoute();
-        return back()->with('success','Status updated: On the way to customer!');
+        NotificationService::notifyPickupEnRoute($pickup);
+        return back()->with('success', 'Status updated: On the way to customer!');
     }
 
     public function uploadProof(Request $request, $id)
@@ -175,32 +177,33 @@ class PickupRequestController extends Controller
 
     public function markPickedUp($id)
     {
-        $branch=Auth::guard('branch')->user();
-        $pickup=PickupRequest::findOrFail($id);
-        if ($pickup->branch_id!=$branch->id) abort(403);
-        if ($pickup->assigned_to!=$branch->id) return back()->with('error','You are not assigned to this pickup.');
-        if (!$pickup->canMarkPickedUp()) return back()->with('error','Cannot mark as picked up in current status.');
-        
+        $branch = Auth::guard('branch')->user();
+        $pickup = PickupRequest::findOrFail($id);
+        if ($pickup->branch_id != $branch->id) abort(403);
+        if ($pickup->assigned_to != $branch->id) return back()->with('error', 'You are not assigned to this pickup.');
+        if (!$pickup->canMarkPickedUp()) return back()->with('error', 'Cannot mark as picked up in current status.');
+
         if (!$pickup->pickup_proof_photo) {
             return back()->with('error', 'Please upload proof photo before marking as picked up.');
         }
-        
+
         $pickup->markPickedUp();
-        Notification::createPickupProofUploaded($pickup);
-        
-        return redirect()->route('branch.laundries.create',['pickup_id'=>$pickup->id])
-            ->with('success','Laundry picked up! Customer has been notified. Now create the laundry order.');
+        NotificationService::notifyPickupCompleted($pickup);
+
+        return redirect()->route('branch.laundries.create', ['pickup_id' => $pickup->id])
+            ->with('success', 'Laundry picked up! Customer has been notified. Now create the laundry service.');
     }
 
     public function cancel(Request $request, $id)
     {
-        $branch=Auth::guard('branch')->user();
-        $request->validate(['reason'=>'required|string|max:500']);
-        $pickup=PickupRequest::findOrFail($id);
-        if ($pickup->branch_id!=$branch->id) abort(403);
-        if (!$pickup->canBeCancelled()) return back()->with('error','Cannot cancel in current status.');
-        $pickup->cancel($request->reason,$branch->id);
-        return back()->with('success','Pickup request cancelled.');
+        $branch = Auth::guard('branch')->user();
+        $request->validate(['reason' => 'required|string|max:500']);
+        $pickup = PickupRequest::findOrFail($id);
+        if ($pickup->branch_id != $branch->id) abort(403);
+        if (!$pickup->canBeCancelled()) return back()->with('error', 'Cannot cancel in current status.');
+        $pickup->cancel($request->reason, $branch->id);
+        NotificationService::notifyPickupCancelled($pickup, $request->reason);
+        return back()->with('success', 'Pickup request cancelled.');
     }
 
     public function stats()
@@ -236,15 +239,16 @@ class PickupRequestController extends Controller
         }
     }
 
-    public function startNavigation(Request $request,$id)
+    public function startNavigation(Request $request, $id)
     {
         try {
-            $branch=Auth::guard('branch')->user();
-            $pickup=PickupRequest::where('id',$id)->where('branch_id',$branch->id)->firstOrFail();
-            $pickup->update(['status'=>'en_route','en_route_at'=>now(),'assigned_to'=>$branch->id]);
-            return response()->json(['success'=>true,'message'=>'Navigation started for pickup #'.$pickup->id,'pickup'=>$pickup->fresh()]);
-        } catch(\Exception $e) {
-            return response()->json(['success'=>false,'error'=>$e->getMessage()],500);
+            $branch = Auth::guard('branch')->user();
+            $pickup = PickupRequest::where('id', $id)->where('branch_id', $branch->id)->firstOrFail();
+            $pickup->markEnRoute($branch->id);
+            NotificationService::notifyPickupEnRoute($pickup);
+            return response()->json(['success' => true, 'message' => 'Navigation started for pickup #' . $pickup->id, 'pickup' => $pickup->fresh()]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }
 
@@ -253,24 +257,25 @@ class PickupRequestController extends Controller
         try {
             $branch = Auth::guard('branch')->user();
             $pickupIds = $request->input('pickup_ids', []);
-            
+
             if (empty($pickupIds)) {
                 return response()->json(['success' => false, 'error' => 'No pickups selected'], 400);
             }
-            
-            $updated = PickupRequest::whereIn('id', $pickupIds)
+
+            $pickups = PickupRequest::whereIn('id', $pickupIds)
                 ->where('branch_id', $branch->id)
                 ->whereIn('status', ['pending', 'accepted'])
-                ->update([
-                    'status' => 'en_route',
-                    'en_route_at' => now(),
-                    'assigned_to' => $branch->id
-                ]);
-            
+                ->get();
+
+            foreach ($pickups as $pickup) {
+                $pickup->markEnRoute($branch->id);
+                NotificationService::notifyPickupEnRoute($pickup);
+            }
+
             return response()->json([
-                'success' => true,
-                'message' => "Navigation started for {$updated} pickup(s)",
-                'updated_count' => $updated
+                'success'       => true,
+                'message'       => "Navigation started for {$pickups->count()} pickup(s)",
+                'updated_count' => $pickups->count(),
             ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);

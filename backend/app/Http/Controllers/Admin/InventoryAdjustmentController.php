@@ -86,7 +86,7 @@ class InventoryAdjustmentController extends Controller
             'branch_id' => 'required|exists:branches,id',
             'inventory_item_id' => 'required|exists:inventory_items,id',
             'type' => 'required|in:damaged,expired,lost,found,correction,theft,spoilage',
-            'quantity' => 'required|integer',
+            'quantity' => 'required|integer|min:1',
             'reason' => 'required|string|max:255',
             'notes' => 'nullable|string|max:1000',
             'photo_proof' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
@@ -103,14 +103,20 @@ class InventoryAdjustmentController extends Controller
                 return back()->with('error', 'Item not found in branch stock!');
             }
 
-            $newStock = $branchStock->current_stock + $validated['quantity'];
+            // Deduction types reduce stock; addition types increase stock
+            $deductionTypes = ['damaged', 'expired', 'lost', 'theft', 'spoilage'];
+            $delta = in_array($validated['type'], $deductionTypes)
+                ? -abs($validated['quantity'])
+                : abs($validated['quantity']);
+
+            $newStock = $branchStock->current_stock + $delta;
             if ($newStock < 0) {
                 return back()->with('error', 'Adjustment would cause negative stock!');
             }
 
-            // Calculate value loss (for reductions only)
+            // Calculate value loss (for deduction types only)
             $valueLoss = 0;
-            if ($validated['quantity'] < 0) {
+            if (in_array($validated['type'], $deductionTypes)) {
                 $unitCost = $branchStock->cost_price ?? $branchStock->inventoryItem->unit_cost_price;
                 $valueLoss = abs($validated['quantity']) * $unitCost;
             }

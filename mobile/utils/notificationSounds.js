@@ -57,48 +57,11 @@ export const getNotificationChannel = (notificationType) => {
   return channelMap[notificationType] || channelMap.default;
 };
 
-// Sound file mapping
+// Sound file mapping - Using default system sounds
 export const getNotificationSound = (notificationType) => {
-  const soundMap = {
-    // Order sounds - professional chime
-    'laundry_received': 'order_update',
-    'laundry_ready': 'order_update',
-    'laundry_completed': 'order_update', 
-    'payment_received': 'order_update',
-    'payment_pending': 'order_update',
-    'payment_verification': 'order_update',
-    'payment_rejected': 'order_update',
-    
-    // Pickup sounds - alert tone
-    'pickup_submitted': 'pickup_alert',
-    'pickup_accepted': 'pickup_alert',
-    'pickup_en_route': 'pickup_alert',
-    'pickup_completed': 'pickup_alert',
-    'delivery_en_route': 'pickup_alert',
-    'delivery_scheduled': 'pickup_alert',
-    'delivery_completed': 'pickup_alert',
-    'delivery_failed': 'pickup_alert',
-    'unclaimed_reminder': 'pickup_alert',
-    
-    // System & Emergency - urgent alert
-    'emergency_alert': 'pickup_alert',
-    'system_maintenance': 'order_update',
-    'app_update': 'promo_chime',
-    'branch_closure': 'order_update',
-    'service_update': 'order_update',
-    
-    // Promotional sounds - gentle chime
-    'promotion': 'promo_chime',
-    'welcome': 'promo_chime',
-    'feedback_request': 'promo_chime',
-    'loyalty_reward': 'promo_chime',
-    'birthday_greeting': 'promo_chime',
-    
-    // Default system sound
-    'default': 'default'
-  };
-  
-  return soundMap[notificationType] || soundMap.default;
+  // All notifications use the default Android system sound
+  // Custom sounds were removed as they require audio files in the app
+  return 'default';
 };
 
 // Vibration pattern mapping
