@@ -33,8 +33,9 @@ class PaymentProofController extends Controller
 
             // Validate input
             $validated = $request->validate([
-                'reference_number' => 'nullable|string|max:255',
                 'proof_image' => 'required|image|mimes:jpeg,png,jpg|max:5120', // 5MB max
+                'reference_number' => 'nullable|string|max:255',
+                'amount' => 'nullable|numeric', // For reference, actual amount from laundry
                 'notes' => 'nullable|string|max:500',
             ]);
 

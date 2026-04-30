@@ -483,7 +483,7 @@ export default function LaundryDetailsScreen() {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: false,  // No cropping for full receipt capture
         quality: 0.9,  // Higher quality for receipt text clarity
       });
@@ -508,7 +508,7 @@ export default function LaundryDetailsScreen() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: false,  // Disable cropping to allow full photo
         quality: 0.8,
         allowsMultipleSelection: false,
