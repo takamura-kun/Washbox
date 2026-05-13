@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2025-05-13" agent="5.0" version="24.0.0" type="device">
+  <diagram name="WashBox DFD" id="WashBox_DFD_Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- TITLE -->
+        <mxCell id="title" value="WashBox - Data Flow Diagram (DFD Level 0)" style="text;html=1;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;spacingTop=20;" vertex="1" parent="1">
+          <mxGeometry x="0" y="10" width="1200" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- ======================== EXTERNAL ENTITIES (TOP ROW) ======================== -->
+        <!-- Customer App -->
+        <mxCell id="CUST" value="Customer&#10;App" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#000;fillColor=#E1F5FE;strokeColor=#0288D1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="70" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Admin Panel -->
+        <mxCell id="ADMIN" value="Admin&#10;Panel" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#000;fillColor=#E1F5FE;strokeColor=#0288D1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="200" y="70" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Branch Staff -->
+        <mxCell id="BRANCH" value="Branch&#10;Staff" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#000;fillColor=#E1F5FE;strokeColor=#0288D1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="350" y="70" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Driver App -->
+        <mxCell id="DRIVER" value="Driver&#10;App" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#000;fillColor=#E1F5FE;strokeColor=#0288D1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="500" y="70" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Firebase FCM -->
+        <mxCell id="FCM" value="Firebase&#10;FCM" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#000;fillColor=#E1F5FE;strokeColor=#0288D1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="650" y="70" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- GCash API -->
+        <mxCell id="GCASH" value="GCash&#10;API" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#000;fillColor=#E1F5FE;strokeColor=#0288D1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="800" y="70" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Email Service -->
+        <mxCell id="EMAIL" value="Email&#10;Service" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#000;fillColor=#E1F5FE;strokeColor=#0288D1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="950" y="70" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- ======================== CORE PROCESSES (MIDDLE ROW) ======================== -->
+        <!-- P1: Authentication -->
+        <mxCell id="P1" value="P1&#10;Auth &amp;&#10;Profile" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="200" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- P2: Service & Promotion -->
+        <mxCell id="P2" value="P2&#10;Service &amp;&#10;Promo" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="160" y="200" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- P3: Pickup Request -->
+        <mxCell id="P3" value="P3&#10;Pickup&#10;Request" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="270" y="200" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- P4: Laundry Order -->
+        <mxCell id="P4" value="P4&#10;Laundry&#10;Order" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="200" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- P5: Payment -->
+        <mxCell id="P5" value="P5&#10;Payment&#10;Verify" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="490" y="200" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- P6: Inventory -->
+        <mxCell id="P6" value="P6&#10;Inventory&#10;Mgmt" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="200" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- P7: Location Tracking -->
+        <mxCell id="P7" value="P7&#10;Location&#10;Track" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="710" y="200" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- P8: Notifications -->
+        <mxCell id="P8" value="P8&#10;Status &amp;&#10;Notif" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="820" y="200" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- P9: Financial -->
+        <mxCell id="P9" value="P9&#10;Financial&#10;Track" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="930" y="200" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- P10: Reporting -->
+        <mxCell id="P10" value="P10&#10;Reporting &amp;&#10;Analytics" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="200" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- P11: Device Token (Bottom Row Left) -->
+        <mxCell id="P11" value="P11&#10;Device&#10;Token" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="105" y="340" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- P12: Audit Logging (Bottom Row Right) -->
+        <mxCell id="P12" value="P12&#10;Audit&#10;Logging" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontColor=#000;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="975" y="340" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- ======================== DATA STORES (BOTTOM ROW) ======================== -->
+        <!-- D1: Customer Accounts -->
+        <mxCell id="D1" value="D1 - Customer&#10;Accounts&#10;(15K)" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fontSize=10;fontColor=#000;fillColor=#F0F4C3;strokeColor=#9CCC65;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="480" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- D2: Services -->
+        <mxCell id="D2" value="D2 - Services&#10;&amp; Categories&#10;(300)" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fontSize=10;fontColor=#000;fillColor=#F0F4C3;strokeColor=#9CCC65;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="160" y="480" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- D3: Pickup Requests -->
+        <mxCell id="D3" value="D3 - Pickup&#10;Requests&#10;(50K)" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fontSize=10;fontColor=#000;fillColor=#F0F4C3;strokeColor=#9CCC65;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="270" y="480" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- D4: Laundry Orders -->
+        <mxCell id="D4" value="D4 - Laundry&#10;Orders&#10;(100K)" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fontSize=10;fontColor=#000;fillColor=#F0F4C3;strokeColor=#9CCC65;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="480" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- D5: Payment Records -->
+        <mxCell id="D5" value="D5 - Payment&#10;Records&#10;(80K)" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fontSize=10;fontColor=#000;fillColor=#F0F4C3;strokeColor=#9CCC65;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="490" y="480" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- D6: Inventory -->
+        <mxCell id="D6" value="D6 - Inventory&#10;Items&#10;(5K)" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fontSize=10;fontColor=#000;fillColor=#F0F4C3;strokeColor=#9CCC65;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="480" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- D7: Location History -->
+        <mxCell id="D7" value="D7 - Location&#10;History&#10;(1M)" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fontSize=10;fontColor=#000;fillColor=#F0F4C3;strokeColor=#9CCC65;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="710" y="480" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- D8: Promotions -->
+        <mxCell id="D8" value="D8 - Promotions&#10;&#10;(500)" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fontSize=10;fontColor=#000;fillColor=#F0F4C3;strokeColor=#9CCC65;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="820" y="480" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- D9: Device Tokens -->
+        <mxCell id="D9" value="D9 - Device&#10;Tokens&#10;(20K)" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fontSize=10;fontColor=#000;fillColor=#F0F4C3;strokeColor=#9CCC65;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="930" y="480" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- D10: Financial Transactions -->
+        <mxCell id="D10" value="D10 - Financial&#10;Transactions&#10;(200K)" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fontSize=9;fontColor=#000;fillColor=#F0F4C3;strokeColor=#9CCC65;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="480" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- D11: Audit Logs -->
+        <mxCell id="D11" value="D11 - Audit&#10;Logs&#10;(1M)" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fontSize=10;fontColor=#000;fillColor=#F0F4C3;strokeColor=#9CCC65;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="105" y="630" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- ======================== DATA FLOWS - EXTERNAL ENTITIES TO PROCESSES ======================== -->
+        <!-- Customer to P1 -->
+        <mxCell id="edge_CUST_P1" value="login, profile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="CUST" target="P1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Customer to P3 -->
+        <mxCell id="edge_CUST_P3" value="request pickup" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="CUST" target="P3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Customer to P5 -->
+        <mxCell id="edge_CUST_P5" value="payment proof" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="CUST" target="P5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Admin to P2 -->
+        <mxCell id="edge_ADMIN_P2" value="manage services" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="ADMIN" target="P2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Admin to P5 -->
+        <mxCell id="edge_ADMIN_P5" value="verify payments" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="ADMIN" target="P5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Branch to P3 -->
+        <mxCell id="edge_BRANCH_P3" value="accept pickup" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="BRANCH" target="P3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Branch to P4 -->
+        <mxCell id="edge_BRANCH_P4" value="process laundry" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="BRANCH" target="P4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Driver to P3 -->
+        <mxCell id="edge_DRIVER_P3" value="accept pickup" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="DRIVER" target="P3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Driver to P7 -->
+        <mxCell id="edge_DRIVER_P7" value="update location" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="DRIVER" target="P7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Firebase to P8 -->
+        <mxCell id="edge_FCM_P8" value="notifications" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="FCM" target="P8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P11 to Firebase -->
+        <mxCell id="edge_P11_FCM" value="token data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="P11" target="FCM">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- GCash to P5 -->
+        <mxCell id="edge_GCASH_P5" value="payment status" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="GCASH" target="P5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P9 to GCash -->
+        <mxCell id="edge_P9_GCASH" value="payment request" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="P9" target="GCASH">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Email to P8 -->
+        <mxCell id="edge_EMAIL_P8" value="send email" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;fontColor=#000;" edge="1" parent="1" source="EMAIL" target="P8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- ======================== PROCESS TO DATA STORE FLOWS ======================== -->
+        <!-- P1 <-> D1 -->
+        <mxCell id="edge_P1_D1" value="read/write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;dashed=1;" edge="1" parent="1" source="P1" target="D1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P2 <-> D2 -->
+        <mxCell id="edge_P2_D2" value="read/write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;dashed=1;" edge="1" parent="1" source="P2" target="D2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P2 <-> D8 -->
+        <mxCell id="edge_P2_D8" value="read/write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;dashed=1;" edge="1" parent="1" source="P2" target="D8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P3 <-> D3 -->
+        <mxCell id="edge_P3_D3" value="read/write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;dashed=1;" edge="1" parent="1" source="P3" target="D3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P3 -> D1 -->
+        <mxCell id="edge_P3_D1" value="read customer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;" edge="1" parent="1" source="P3" target="D1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P4 <-> D4 -->
+        <mxCell id="edge_P4_D4" value="read/write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;dashed=1;" edge="1" parent="1" source="P4" target="D4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P4 -> D6 -->
+        <mxCell id="edge_P4_D6" value="read inventory" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;" edge="1" parent="1" source="P4" target="D6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P5 <-> D5 -->
+        <mxCell id="edge_P5_D5" value="read/write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;dashed=1;" edge="1" parent="1" source="P5" target="D5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P6 <-> D6 -->
+        <mxCell id="edge_P6_D6" value="read/write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;dashed=1;" edge="1" parent="1" source="P6" target="D6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P7 <-> D7 -->
+        <mxCell id="edge_P7_D7" value="store locations" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;dashed=1;" edge="1" parent="1" source="P7" target="D7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P8 -> D9 -->
+        <mxCell id="edge_P8_D9" value="read tokens" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;" edge="1" parent="1" source="P8" target="D9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P9 <-> D10 -->
+        <mxCell id="edge_P9_D10" value="record tx" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;dashed=1;" edge="1" parent="1" source="P9" target="D10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P11 <-> D9 -->
+        <mxCell id="edge_P11_D9" value="store tokens" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;dashed=1;" edge="1" parent="1" source="P11" target="D9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- P12 <-> D11 -->
+        <mxCell id="edge_P12_D11" value="log activities" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9;fontColor=#000;dashed=1;" edge="1" parent="1" source="P12" target="D11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- ======================== LEGEND ======================== -->
+        <mxCell id="legend" value="Legend: Blue = External Entities | Yellow = Processes (P1-P12) | Green = Data Stores (D1-D11) | Solid = Direct Flow | Dashed = Read/Write" style="text;html=1;fontSize=10;align=left;verticalAlign=top;spacingTop=10;fillColor=#f5f5f5;rounded=1;strokeColor=#cccccc;" vertex="1" parent="1">
+          <mxGeometry x="50" y="740" width="1100" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
